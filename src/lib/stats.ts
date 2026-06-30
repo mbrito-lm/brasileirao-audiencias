@@ -1,5 +1,27 @@
 import { Game } from "@/data/games";
 
+export const PNT_DETENTORES = new Set(["Globo", "Record", "Premiere", "SporTV"]);
+
+export function getMetric(game: Game): number | null {
+  if (PNT_DETENTORES.has(game.detentor)) {
+    return game.pnt ?? game.audiencia;
+  }
+  return game.audiencia;
+}
+
+export function formatMetric(detentor: string, value: number | null): string {
+  if (value === null) return "—";
+  if (PNT_DETENTORES.has(detentor)) {
+    return value.toFixed(1).replace(".", ",") + " pts";
+  }
+  return formatAudiencia(value);
+}
+
+export function metricLabel(detentor: string | null): string {
+  if (detentor && PNT_DETENTORES.has(detentor)) return "Pontos (PNT)";
+  return "Espectadores";
+}
+
 export function avg(nums: number[]): number {
   if (!nums.length) return 0;
   return nums.reduce((a, b) => a + b, 0) / nums.length;
@@ -12,34 +34,23 @@ export function deltaPercent(value: number, mean: number): number | null {
 
 export function mediaDetentor(games: Game[], detentor: string): number {
   const vals = games
-    .filter((g) => g.detentor === detentor && g.audiencia !== null)
-    .map((g) => g.audiencia as number);
+    .filter((g) => g.detentor === detentor && getMetric(g) !== null)
+    .map((g) => getMetric(g) as number);
   return avg(vals);
 }
 
-export function mediaDiaHorario(
-  games: Game[],
-  detentor: string,
-  dia: string,
-  horario: string
-): number {
+export function mediaDiaHorario(games: Game[], detentor: string, dia: string, horario: string): number {
   const norm = (h: string) => h.substring(0, 5);
   const vals = games
-    .filter(
-      (g) =>
-        g.detentor === detentor &&
-        g.dia === dia &&
-        norm(g.horario) === norm(horario) &&
-        g.audiencia !== null
-    )
-    .map((g) => g.audiencia as number);
+    .filter((g) => g.detentor === detentor && g.dia === dia && norm(g.horario) === norm(horario) && getMetric(g) !== null)
+    .map((g) => getMetric(g) as number);
   return avg(vals);
 }
 
 export function mediaTime(games: Game[], detentor: string, time: string): number {
   const vals = games
-    .filter((g) => g.detentor === detentor && (g.mandante === time || g.visitante === time) && g.audiencia !== null)
-    .map((g) => g.audiencia as number);
+    .filter((g) => g.detentor === detentor && (g.mandante === time || g.visitante === time) && getMetric(g) !== null)
+    .map((g) => getMetric(g) as number);
   return avg(vals);
 }
 
@@ -81,27 +92,21 @@ export function parseDate(dateStr: string): number {
 export function getChartData(
   games: Game[],
   detentor: string | null
-): {
-  rodada: number;
-  "2025": number | null;
-  "2026": number | null;
-  avg2025: number;
-  avg2026: number;
-}[] {
-  const filtered = detentor ? games.filter((g) => g.detentor === detentor) : games;
-  const maxRodada = Math.max(...filtered.map((g) => g.rodada));
+): { rodada: number; "2025": number | null; "2026": number | null; avg2025: number; avg2026: number }[] {
+  const filtered = detentor ? games.filter((g) => g.detentor === detentor) : games.filter((g) => !PNT_DETENTORES.has(g.detentor));
+  const maxRodada = filtered.length ? Math.max(...filtered.map((g) => g.rodada)) : 0;
 
-  const all2025 = filtered.filter((g) => g.ano === 2025 && g.audiencia !== null).map((g) => g.audiencia as number);
-  const all2026 = filtered.filter((g) => g.ano === 2026 && g.audiencia !== null).map((g) => g.audiencia as number);
-  const avg2025 = avg(all2025);
-  const avg2026 = avg(all2026);
+  const all25 = filtered.filter((g) => g.ano === 2025 && getMetric(g) !== null).map((g) => getMetric(g) as number);
+  const all26 = filtered.filter((g) => g.ano === 2026 && getMetric(g) !== null).map((g) => getMetric(g) as number);
+  const avg2025 = avg(all25);
+  const avg2026 = avg(all26);
 
   const result = [];
   for (let r = 1; r <= maxRodada; r++) {
-    const g25 = filtered.filter((g) => g.rodada === r && g.ano === 2025 && g.audiencia !== null);
-    const g26 = filtered.filter((g) => g.rodada === r && g.ano === 2026 && g.audiencia !== null);
-    const v25 = g25.length ? avg(g25.map((g) => g.audiencia as number)) : null;
-    const v26 = g26.length ? avg(g26.map((g) => g.audiencia as number)) : null;
+    const g25 = filtered.filter((g) => g.rodada === r && g.ano === 2025 && getMetric(g) !== null);
+    const g26 = filtered.filter((g) => g.rodada === r && g.ano === 2026 && getMetric(g) !== null);
+    const v25 = g25.length ? avg(g25.map((g) => getMetric(g) as number)) : null;
+    const v26 = g26.length ? avg(g26.map((g) => getMetric(g) as number)) : null;
     if (v25 !== null || v26 !== null) {
       result.push({ rodada: r, "2025": v25, "2026": v26, avg2025, avg2026 });
     }

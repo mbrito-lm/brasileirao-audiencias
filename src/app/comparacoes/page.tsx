@@ -4,10 +4,11 @@ import { games, DETENTORES, DETENTOR_COLORS } from "@/data/games";
 import { LOGOS } from "@/data/logos";
 import {
   mediaDetentor, mediaDiaHorario, mediaTimes,
-  deltaPercent, formatAudiencia, formatDelta, deltaClass, getAllTeams, parseDate,
+  getMetric, formatMetric,
+  deltaPercent, formatDelta, deltaClass, getAllTeams, parseDate,
 } from "@/lib/stats";
 
-type SortKey = "data" | "rodada" | "audiencia" | "deltaDet" | "deltaSlot" | "deltaTimes";
+type SortKey = "data" | "rodada" | "metric" | "deltaDet" | "deltaSlot" | "deltaTimes";
 
 const DIAS = ["dom.", "sáb.", "sex.", "qui.", "qua.", "ter.", "seg."];
 const HORARIOS = Array.from(new Set(games.map((g) => g.horario.substring(0, 5)))).sort();
@@ -23,7 +24,7 @@ export default function ComparacoesPage() {
   const [selRodadas, setSelRodadas] = useState<number[]>([]);
   const [selTimes, setSelTimes] = useState<string[]>([]);
   const [search, setSearch] = useState("");
-  const [sortKey, setSortKey] = useState<SortKey>("audiencia");
+  const [sortKey, setSortKey] = useState<SortKey>("metric");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   const handleSort = (k: SortKey) => {
@@ -41,15 +42,16 @@ export default function ComparacoesPage() {
       .filter((g) => !selTimes.length || selTimes.some((t) => g.mandante === t || g.visitante === t))
       .filter((g) => !search.trim() || g.mandante.toLowerCase().includes(search.toLowerCase()) || g.visitante.toLowerCase().includes(search.toLowerCase()))
       .map((g) => {
-        const aud = g.audiencia;
+        const metric = getMetric(g);
         const medDet = mediaDetentor(games, g.detentor);
         const medSlot = mediaDiaHorario(games, g.detentor, g.dia, g.horario);
         const medTms = mediaTimes(games, g.detentor, g.mandante, g.visitante);
         return {
           ...g,
-          deltaDet: aud !== null ? deltaPercent(aud, medDet) : null,
-          deltaSlot: aud !== null ? deltaPercent(aud, medSlot) : null,
-          deltaTimes: aud !== null ? deltaPercent(aud, medTms) : null,
+          _metric: metric,
+          deltaDet: metric !== null ? deltaPercent(metric, medDet) : null,
+          deltaSlot: metric !== null ? deltaPercent(metric, medSlot) : null,
+          deltaTimes: metric !== null ? deltaPercent(metric, medTms) : null,
           _date: parseDate(g.data),
         };
       })
@@ -57,7 +59,7 @@ export default function ComparacoesPage() {
         let va: number | null, vb: number | null;
         if (sortKey === "data") { va = a._date; vb = b._date; }
         else if (sortKey === "rodada") { va = a.rodada; vb = b.rodada; }
-        else if (sortKey === "audiencia") { va = a.audiencia; vb = b.audiencia; }
+        else if (sortKey === "metric") { va = a._metric; vb = b._metric; }
         else { va = a[sortKey]; vb = b[sortKey]; }
         if (va === null && vb === null) return 0;
         if (va === null) return 1;
@@ -84,7 +86,7 @@ export default function ComparacoesPage() {
 
       <div className="flex gap-5">
         {/* Sidebar */}
-        <aside className="w-64 flex-shrink-0">
+        <aside className="w-56 flex-shrink-0">
           <div className="glass rounded-2xl p-5 sticky top-20">
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-xs font-semibold text-white/50 uppercase tracking-widest">Filtros</h3>
@@ -97,19 +99,27 @@ export default function ComparacoesPage() {
             </div>
 
             <FilterSection title="Detentor">
-              <div className="space-y-1">
-                {DETENTORES.map((d) => (
-                  <button key={d} onClick={() => toggle(selDetentores, d, setSelDetentores)}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm transition-all ${
-                      selDetentores.includes(d)
-                        ? "bg-white/10 text-white border border-white/10"
-                        : "text-white/40 hover:text-white/70 hover:bg-white/[0.04]"
-                    }`}>
-                    {LOGOS[d] && <img src={LOGOS[d]} alt={d} className="w-5 h-5 object-contain" style={{ filter: selDetentores.includes(d) ? "none" : "grayscale(1) opacity(0.5)" }} />}
-                    <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: DETENTOR_COLORS[d] }} />
-                    {d}
-                  </button>
-                ))}
+              <div className="flex flex-wrap gap-2">
+                {DETENTORES.map((d) => {
+                  const active = selDetentores.includes(d);
+                  return (
+                    <button key={d} onClick={() => toggle(selDetentores, d, setSelDetentores)}
+                      title={d}
+                      className={`p-2 rounded-xl transition-all border ${
+                        active
+                          ? "bg-white/10 border-white/15"
+                          : "border-transparent hover:bg-white/[0.05]"
+                      }`}>
+                      {LOGOS[d] ? (
+                        <img src={LOGOS[d]} alt={d}
+                          className="h-7 w-auto object-contain"
+                          style={{ filter: active ? "none" : "grayscale(1) opacity(0.45)" }} />
+                      ) : (
+                        <span className="text-xs text-white/50">{d}</span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </FilterSection>
 
@@ -191,7 +201,7 @@ export default function ComparacoesPage() {
                       <SortTh label="Data" k="data" cur={sortKey} dir={sortDir} onSort={() => handleSort("data")} />
                       <th className="px-4 py-3 text-left font-medium">Dia</th>
                       <th className="px-4 py-3 text-left font-medium">Horário</th>
-                      <SortTh label="Audiência" k="audiencia" cur={sortKey} dir={sortDir} onSort={() => handleSort("audiencia")} right />
+                      <SortTh label="Audiência" k="metric" cur={sortKey} dir={sortDir} onSort={() => handleSort("metric")} right />
                       <SortTh label="Δ Detentor" k="deltaDet" cur={sortKey} dir={sortDir} onSort={() => handleSort("deltaDet")} right />
                       <SortTh label="Δ Slot" k="deltaSlot" cur={sortKey} dir={sortDir} onSort={() => handleSort("deltaSlot")} right />
                       <SortTh label="Δ Times" k="deltaTimes" cur={sortKey} dir={sortDir} onSort={() => handleSort("deltaTimes")} right />
@@ -204,7 +214,7 @@ export default function ComparacoesPage() {
                       <tr key={i} className="border-t border-white/[0.04] hover:bg-white/[0.025] transition-colors">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
-                            {LOGOS[g.detentor] && <img src={LOGOS[g.detentor]} alt={g.detentor} className="w-5 h-5 object-contain" />}
+                            {LOGOS[g.detentor] && <img src={LOGOS[g.detentor]} alt={g.detentor} className="h-5 w-auto object-contain" />}
                             <span className="text-xs font-medium" style={{ color: DETENTOR_COLORS[g.detentor] || "#9ca3af" }}>{g.detentor}</span>
                           </div>
                         </td>
@@ -216,7 +226,9 @@ export default function ComparacoesPage() {
                         <td className="px-4 py-3 text-white/40 whitespace-nowrap text-xs tabular-nums">{g.data}</td>
                         <td className="px-4 py-3 text-white/40 text-xs capitalize">{g.dia}</td>
                         <td className="px-4 py-3 text-white/40 text-xs tabular-nums">{g.horario}</td>
-                        <td className="px-4 py-3 text-right font-bold text-white tabular-nums">{formatAudiencia(g.audiencia)}</td>
+                        <td className="px-4 py-3 text-right font-bold text-white tabular-nums">
+                          {formatMetric(g.detentor, g._metric)}
+                        </td>
                         <DeltaCell value={g.deltaDet} />
                         <DeltaCell value={g.deltaSlot} />
                         <DeltaCell value={g.deltaTimes} />

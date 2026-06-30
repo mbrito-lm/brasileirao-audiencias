@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { games, DETENTORES, DETENTOR_COLORS } from "@/data/games";
 import { LOGOS } from "@/data/logos";
-import { getChartData, mediaDetentor, formatAudiencia } from "@/lib/stats";
+import { getChartData, mediaDetentor, formatMetric, metricLabel, getMetric, PNT_DETENTORES } from "@/lib/stats";
 import AudienciaBarChart from "@/components/AudienciaBarChart";
 import GamesTable from "@/components/GamesTable";
 
@@ -13,18 +13,18 @@ export default function GeralPage() {
   const detentor = activeTab === "Geral" ? null : activeTab;
   const filteredGames = detentor ? games.filter((g) => g.detentor === detentor) : games;
   const chartData = getChartData(games, detentor);
+  const isPnt = detentor ? PNT_DETENTORES.has(detentor) : false;
 
-  const gamesWithAud = filteredGames.filter((g) => g.audiencia !== null);
+  const gamesWithMetric = filteredGames.filter((g) => getMetric(g) !== null);
   const globalAvg = detentor ? mediaDetentor(games, detentor) : 0;
-  const maxGame = gamesWithAud.reduce(
-    (best, g) => (!best || (g.audiencia ?? 0) > (best.audiencia ?? 0) ? g : best),
-    null as typeof gamesWithAud[0] | null
+  const maxGame = gamesWithMetric.reduce(
+    (best, g) => (!best || (getMetric(g) ?? 0) > (getMetric(best) ?? 0) ? g : best),
+    null as typeof gamesWithMetric[0] | null
   );
   const has2026 = filteredGames.some((g) => g.ano === 2026);
 
   return (
     <div className="py-6">
-      {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-white tracking-tight">Audiências</h1>
         <p className="text-white/40 text-sm mt-1.5">
@@ -32,30 +32,29 @@ export default function GeralPage() {
         </p>
       </div>
 
-      {/* Tabs */}
+      {/* Tabs — logo only, no text */}
       <div className="flex gap-1.5 flex-wrap mb-8 p-1.5 rounded-2xl border border-white/[0.07] bg-white/[0.03]"
         style={{ backdropFilter: "blur(12px)" }}>
         {TABS.map((tab) => {
           const isActive = activeTab === tab;
-          const color = tab === "Geral" ? undefined : DETENTOR_COLORS[tab];
           const logo = tab !== "Geral" ? LOGOS[tab] : undefined;
           return (
             <button key={tab} onClick={() => setActiveTab(tab)}
-              className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+              title={tab}
+              className={`flex items-center justify-center px-3 py-2.5 rounded-xl transition-all duration-200 ${
                 isActive
-                  ? "bg-white/10 text-white shadow-sm border border-white/10"
-                  : "text-white/40 hover:text-white/70 hover:bg-white/[0.04]"
+                  ? "bg-white/10 shadow-sm border border-white/10"
+                  : "hover:bg-white/[0.04]"
               }`}>
               {logo ? (
-                <div className="w-5 h-5 relative flex-shrink-0">
-                  <img src={logo} alt={tab} className="w-full h-full object-contain" style={{ filter: isActive ? "none" : "grayscale(1) opacity(0.5)" }} />
-                </div>
+                <img src={logo} alt={tab}
+                  className="h-8 w-auto object-contain"
+                  style={{ filter: isActive ? "none" : "grayscale(1) opacity(0.45)" }} />
               ) : (
-                <svg className="w-4 h-4 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M3 14h18" />
+                <svg className={`w-5 h-5 ${isActive ? "text-white" : "text-white/35"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
                 </svg>
               )}
-              {tab}
             </button>
           );
         })}
@@ -67,18 +66,18 @@ export default function GeralPage() {
           <KpiCard
             label="Total de jogos"
             value={filteredGames.length.toString()}
-            sub={`${gamesWithAud.length} com audiência`}
+            sub={`${gamesWithMetric.length} com dados`}
             accent="#3b82f6"
           />
           <KpiCard
-            label="Audiência média"
-            value={formatAudiencia(globalAvg || null)}
-            sub="média de espectadores"
+            label={isPnt ? "PNT médio" : "Audiência média"}
+            value={formatMetric(detentor, globalAvg || null)}
+            sub={metricLabel(detentor)}
             accent={DETENTOR_COLORS[detentor]}
           />
           <KpiCard
             label="Recorde"
-            value={maxGame ? formatAudiencia(maxGame.audiencia) : "—"}
+            value={maxGame ? formatMetric(detentor, getMetric(maxGame)) : "—"}
             sub={maxGame ? `${maxGame.mandante} × ${maxGame.visitante}` : undefined}
             accent="#f59e0b"
           />
@@ -96,15 +95,19 @@ export default function GeralPage() {
         <div className="flex items-center justify-between mb-5">
           <div>
             <h2 className="text-sm font-semibold text-white uppercase tracking-widest">
-              Audiência por Rodada
+              {detentor || "Visão Geral"} — por Rodada
             </h2>
-            <p className="text-white/30 text-xs mt-0.5">Média de espectadores individuais</p>
+            <p className="text-white/30 text-xs mt-0.5">
+              {detentor
+                ? (isPnt ? "Pontos PNT por rodada" : "Média de espectadores individuais")
+                : "Média de espectadores — Amazon e CazéTV"}
+            </p>
           </div>
           {detentor && LOGOS[detentor] && (
             <img src={LOGOS[detentor]} alt={detentor} className="h-8 object-contain opacity-70" />
           )}
         </div>
-        <AudienciaBarChart data={chartData} />
+        <AudienciaBarChart data={chartData} isPnt={isPnt} />
       </div>
 
       {/* Table */}

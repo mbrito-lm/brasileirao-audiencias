@@ -3,13 +3,13 @@ import { useState, useMemo } from "react";
 import { Game } from "@/data/games";
 import {
   mediaDetentor, mediaDiaHorario, mediaTimes,
-  deltaPercent, formatAudiencia, formatDelta, deltaClass, parseDate,
+  getMetric, formatMetric, deltaPercent, formatDelta, deltaClass, parseDate,
 } from "@/lib/stats";
 
-type SortKey = "data" | "rodada" | "audiencia" | "deltaDet" | "deltaSlot" | "deltaTimes";
+type SortKey = "data" | "rodada" | "metric" | "deltaDet" | "deltaSlot" | "deltaTimes";
 
 const DELTA_TIPS: Record<string, string> = {
-  deltaDet: "Diferença % em relação à audiência média de todos os jogos deste detentor",
+  deltaDet: "Diferença % em relação à média de todos os jogos deste detentor",
   deltaSlot: "Diferença % em relação à média deste detentor no mesmo dia e horário",
   deltaTimes: "Diferença % em relação à média histórica combinada dos dois times envolvidos neste detentor",
 };
@@ -24,16 +24,16 @@ export default function GamesTable({ games, allGames, detentor }: Props) {
 
   const enriched = useMemo(() => {
     return games.map((g) => {
-      const aud = g.audiencia;
-      const det = g.detentor;
-      const medDet = mediaDetentor(allGames, det);
-      const medSlot = mediaDiaHorario(allGames, det, g.dia, g.horario);
-      const medTms = mediaTimes(allGames, det, g.mandante, g.visitante);
+      const metric = getMetric(g);
+      const medDet = mediaDetentor(allGames, g.detentor);
+      const medSlot = mediaDiaHorario(allGames, g.detentor, g.dia, g.horario);
+      const medTms = mediaTimes(allGames, g.detentor, g.mandante, g.visitante);
       return {
         ...g,
-        deltaDet: aud !== null ? deltaPercent(aud, medDet) : null,
-        deltaSlot: aud !== null ? deltaPercent(aud, medSlot) : null,
-        deltaTimes: aud !== null ? deltaPercent(aud, medTms) : null,
+        _metric: metric,
+        deltaDet: metric !== null ? deltaPercent(metric, medDet) : null,
+        deltaSlot: metric !== null ? deltaPercent(metric, medSlot) : null,
+        deltaTimes: metric !== null ? deltaPercent(metric, medTms) : null,
         _date: parseDate(g.data),
       };
     });
@@ -56,7 +56,7 @@ export default function GamesTable({ games, allGames, detentor }: Props) {
       let va: number | null, vb: number | null;
       if (sortKey === "data") { va = a._date; vb = b._date; }
       else if (sortKey === "rodada") { va = a.rodada; vb = b.rodada; }
-      else if (sortKey === "audiencia") { va = a.audiencia; vb = b.audiencia; }
+      else if (sortKey === "metric") { va = a._metric; vb = b._metric; }
       else { va = a[sortKey]; vb = b[sortKey]; }
 
       if (va === null && vb === null) return 0;
@@ -71,16 +71,8 @@ export default function GamesTable({ games, allGames, detentor }: Props) {
     else { setSortKey(key); setSortDir("desc"); }
   };
 
-  const SortIcon = ({ k }: { k: SortKey }) =>
-    sortKey === k ? (
-      <span className="ml-1 text-blue-400">{sortDir === "desc" ? "↓" : "↑"}</span>
-    ) : (
-      <span className="ml-1 text-white/15">↕</span>
-    );
-
   return (
     <div onClick={() => setTooltip(null)}>
-      {/* Search bar */}
       <div className="flex items-center gap-3 mb-4">
         <div className="relative flex-1 max-w-sm">
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/25" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -95,7 +87,6 @@ export default function GamesTable({ games, allGames, detentor }: Props) {
         </span>
       </div>
 
-      {/* Table with fixed scroll */}
       <div className="relative overflow-hidden rounded-2xl border border-white/[0.07]">
         <div className="overflow-x-auto">
           <div style={{ maxHeight: 520, overflowY: "auto" }}>
@@ -103,13 +94,13 @@ export default function GamesTable({ games, allGames, detentor }: Props) {
               <thead className="sticky top-0 z-10" style={{ background: "rgba(12,14,24,0.95)", backdropFilter: "blur(12px)" }}>
                 <tr className="text-white/30 text-xs uppercase tracking-wider">
                   {!detentor && <th className="px-4 py-3 text-left font-medium">Detentor</th>}
-                  <th className="px-4 py-3 text-left font-medium">Temporada</th>
+                  <th className="px-4 py-3 text-left font-medium">Temp.</th>
                   <SortTh label="Rod." sortKey="rodada" current={sortKey} dir={sortDir} onSort={handleSort} />
                   <th className="px-4 py-3 text-left font-medium">Jogo</th>
                   <SortTh label="Data" sortKey="data" current={sortKey} dir={sortDir} onSort={handleSort} />
                   <th className="px-4 py-3 text-left font-medium">Dia</th>
                   <th className="px-4 py-3 text-left font-medium">Horário</th>
-                  <SortTh label="Audiência" sortKey="audiencia" current={sortKey} dir={sortDir} onSort={handleSort} right />
+                  <SortTh label="Audiência" sortKey="metric" current={sortKey} dir={sortDir} onSort={handleSort} right />
                   <DeltaTh label="Δ Detentor" tipKey="deltaDet" sortKey="deltaDet" current={sortKey} dir={sortDir} onSort={handleSort} onTip={setTooltip} />
                   <DeltaTh label="Δ Slot" tipKey="deltaSlot" sortKey="deltaSlot" current={sortKey} dir={sortDir} onSort={handleSort} onTip={setTooltip} />
                   <DeltaTh label="Δ Times" tipKey="deltaTimes" sortKey="deltaTimes" current={sortKey} dir={sortDir} onSort={handleSort} onTip={setTooltip} />
@@ -137,7 +128,7 @@ export default function GamesTable({ games, allGames, detentor }: Props) {
                       <td className="px-4 py-3 text-white/40 text-xs capitalize">{g.dia}</td>
                       <td className="px-4 py-3 text-white/40 text-xs tabular-nums">{g.horario}</td>
                       <td className="px-4 py-3 text-right font-bold text-white tabular-nums">
-                        {formatAudiencia(g.audiencia)}
+                        {formatMetric(g.detentor, g._metric)}
                       </td>
                       <DeltaCell value={g.deltaDet} />
                       <DeltaCell value={g.deltaSlot} />
@@ -151,7 +142,6 @@ export default function GamesTable({ games, allGames, detentor }: Props) {
         </div>
       </div>
 
-      {/* Tooltip overlay */}
       {tooltip && (
         <div
           className="fixed z-50 max-w-xs glass rounded-xl px-4 py-3 text-xs shadow-2xl pointer-events-none"
