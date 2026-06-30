@@ -2,28 +2,45 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --bg: #0a0e1a;
-  --surface: #111827;
-  --border: #1f2937;
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+* {
+  box-sizing: border-box;
 }
 
 body {
-  background-color: var(--bg);
-  color: #f9fafb;
-  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #08090f;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(59, 130, 246, 0.08) 0%, transparent 60%);
+  color: #f0f2f8;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
 }
 
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+.glass {
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
 }
 
-::-webkit-scrollbar-track {
-  background: var(--surface);
+.glass-strong {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-::-webkit-scrollbar-thumb {
-  background: #374151;
-  border-radius: 3px;
+.glow-blue {
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
+}
+
+@layer utilities {
+  .tabular-nums { font-variant-numeric: tabular-nums; }
 }
