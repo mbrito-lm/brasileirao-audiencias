@@ -3,7 +3,7 @@ import { useState, useMemo } from "react";
 import { Game } from "@/data/games";
 import {
   mediaDetentor, mediaDiaHorario, mediaTimes,
-  getMetric, formatMetric, deltaPercent, formatDelta, deltaClass, parseDate, avg,
+  getMetric, formatMetric, deltaPercent, formatDelta, deltaClass, parseDate, avg, normalizeHorario,
 } from "@/lib/stats";
 import { SEASON_COLORS } from "@/data/games";
 import FilterDialog, { FilterState } from "./FilterDialog";
@@ -38,7 +38,7 @@ export default function GamesTable({ games, allGames, detentor }: Props) {
       if (exclude !== "dias" && filters.dias.length)
         r = r.filter((g) => filters.dias.includes(g.dia));
       if (exclude !== "horarios" && filters.horarios.length)
-        r = r.filter((g) => filters.horarios.includes(g.horario.substring(0, 5)));
+        r = r.filter((g) => filters.horarios.includes(normalizeHorario(g.horario.substring(0, 5))));
       if (exclude !== "rodadas" && filters.rodadas.length)
         r = r.filter((g) => filters.rodadas.includes(g.rodada));
       if (exclude !== "times" && filters.times.length)
@@ -48,7 +48,7 @@ export default function GamesTable({ games, allGames, detentor }: Props) {
     return {
       anos: Array.from(new Set(cross("anos").map((g) => g.ano))).sort(),
       dias: DIA_ORDER.filter((d) => cross("dias").some((g) => g.dia === d)),
-      horarios: Array.from(new Set(cross("horarios").map((g) => g.horario.substring(0, 5)))).sort(),
+      horarios: Array.from(new Set(cross("horarios").map((g) => normalizeHorario(g.horario.substring(0, 5))))).sort(),
       rodadas: Array.from(new Set(cross("rodadas").map((g) => g.rodada))).sort((a, b) => a - b),
       times: (() => {
         const subset = cross("times").filter((g) => getMetric(g) !== null);
@@ -83,7 +83,7 @@ export default function GamesTable({ games, allGames, detentor }: Props) {
       const { anos, dias, horarios, rodadas, times } = filters;
       if (anos.length) base = base.filter((g) => anos.includes(g.ano));
       if (dias.length) base = base.filter((g) => dias.includes(g.dia));
-      if (horarios.length) base = base.filter((g) => horarios.includes(g.horario.substring(0, 5)));
+      if (horarios.length) base = base.filter((g) => horarios.includes(normalizeHorario(g.horario.substring(0, 5))));
       if (rodadas.length) base = base.filter((g) => rodadas.includes(g.rodada));
       if (times.length) base = base.filter((g) => times.some((t) => g.mandante === t || g.visitante === t));
     } else {
@@ -247,7 +247,7 @@ export default function GamesTable({ games, allGames, detentor }: Props) {
                       </td>
                       <td className="px-4 py-3 text-white/40 whitespace-nowrap text-xs tabular-nums">{g.data}</td>
                       <td className="px-4 py-3 text-white/40 text-xs capitalize">{g.dia}</td>
-                      <td className="px-4 py-3 text-white/40 text-xs tabular-nums">{g.horario}</td>
+                      <td className="px-4 py-3 text-white/40 text-xs tabular-nums">{normalizeHorario(g.horario.substring(0, 5))}</td>
                       <td className="px-4 py-3 text-right font-bold text-white tabular-nums">
                         {formatMetric(g.detentor, g._metric)}
                       </td>

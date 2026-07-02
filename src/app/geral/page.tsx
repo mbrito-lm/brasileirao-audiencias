@@ -2,10 +2,11 @@
 import { useState } from "react";
 import { games, DETENTORES, DETENTOR_COLORS, SEASON_COLORS } from "@/data/games";
 import { LOGOS } from "@/data/logos";
-import { getChartData, mediaDetentor, formatMetric, metricLabel, getMetric, PNT_DETENTORES } from "@/lib/stats";
+import { getChartData, mediaDetentor, formatMetric, metricLabel, getMetric, PNT_DETENTORES, normalizeHorario } from "@/lib/stats";
 import AudienciaBarChart, { HoverData } from "@/components/AudienciaBarChart";
 import BreakdownTables from "@/components/BreakdownTables";
 import GamesTable from "@/components/GamesTable";
+import TeamLogo from "@/components/TeamLogo";
 
 const TABS = ["Geral", ...DETENTORES] as const;
 
@@ -65,7 +66,7 @@ export default function GeralPage() {
 
       {/* KPI Cards */}
       {detentor && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-8">
           <KpiCard
             label="Total de jogos"
             value={filteredGames.length.toString()}
@@ -82,14 +83,8 @@ export default function GeralPage() {
             label="Recorde"
             value={maxGame ? formatMetric(detentor, getMetric(maxGame)) : "—"}
             sub={maxGame ? `${maxGame.mandante} × ${maxGame.visitante}` : undefined}
+            sub2={maxGame ? `Rod. ${maxGame.rodada} · ${maxGame.dia} · ${normalizeHorario(maxGame.horario.substring(0, 5))} · ${maxGame.ano}` : undefined}
             accent="#f59e0b"
-          />
-          <KpiCard
-            label="Temporada"
-            value={has2026 ? "2026" : "2025"}
-            valueColor={has2026 ? SEASON_COLORS[2026] : SEASON_COLORS[2025]}
-            sub={has2026 ? "Em andamento" : "Encerrado"}
-            accent="#10b981"
           />
         </div>
       )}
@@ -116,6 +111,21 @@ export default function GeralPage() {
                       2026 · {formatMetric(detentor || "CazéTV", chartHover.v26)}
                     </span>
                   )}
+                  {(chartHover.isOutlier25 || chartHover.isOutlier26) && (() => {
+                    const outlierTeams = chartHover.isOutlier25 ? chartHover.teams25 : chartHover.teams26;
+                    return (
+                      <div className="flex items-center gap-1.5 border-l border-white/10 pl-2.5">
+                        <span className="text-amber-400/80 uppercase tracking-wide" style={{ fontSize: 9 }}>outlier</span>
+                        {outlierTeams.slice(0, 1).map((t, i) => (
+                          <div key={i} className="flex items-center gap-1">
+                            <TeamLogo team={t.mandante} size={14} />
+                            <span className="text-white/20">vs</span>
+                            <TeamLogo team={t.visitante} size={14} />
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
             </div>
@@ -157,8 +167,8 @@ export default function GeralPage() {
   );
 }
 
-function KpiCard({ label, value, sub, accent, valueColor }: {
-  label: string; value: string; sub?: string; accent?: string; valueColor?: string;
+function KpiCard({ label, value, sub, sub2, accent, valueColor }: {
+  label: string; value: string; sub?: string; sub2?: string; accent?: string; valueColor?: string;
 }) {
   return (
     <div className="glass rounded-2xl p-5 relative overflow-hidden">
@@ -167,6 +177,7 @@ function KpiCard({ label, value, sub, accent, valueColor }: {
       <p className="text-white/35 text-xs font-medium uppercase tracking-wider mb-2">{label}</p>
       <p className="text-2xl font-bold tabular-nums" style={{ color: valueColor || "#ffffff" }}>{value}</p>
       {sub && <p className="text-white/30 text-xs mt-1 truncate">{sub}</p>}
+      {sub2 && <p className="text-white/25 text-xs mt-0.5 truncate">{sub2}</p>}
     </div>
   );
 }

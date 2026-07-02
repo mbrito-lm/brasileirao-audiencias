@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { Game, SEASON_COLORS } from "@/data/games";
-import { getMetric, formatMetric, avg } from "@/lib/stats";
+import { getMetric, formatMetric, avg, normalizeHorario } from "@/lib/stats";
 
 interface Props {
   games: Game[];
@@ -131,10 +131,10 @@ function BreakdownTable({ title, rows, detentor }: {
 
 export default function BreakdownTables({ games, detentor }: Props) {
   const byDia = buildRows(games, (g) => g.dia, (a, b) => DIA_ORDER.indexOf(a) - DIA_ORDER.indexOf(b));
-  const byHorario = buildRows(games, (g) => g.horario.substring(0, 5));
+  const byHorario = buildRows(games, (g) => normalizeHorario(g.horario.substring(0, 5)));
   const byDiaHorario = buildRows(
     games,
-    (g) => `${g.dia} ${g.horario.substring(0, 5)}`,
+    (g) => `${g.dia} ${normalizeHorario(g.horario.substring(0, 5))}`,
     (a, b) => {
       const [da, ha] = a.split(" ");
       const [db, hb] = b.split(" ");

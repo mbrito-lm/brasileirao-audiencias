@@ -5,6 +5,7 @@ import {
   ResponsiveContainer, ReferenceArea, ReferenceLine,
 } from "recharts";
 import { SEASON_COLORS } from "@/data/games";
+import { ChartTeam } from "@/lib/stats";
 
 interface DataPoint {
   rodada: number;
@@ -14,12 +15,18 @@ interface DataPoint {
   avg2026: number;
   missing2025: boolean;
   missing2026: boolean;
+  teams25: ChartTeam[];
+  teams26: ChartTeam[];
 }
 
 export interface HoverData {
   rodada: number;
   v25: number | null;
   v26: number | null;
+  isOutlier25: boolean;
+  isOutlier26: boolean;
+  teams25: ChartTeam[];
+  teams26: ChartTeam[];
 }
 
 interface Props {
@@ -30,6 +37,7 @@ interface Props {
 
 const BG = "#08090f";
 const OFFSET = 0.38; // index units — shifts the entire 2026 series right
+const OUTLIER_THRESHOLD = 0.4; // 40% deviation from season average
 
 function fmtVal(v: number, isPnt?: boolean) {
   if (isPnt) return v.toFixed(1).replace(".", ",") + " pts";
@@ -45,6 +53,11 @@ function fmtY(v: number, isPnt?: boolean) {
   return String(v);
 }
 
+function isOutlier(val: number | null, avg: number): boolean {
+  if (val === null || avg === 0) return false;
+  return Math.abs((val - avg) / avg) > OUTLIER_THRESHOLD;
+}
+
 function HollowDot({ cx, cy, stroke, value }: any) {
   if (cx == null || cy == null || value == null) return null;
   return <circle cx={cx} cy={cy} r={4} fill={BG} stroke={stroke} strokeWidth={2} />;
@@ -53,6 +66,26 @@ function HollowDot({ cx, cy, stroke, value }: any) {
 function ActiveHollowDot({ cx, cy, stroke, value }: any) {
   if (cx == null || cy == null || value == null) return null;
   return <circle cx={cx} cy={cy} r={5.5} fill={BG} stroke={stroke} strokeWidth={2.5} />;
+}
+
+function OutlierDot({ cx, cy, stroke, value }: any) {
+  if (cx == null || cy == null || value == null) return null;
+  return (
+    <g>
+      <circle cx={cx} cy={cy} r={9} fill="none" stroke={stroke} strokeWidth={1.5} strokeDasharray="3 2" opacity={0.75} />
+      <circle cx={cx} cy={cy} r={4} fill={BG} stroke={stroke} strokeWidth={2} />
+    </g>
+  );
+}
+
+function OutlierActiveDot({ cx, cy, stroke, value }: any) {
+  if (cx == null || cy == null || value == null) return null;
+  return (
+    <g>
+      <circle cx={cx} cy={cy} r={10} fill="none" stroke={stroke} strokeWidth={1.5} strokeDasharray="3 2" opacity={0.9} />
+      <circle cx={cx} cy={cy} r={5.5} fill={BG} stroke={stroke} strokeWidth={2.5} />
+    </g>
+  );
 }
 
 // X-axis tick: full white for rounds with data, low opacity for rounds without any data
@@ -117,8 +150,18 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange }: Props)
     const rodada = allRods[idx];
     setActiveIdx(idx);
     const point = data.find((d) => d.rodada === rodada);
-    onHoverChange?.({ rodada, v25: point?.["2025"] ?? null, v26: point?.["2026"] ?? null });
-  }, [data, allRods, onHoverChange]);
+    const v25 = point?.["2025"] ?? null;
+    const v26 = point?.["2026"] ?? null;
+    onHoverChange?.({
+      rodada,
+      v25,
+      v26,
+      isOutlier25: isOutlier(v25, avg25),
+      isOutlier26: isOutlier(v26, avg26),
+      teams25: point?.teams25 ?? [],
+      teams26: point?.teams26 ?? [],
+    });
+  }, [data, allRods, onHoverChange, avg25, avg26]);
 
   const handleMouseLeave = useCallback(() => {
     setActiveIdx(null);
@@ -158,11 +201,11 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange }: Props)
         >
           <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.04)" vertical={false} />
 
-          {/* Column highlight for hovered round */}
+          {/* Column highlight for hovered round — kept narrow to not bleed into neighbors */}
           {activeIdx !== null && (
             <ReferenceArea
-              x1={activeIdx - 0.52}
-              x2={activeIdx + OFFSET + 0.52}
+              x1={activeIdx - 0.15}
+              x2={activeIdx + OFFSET + 0.15}
               fill="rgba(255,255,255,0.05)"
               stroke="none"
             />
@@ -201,7 +244,41 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange }: Props)
             width={isPnt ? 34 : 48}
           />
 
-          {/* 2025 line — breaks naturally at null values (no connectNulls) */}
+          {/* Ghost bridges — connect through gaps with a faded dashed line (rendered below main lines) */}
+          {show25 && (
+            <Line
+              data={data25}
+              dataKey="val"
+              stroke={SEASON_COLORS[2025]}
+              strokeWidth={1.5}
+              strokeOpacity={0.18}
+              strokeDasharray="3 3"
+              type="monotone"
+              connectNulls
+              dot={false}
+              activeDot={false}
+              isAnimationActive={false}
+              legendType="none"
+            />
+          )}
+          {show26 && (
+            <Line
+              data={data26}
+              dataKey="val"
+              stroke={SEASON_COLORS[2026]}
+              strokeWidth={1.5}
+              strokeOpacity={0.18}
+              strokeDasharray="3 3"
+              type="monotone"
+              connectNulls
+              dot={false}
+              activeDot={false}
+              isAnimationActive={false}
+              legendType="none"
+            />
+          )}
+
+          {/* 2025 main line — breaks naturally at null values; outlier dots get dashed ring */}
           {show25 && (
             <Line
               data={data25}
@@ -210,13 +287,23 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange }: Props)
               stroke={SEASON_COLORS[2025]}
               strokeWidth={2}
               type="monotone"
-              dot={(props: any) => <HollowDot {...props} stroke={SEASON_COLORS[2025]} />}
-              activeDot={(props: any) => <ActiveHollowDot {...props} stroke={SEASON_COLORS[2025]} />}
+              dot={(props: any) => {
+                if (isOutlier(props.value, avg25)) {
+                  return <OutlierDot {...props} stroke={SEASON_COLORS[2025]} />;
+                }
+                return <HollowDot {...props} stroke={SEASON_COLORS[2025]} />;
+              }}
+              activeDot={(props: any) => {
+                if (isOutlier(props.value, avg25)) {
+                  return <OutlierActiveDot {...props} stroke={SEASON_COLORS[2025]} />;
+                }
+                return <ActiveHollowDot {...props} stroke={SEASON_COLORS[2025]} />;
+              }}
               isAnimationActive={false}
             />
           )}
 
-          {/* 2026 line — entire series shifted right by OFFSET index units */}
+          {/* 2026 main line — entire series shifted right by OFFSET index units */}
           {show26 && (
             <Line
               data={data26}
@@ -225,8 +312,18 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange }: Props)
               stroke={SEASON_COLORS[2026]}
               strokeWidth={2}
               type="monotone"
-              dot={(props: any) => <HollowDot {...props} stroke={SEASON_COLORS[2026]} />}
-              activeDot={(props: any) => <ActiveHollowDot {...props} stroke={SEASON_COLORS[2026]} />}
+              dot={(props: any) => {
+                if (isOutlier(props.value, avg26)) {
+                  return <OutlierDot {...props} stroke={SEASON_COLORS[2026]} />;
+                }
+                return <HollowDot {...props} stroke={SEASON_COLORS[2026]} />;
+              }}
+              activeDot={(props: any) => {
+                if (isOutlier(props.value, avg26)) {
+                  return <OutlierActiveDot {...props} stroke={SEASON_COLORS[2026]} />;
+                }
+                return <ActiveHollowDot {...props} stroke={SEASON_COLORS[2026]} />;
+              }}
               isAnimationActive={false}
             />
           )}
