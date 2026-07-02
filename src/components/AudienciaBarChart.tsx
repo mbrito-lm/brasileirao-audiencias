@@ -90,9 +90,9 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange }: Props)
   const maxRod = allRods.length ? Math.max(...allRods) : 0;
   const minRod = allRods.length ? Math.min(...allRods) : 1;
 
-  // Rodadas with a game but no metric data — shown in amber on x-axis
+  // Rounds where neither season has data — shown in amber on x-axis
   const missingSet = new Set<number>(
-    data.filter((d) => d.missing2025 || d.missing2026).map((d) => d.rodada)
+    data.filter((d) => d["2025"] === null && d["2026"] === null).map((d) => d.rodada)
   );
 
   // Separate data arrays — 2026 shifted right so entire line is offset

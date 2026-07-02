@@ -96,33 +96,35 @@ export default function GeralPage() {
 
       {/* Chart */}
       <div className="glass rounded-2xl p-6 mb-4">
-        <div className="flex items-center gap-4 mb-5">
+        <div className="flex items-center justify-between mb-5">
           <div className="flex-1 min-w-0">
-            <h2 className="text-sm font-semibold text-white uppercase tracking-widest">
-              {detentor || "Visão Geral"} — por Rodada
-            </h2>
+            {/* Title row — hover box sits immediately to the right of the title text */}
+            <div className="flex items-center gap-3 flex-wrap">
+              <h2 className="text-sm font-semibold text-white uppercase tracking-widest whitespace-nowrap">
+                {detentor || "Visão Geral"} — por Rodada
+              </h2>
+              {chartHover && (
+                <div className="flex items-center gap-2.5 px-3 py-1 rounded-lg border border-white/[0.08] bg-white/[0.04] text-xs">
+                  <span className="text-white/35">Rod. {chartHover.rodada}</span>
+                  {chartHover.v25 !== null && (
+                    <span className="font-bold" style={{ color: SEASON_COLORS[2025] }}>
+                      2025 · {formatMetric(detentor || "CazéTV", chartHover.v25)}
+                    </span>
+                  )}
+                  {chartHover.v26 !== null && (
+                    <span className="font-bold" style={{ color: SEASON_COLORS[2026] }}>
+                      2026 · {formatMetric(detentor || "CazéTV", chartHover.v26)}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
             <p className="text-white/30 text-xs mt-0.5">
               {detentor
                 ? (isPnt ? "Pontos PNT por rodada" : "Média de espectadores individuais")
                 : "Média de espectadores — Amazon e CazéTV"}
             </p>
           </div>
-          {/* Hover comparison box — appears to the right of the title */}
-          {chartHover && (
-            <div className="flex items-center gap-3 px-4 py-2 rounded-xl border border-white/[0.07] bg-white/[0.04] text-xs flex-shrink-0">
-              <span className="text-white/35 font-medium">Rod. {chartHover.rodada}</span>
-              {chartHover.v25 !== null && (
-                <span className="font-bold" style={{ color: SEASON_COLORS[2025] }}>
-                  2025 · {formatMetric(detentor || "CazéTV", chartHover.v25)}
-                </span>
-              )}
-              {chartHover.v26 !== null && (
-                <span className="font-bold" style={{ color: SEASON_COLORS[2026] }}>
-                  2026 · {formatMetric(detentor || "CazéTV", chartHover.v26)}
-                </span>
-              )}
-            </div>
-          )}
           {detentor && LOGOS[detentor] && (
             <img src={LOGOS[detentor]} alt={detentor}
               className="h-14 w-auto object-contain flex-shrink-0"

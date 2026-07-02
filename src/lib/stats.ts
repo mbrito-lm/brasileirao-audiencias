@@ -101,8 +101,10 @@ export function getChartData(
   const avg2025 = avg(all25);
   const avg2026 = avg(all26);
 
+  const minRodada = detentor && filtered.length ? Math.min(...filtered.map((g) => g.rodada)) : 1;
+
   const result = [];
-  for (let r = 1; r <= maxRodada; r++) {
+  for (let r = minRodada; r <= maxRodada; r++) {
     const all25 = filtered.filter((g) => g.rodada === r && g.ano === 2025);
     const all26 = filtered.filter((g) => g.rodada === r && g.ano === 2026);
     const g25 = all25.filter((g) => getMetric(g) !== null);
@@ -111,7 +113,11 @@ export function getChartData(
     const v26 = g26.length ? avg(g26.map((g) => getMetric(g) as number)) : null;
     const missing2025 = all25.length > 0 && g25.length === 0;
     const missing2026 = all26.length > 0 && g26.length === 0;
-    if (v25 !== null || v26 !== null || missing2025 || missing2026) {
+
+    if (detentor) {
+      // In detentor view, include every rodada in range so gaps appear on the x-axis
+      result.push({ rodada: r, "2025": v25, "2026": v26, avg2025, avg2026, missing2025, missing2026 });
+    } else if (v25 !== null || v26 !== null || missing2025 || missing2026) {
       result.push({ rodada: r, "2025": v25, "2026": v26, avg2025, avg2026, missing2025, missing2026 });
     }
   }
