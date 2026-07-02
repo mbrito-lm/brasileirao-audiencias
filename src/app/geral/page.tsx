@@ -44,9 +44,9 @@ export default function GeralPage() {
               title={tab}
               className="flex items-center justify-center px-3 py-2.5 rounded-xl transition-all duration-200"
               style={isActive ? {
-                background: "rgba(18, 60, 255, 0.18)",
-                border: "1px solid rgba(30, 80, 255, 0.35)",
-                boxShadow: "0 0 12px rgba(30, 80, 255, 0.15)"
+                background: "rgba(18, 55, 215, 0.70)",
+                border: "1px solid rgba(60, 100, 255, 0.55)",
+                boxShadow: "0 0 16px rgba(30, 70, 255, 0.35)"
               } : { border: "1px solid transparent" }}>
               {logo ? (
                 <img src={logo} alt={tab}
