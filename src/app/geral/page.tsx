@@ -85,6 +85,7 @@ export default function GeralPage() {
           <KpiCard
             label="Temporada"
             value={has2026 ? "2026" : "2025"}
+            valueColor={has2026 ? SEASON_COLORS[2026] : SEASON_COLORS[2025]}
             sub={has2026 ? "Em andamento" : "Encerrado"}
             accent="#10b981"
           />
@@ -134,15 +135,15 @@ export default function GeralPage() {
   );
 }
 
-function KpiCard({ label, value, sub, accent }: {
-  label: string; value: string; sub?: string; accent?: string;
+function KpiCard({ label, value, sub, accent, valueColor }: {
+  label: string; value: string; sub?: string; accent?: string; valueColor?: string;
 }) {
   return (
     <div className="glass rounded-2xl p-5 relative overflow-hidden">
       <div className="absolute inset-0 opacity-5 rounded-2xl"
         style={{ background: `radial-gradient(circle at top right, ${accent || "#3b82f6"}, transparent 70%)` }} />
       <p className="text-white/35 text-xs font-medium uppercase tracking-wider mb-2">{label}</p>
-      <p className="text-2xl font-bold text-white tabular-nums">{value}</p>
+      <p className="text-2xl font-bold tabular-nums" style={{ color: valueColor || "#ffffff" }}>{value}</p>
       {sub && <p className="text-white/30 text-xs mt-1 truncate">{sub}</p>}
     </div>
   );

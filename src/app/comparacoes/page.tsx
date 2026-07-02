@@ -7,6 +7,7 @@ import {
   getMetric, formatMetric,
   deltaPercent, formatDelta, deltaClass, parseDate,
 } from "@/lib/stats";
+import { SEASON_COLORS } from "@/data/games";
 import TeamLogo from "@/components/TeamLogo";
 
 type SortKey = "data" | "rodada" | "metric" | "deltaDet" | "deltaSlot" | "deltaTimes";
@@ -222,7 +223,7 @@ export default function ComparacoesPage() {
                             <span className="text-xs font-medium" style={{ color: DETENTOR_COLORS[g.detentor] || "#9ca3af" }}>{g.detentor}</span>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-xs text-white/30 tabular-nums">{g.ano}</td>
+                        <td className="px-4 py-3 text-xs font-semibold tabular-nums" style={{ color: SEASON_COLORS[g.ano] || "rgba(255,255,255,0.30)" }}>{g.ano}</td>
                         <td className="px-4 py-3 text-xs text-white/40 tabular-nums">{g.rodada}</td>
                         {/* Jogo — centered by vs */}
                         <td className="px-4 py-3">

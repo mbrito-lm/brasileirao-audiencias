@@ -5,6 +5,7 @@ import {
   mediaDetentor, mediaDiaHorario, mediaTimes,
   getMetric, formatMetric, deltaPercent, formatDelta, deltaClass, parseDate, avg,
 } from "@/lib/stats";
+import { SEASON_COLORS } from "@/data/games";
 import FilterDialog, { FilterState } from "./FilterDialog";
 import TeamLogo from "./TeamLogo";
 
@@ -155,8 +156,9 @@ export default function GamesTable({ games, allGames, detentor }: Props) {
         <div className="grid grid-cols-2 gap-3 mb-4">
           {summary.map((s) => (
             <div key={s.ano} className="glass rounded-xl p-4">
-              <p className="text-xs text-white/35 uppercase tracking-widest mb-3">
-                {s.ano} · {s.count} jogo{s.count !== 1 ? "s" : ""}
+              <p className="text-xs uppercase tracking-widest mb-3">
+                <span className="font-bold" style={{ color: SEASON_COLORS[s.ano] }}>{s.ano}</span>
+                <span className="text-white/35"> · {s.count} jogo{s.count !== 1 ? "s" : ""}</span>
               </p>
               <div className="flex gap-6">
                 <div>
@@ -211,7 +213,7 @@ export default function GamesTable({ games, allGames, detentor }: Props) {
                       {!detentor && (
                         <td className="px-4 py-3 text-xs text-white/40 font-medium">{g.detentor}</td>
                       )}
-                      <td className="px-4 py-3 text-xs text-white/30">{g.ano}</td>
+                      <td className="px-4 py-3 text-xs font-semibold tabular-nums" style={{ color: SEASON_COLORS[g.ano] || "rgba(255,255,255,0.30)" }}>{g.ano}</td>
                       <td className="px-4 py-3 text-xs text-white/40 tabular-nums">{g.rodada}</td>
                       {/* Jogo cell — centered by "vs" */}
                       <td className="px-4 py-3">

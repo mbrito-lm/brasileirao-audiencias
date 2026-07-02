@@ -14,7 +14,7 @@ const DIA_ORDER = ["seg.", "ter.", "qua.", "qui.", "sex.", "sáb.", "dom."];
 type SortCol = "geral" | number;
 type SortDir = "desc" | "asc";
 
-interface TableRow { key: string; geral: number | null; vals: Record<number, number | null> }
+interface TableRow { key: string; geral: number | null; vals: Record<number, number | null>; defaultIdx: number }
 
 function buildRows(
   games: Game[],
@@ -22,7 +22,7 @@ function buildRows(
   sortKeys?: (a: string, b: string) => number
 ): TableRow[] {
   const keys = Array.from(new Set(games.map(keyFn))).sort(sortKeys);
-  return keys.map((k) => {
+  return keys.map((k, idx) => {
     const subset = games.filter((g) => keyFn(g) === k);
     const allMetrics = subset.map(getMetric).filter((v): v is number => v !== null);
     const geral = allMetrics.length ? avg(allMetrics) : null;
@@ -31,11 +31,12 @@ function buildRows(
       const m = subset.filter((g) => g.ano === ano).map(getMetric).filter((v): v is number => v !== null);
       vals[ano] = m.length ? avg(m) : null;
     }
-    return { key: k, geral, vals };
+    return { key: k, geral, vals, defaultIdx: idx };
   });
 }
 
-function sortRows(rows: TableRow[], col: SortCol, dir: SortDir): TableRow[] {
+function sortRows(rows: TableRow[], col: SortCol | null, dir: SortDir | null): TableRow[] {
+  if (!col || !dir) return [...rows].sort((a, b) => a.defaultIdx - b.defaultIdx);
   return [...rows].sort((a, b) => {
     const va = col === "geral" ? a.geral : a.vals[col as number];
     const vb = col === "geral" ? b.geral : b.vals[col as number];
@@ -49,26 +50,41 @@ function sortRows(rows: TableRow[], col: SortCol, dir: SortDir): TableRow[] {
 function BreakdownTable({ title, rows, detentor }: {
   title: string; rows: TableRow[]; detentor: string;
 }) {
-  const [sortCol, setSortCol] = useState<SortCol>("geral");
-  const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [sortCol, setSortCol] = useState<SortCol | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir | null>(null);
 
   function handleColClick(col: SortCol) {
-    if (col === sortCol) setSortDir((d) => (d === "desc" ? "asc" : "desc"));
-    else { setSortCol(col); setSortDir("desc"); }
+    if (col !== sortCol) {
+      setSortCol(col);
+      setSortDir("desc");
+    } else if (sortDir === "desc") {
+      setSortDir("asc");
+    } else {
+      // reset to default
+      setSortCol(null);
+      setSortDir(null);
+    }
   }
 
   const sorted = sortRows(rows, sortCol, sortDir);
   const hasMore = sorted.length > 10;
 
-  const ColHeader = ({ col, label, color }: { col: SortCol; label: string; color?: string }) => {
+  function colColor(col: SortCol): string {
+    if (col === "geral") return "#ffffff";
+    return SEASON_COLORS[col as number] || "#ffffff";
+  }
+
+  const ColHeader = ({ col, label }: { col: SortCol; label: string }) => {
     const active = sortCol === col;
+    const color = active ? colColor(col) : "rgba(255,255,255,0.25)";
+    const arrow = sortDir === "desc" ? " ↓" : sortDir === "asc" ? " ↑" : "";
     return (
       <th
         onClick={() => handleColClick(col)}
-        className="px-3 py-2.5 text-right font-medium cursor-pointer select-none transition-colors"
-        style={{ color: active ? (color || "#ffffff") : "rgba(255,255,255,0.25)" }}>
-        {label}
-        <span className="ml-1 text-xs opacity-60">{active ? (sortDir === "desc" ? "↓" : "↑") : ""}</span>
+        title={active && sortDir === "asc" ? "Clique para voltar ao padrão" : undefined}
+        className="px-3 py-2.5 text-right font-medium cursor-pointer select-none transition-all"
+        style={{ color }}>
+        {label}{active ? arrow : ""}
       </th>
     );
   };
@@ -78,14 +94,14 @@ function BreakdownTable({ title, rows, detentor }: {
       <div className="px-4 pt-4 pb-3 border-b border-white/[0.06] flex-shrink-0">
         <p className="text-xs font-semibold text-white/50 uppercase tracking-widest">{title}</p>
       </div>
-      <div style={{ maxHeight: hasMore ? 320 : undefined, overflowY: hasMore ? "auto" : undefined }}>
+      <div style={{ maxHeight: hasMore ? 310 : undefined, overflowY: hasMore ? "auto" : undefined }}>
         <table className="w-full text-xs border-collapse">
           <thead className="sticky top-0 z-10" style={{ background: "rgba(12,14,24,0.95)", backdropFilter: "blur(8px)" }}>
             <tr>
               <th className="px-4 py-2.5 text-left font-medium text-white/25"></th>
               <ColHeader col="geral" label="Geral" />
               {ANOS.map((a) => (
-                <ColHeader key={a} col={a} label={String(a)} color={SEASON_COLORS[a]} />
+                <ColHeader key={a} col={a} label={String(a)} />
               ))}
             </tr>
           </thead>
@@ -94,13 +110,16 @@ function BreakdownTable({ title, rows, detentor }: {
               <tr key={key} className="border-t border-white/[0.04] hover:bg-white/[0.02] transition-colors">
                 <td className="px-4 py-2.5 text-white/60 font-medium capitalize whitespace-nowrap">{key}</td>
                 <td className="px-3 py-2.5 text-right font-bold tabular-nums whitespace-nowrap"
-                  style={{ color: sortCol === "geral" ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.45)" }}>
-                  {geral !== null ? formatMetric(detentor, geral) : <span className="text-white/15">—</span>}
+                  style={{ color: sortCol === "geral" ? "rgba(255,255,255,0.95)" : "rgba(255,255,255,0.50)" }}>
+                  {geral !== null ? formatMetric(detentor, geral) : <span style={{ opacity: 0.15 }}>—</span>}
                 </td>
                 {ANOS.map((a) => (
-                  <td key={a} className="px-3 py-2.5 text-right tabular-nums whitespace-nowrap"
-                    style={{ color: vals[a] !== null ? (sortCol === a ? SEASON_COLORS[a] : "rgba(255,255,255,0.55)") : "rgba(255,255,255,0.12)" }}>
-                    <span className="font-bold">
+                  <td key={a} className="px-3 py-2.5 text-right tabular-nums whitespace-nowrap font-semibold">
+                    <span style={{
+                      color: vals[a] !== null
+                        ? (sortCol === a ? SEASON_COLORS[a] : "rgba(255,255,255,0.50)")
+                        : "rgba(255,255,255,0.12)"
+                    }}>
                       {vals[a] !== null ? formatMetric(detentor, vals[a]) : "—"}
                     </span>
                   </td>

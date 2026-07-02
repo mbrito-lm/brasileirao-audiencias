@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import TeamLogo from "./TeamLogo";
 
 export interface FilterState {
   anos: number[];
@@ -23,18 +24,24 @@ interface FilterDialogProps {
 
 const DIA_ORDER = ["seg.", "ter.", "qua.", "qui.", "sex.", "sáb.", "dom."];
 const DIA_LABELS: Record<string, string> = {
-  "seg.": "Seg", "ter.": "Ter", "qua.": "Qua",
-  "qui.": "Qui", "sex.": "Sex", "sáb.": "Sáb", "dom.": "Dom",
+  "seg.": "Segunda", "ter.": "Terça", "qua.": "Quarta",
+  "qui.": "Quinta", "sex.": "Sexta", "sáb.": "Sábado", "dom.": "Domingo",
 };
 
 export default function FilterDialog({ state, onChange, options }: FilterDialogProps) {
   const [open, setOpen] = useState(false);
-  const dragging = useRef(false);
-  const dragMode = useRef<"add" | "remove">("add");
+  const [teamSearch, setTeamSearch] = useState("");
+
+  // Drag state
+  const isDragging = useRef(false);
   const dragKey = useRef<keyof FilterState | null>(null);
+  const dragStartIdx = useRef<number>(-1);
+  const dragAddMode = useRef(true);
+  const dragSnapshot = useRef<FilterState | null>(null);
+  const dragDisplayItems = useRef<any[]>([]);
 
   useEffect(() => {
-    const up = () => { dragging.current = false; dragKey.current = null; };
+    const up = () => { isDragging.current = false; };
     window.addEventListener("pointerup", up);
     return () => window.removeEventListener("pointerup", up);
   }, []);
@@ -42,26 +49,39 @@ export default function FilterDialog({ state, onChange, options }: FilterDialogP
   const totalActive = state.anos.length + state.dias.length + state.horarios.length +
     state.rodadas.length + state.times.length;
 
-  function toggleItem<T>(key: keyof FilterState, val: T) {
-    const arr = state[key] as T[];
+  function startDrag(key: keyof FilterState, idx: number, displayItems: any[]) {
+    const arr = state[key] as any[];
+    const val = displayItems[idx];
+    isDragging.current = true;
+    dragKey.current = key;
+    dragStartIdx.current = idx;
+    dragSnapshot.current = { ...state, [key]: [...arr] };
+    dragDisplayItems.current = [...displayItems];
+    dragAddMode.current = !arr.includes(val);
+
     const next = arr.includes(val) ? arr.filter((x) => x !== val) : [...arr, val];
     onChange({ ...state, [key]: next });
   }
 
-  function startDrag<T>(key: keyof FilterState, val: T) {
-    dragging.current = true;
-    dragKey.current = key;
-    const arr = state[key] as T[];
-    dragMode.current = arr.includes(val) ? "remove" : "add";
-    toggleItem(key, val);
-  }
+  function enterDrag(key: keyof FilterState, idx: number) {
+    if (!isDragging.current || dragKey.current !== key || !dragSnapshot.current) return;
+    const snap = dragSnapshot.current;
+    const items = dragDisplayItems.current;
+    const lo = Math.min(dragStartIdx.current, idx);
+    const hi = Math.max(dragStartIdx.current, idx);
+    const range = items.slice(lo, hi + 1);
 
-  function enterDrag<T>(key: keyof FilterState, val: T) {
-    if (!dragging.current || dragKey.current !== key) return;
-    const arr = state[key] as T[];
-    const has = arr.includes(val);
-    if (dragMode.current === "add" && !has) toggleItem(key, val);
-    if (dragMode.current === "remove" && has) toggleItem(key, val);
+    const base = snap[key] as any[];
+    let next: any[];
+    if (dragAddMode.current) {
+      const s = new Set(base);
+      range.forEach((item) => s.add(item));
+      next = Array.from(s);
+    } else {
+      const rm = new Set(range);
+      next = base.filter((x) => !rm.has(x));
+    }
+    onChange({ ...snap, [key]: next });
   }
 
   function clearKey(key: keyof FilterState) {
@@ -72,9 +92,12 @@ export default function FilterDialog({ state, onChange, options }: FilterDialogP
     onChange({ anos: [], dias: [], horarios: [], rodadas: [], times: [] });
   }
 
+  const filteredTeams = options.times.filter((t) =>
+    !teamSearch.trim() || t.toLowerCase().includes(teamSearch.trim().toLowerCase())
+  );
+
   return (
     <>
-      {/* Trigger button */}
       <button onClick={() => setOpen(true)}
         className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all border ${
           totalActive > 0
@@ -92,10 +115,10 @@ export default function FilterDialog({ state, onChange, options }: FilterDialogP
         )}
       </button>
 
-      {/* Overlay */}
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ background: "rgba(0,0,0,0.65)", backdropFilter: "blur(6px)" }}>
+          style={{ background: "rgba(0,0,0,0.70)", backdropFilter: "blur(8px)" }}
+          onClick={() => setOpen(false)}>
           <div className="glass-strong rounded-3xl w-full max-w-5xl shadow-2xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}>
             {/* Header */}
@@ -115,94 +138,98 @@ export default function FilterDialog({ state, onChange, options }: FilterDialogP
             </div>
 
             {/* Columns */}
-            <div className="grid grid-cols-5 divide-x divide-white/[0.06] overflow-y-auto" style={{ maxHeight: "70vh" }}>
+            <div className="grid grid-cols-5 divide-x divide-white/[0.06]" style={{ maxHeight: "65vh" }}>
               {/* Temporada */}
-              <FilterColumn
-                title="Temporada"
-                count={state.anos.length}
-                onClear={() => clearKey("anos")}
-              >
-                {options.anos.map((a) => (
-                  <DragOption
-                    key={a}
-                    label={String(a)}
-                    active={state.anos.includes(a)}
-                    onPointerDown={() => startDrag("anos", a)}
-                    onPointerEnter={() => enterDrag("anos", a)}
-                  />
-                ))}
-              </FilterColumn>
-
-              {/* Dia */}
-              <FilterColumn
-                title="Dia"
-                count={state.dias.length}
-                onClear={() => clearKey("dias")}
-              >
-                {options.dias.map((d) => (
-                  <DragOption
-                    key={d}
-                    label={DIA_LABELS[d] || d}
-                    active={state.dias.includes(d)}
-                    onPointerDown={() => startDrag("dias", d)}
-                    onPointerEnter={() => enterDrag("dias", d)}
-                  />
-                ))}
-              </FilterColumn>
-
-              {/* Horário */}
-              <FilterColumn
-                title="Horário"
-                count={state.horarios.length}
-                onClear={() => clearKey("horarios")}
-              >
-                {options.horarios.map((h) => (
-                  <DragOption
-                    key={h}
-                    label={h}
-                    active={state.horarios.includes(h)}
-                    onPointerDown={() => startDrag("horarios", h)}
-                    onPointerEnter={() => enterDrag("horarios", h)}
-                  />
-                ))}
-              </FilterColumn>
-
-              {/* Rodada */}
-              <FilterColumn
-                title="Rodada"
-                count={state.rodadas.length}
-                onClear={() => clearKey("rodadas")}
-              >
-                <div className="flex flex-wrap gap-1.5 px-1">
-                  {options.rodadas.map((r) => (
-                    <DragOption
-                      key={r}
-                      label={String(r)}
-                      active={state.rodadas.includes(r)}
-                      onPointerDown={() => startDrag("rodadas", r)}
-                      onPointerEnter={() => enterDrag("rodadas", r)}
-                      compact
-                    />
+              <ColSection title="Temporada" count={state.anos.length} onClear={() => clearKey("anos")}>
+                <div className="space-y-1 px-4 py-3">
+                  {options.anos.map((a, i) => (
+                    <DragItem
+                      key={a}
+                      active={state.anos.includes(a)}
+                      onPointerDown={() => startDrag("anos", i, options.anos)}
+                      onPointerEnter={() => enterDrag("anos", i)}>
+                      <span className="text-sm font-semibold">{a}</span>
+                    </DragItem>
                   ))}
                 </div>
-              </FilterColumn>
+              </ColSection>
+
+              {/* Dia */}
+              <ColSection title="Dia" count={state.dias.length} onClear={() => clearKey("dias")}>
+                <div className="space-y-1 px-4 py-3">
+                  {options.dias.map((d, i) => (
+                    <DragItem
+                      key={d}
+                      active={state.dias.includes(d)}
+                      onPointerDown={() => startDrag("dias", i, options.dias)}
+                      onPointerEnter={() => enterDrag("dias", i)}>
+                      <span className="text-sm font-medium">{DIA_LABELS[d] || d}</span>
+                    </DragItem>
+                  ))}
+                </div>
+              </ColSection>
+
+              {/* Horário */}
+              <ColSection title="Horário" count={state.horarios.length} onClear={() => clearKey("horarios")}>
+                <div className="space-y-1 px-4 py-3">
+                  {options.horarios.map((h, i) => (
+                    <DragItem
+                      key={h}
+                      active={state.horarios.includes(h)}
+                      onPointerDown={() => startDrag("horarios", i, options.horarios)}
+                      onPointerEnter={() => enterDrag("horarios", i)}>
+                      <span className="text-sm font-medium tabular-nums">{h}</span>
+                    </DragItem>
+                  ))}
+                </div>
+              </ColSection>
+
+              {/* Rodada */}
+              <ColSection title="Rodada" count={state.rodadas.length} onClear={() => clearKey("rodadas")}>
+                <div className="px-4 py-3 flex flex-wrap gap-1.5">
+                  {options.rodadas.map((r, i) => (
+                    <div
+                      key={r}
+                      onPointerDown={(e) => { e.preventDefault(); startDrag("rodadas", i, options.rodadas); }}
+                      onPointerEnter={() => enterDrag("rodadas", i)}
+                      className={`w-9 h-9 flex items-center justify-center rounded-lg text-sm font-semibold cursor-pointer select-none transition-all ${
+                        state.rodadas.includes(r)
+                          ? "bg-blue-600 text-white"
+                          : "bg-white/[0.05] text-white/50 hover:text-white/80 hover:bg-white/10"
+                      }`}>
+                      {r}
+                    </div>
+                  ))}
+                </div>
+              </ColSection>
 
               {/* Times */}
-              <FilterColumn
-                title="Time"
-                count={state.times.length}
-                onClear={() => clearKey("times")}
-              >
-                {options.times.map((t) => (
-                  <DragOption
-                    key={t}
-                    label={t}
-                    active={state.times.includes(t)}
-                    onPointerDown={() => startDrag("times", t)}
-                    onPointerEnter={() => enterDrag("times", t)}
+              <ColSection title="Time" count={state.times.length} onClear={() => clearKey("times")}>
+                <div className="px-4 pb-1">
+                  <input
+                    type="text"
+                    placeholder="Buscar time..."
+                    value={teamSearch}
+                    onChange={(e) => setTeamSearch(e.target.value)}
+                    className="w-full bg-white/[0.06] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-blue-500/50 transition-colors"
                   />
-                ))}
-              </FilterColumn>
+                </div>
+                <div className="space-y-0.5 px-4 py-2 overflow-y-auto" style={{ maxHeight: "calc(65vh - 100px)" }}>
+                  {filteredTeams.map((t, i) => (
+                    <DragItem
+                      key={t}
+                      active={state.times.includes(t)}
+                      onPointerDown={() => startDrag("times", i, filteredTeams)}
+                      onPointerEnter={() => enterDrag("times", i)}>
+                      <TeamLogo team={t} size={20} className="flex-shrink-0" />
+                      <span className="text-sm font-medium">{t}</span>
+                    </DragItem>
+                  ))}
+                  {filteredTeams.length === 0 && (
+                    <p className="text-xs text-white/25 py-4 text-center">Nenhum time encontrado</p>
+                  )}
+                </div>
+              </ColSection>
             </div>
 
             {/* Footer */}
@@ -219,40 +246,42 @@ export default function FilterDialog({ state, onChange, options }: FilterDialogP
   );
 }
 
-function FilterColumn({ title, count, onClear, children }: {
+function ColSection({ title, count, onClear, children }: {
   title: string; count: number; onClear: () => void; children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col min-w-0 px-4 py-4">
-      <div className="flex items-center justify-between mb-3 flex-shrink-0">
+    <div className="flex flex-col min-w-0 overflow-hidden">
+      <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-white/[0.06] flex-shrink-0">
         <p className="text-xs font-semibold text-white/45 uppercase tracking-widest">{title}</p>
         {count > 0 && (
-          <button onClick={onClear} className="text-xs text-blue-400/70 hover:text-blue-300 transition-colors ml-2">
+          <button onClick={onClear} className="text-xs text-blue-400/80 hover:text-blue-300 transition-colors ml-2 flex-shrink-0">
             Limpar
           </button>
         )}
       </div>
-      <div className="space-y-1 select-none">
+      <div className="overflow-y-auto flex-1">
         {children}
       </div>
     </div>
   );
 }
 
-function DragOption({ label, active, onPointerDown, onPointerEnter, compact }: {
-  label: string; active: boolean; compact?: boolean;
-  onPointerDown: () => void; onPointerEnter: () => void;
+function DragItem({ active, onPointerDown, onPointerEnter, children }: {
+  active: boolean;
+  onPointerDown: () => void;
+  onPointerEnter: () => void;
+  children: React.ReactNode;
 }) {
   return (
     <div
       onPointerDown={(e) => { e.preventDefault(); onPointerDown(); }}
       onPointerEnter={onPointerEnter}
-      className={`cursor-pointer rounded-lg text-xs font-medium transition-all select-none ${
-        compact
-          ? `w-8 h-7 flex items-center justify-center ${active ? "bg-blue-600 text-white" : "bg-white/[0.05] text-white/40 hover:text-white/65"}`
-          : `px-3 py-2 ${active ? "bg-blue-600/25 text-blue-200 border border-blue-500/35" : "text-white/45 hover:text-white/70 hover:bg-white/[0.04] border border-transparent"}`
+      className={`flex items-center gap-2.5 px-3 py-2 rounded-xl cursor-pointer select-none transition-all ${
+        active
+          ? "bg-blue-600/25 text-blue-100 border border-blue-500/35"
+          : "text-white/50 hover:text-white/75 hover:bg-white/[0.05] border border-transparent"
       }`}>
-      {label}
+      {children}
     </div>
   );
 }
