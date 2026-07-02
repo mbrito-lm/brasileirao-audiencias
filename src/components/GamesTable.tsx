@@ -30,18 +30,34 @@ export default function GamesTable({ games, allGames, detentor }: Props) {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [tooltip, setTooltip] = useState<{ key: string; x: number; y: number } | null>(null);
 
-  const filterOptions = useMemo(() => ({
-    anos: Array.from(new Set(games.map((g) => g.ano))).sort(),
-    dias: DIA_ORDER.filter((d) => games.some((g) => g.dia === d)),
-    horarios: Array.from(new Set(games.map((g) => g.horario.substring(0, 5)))).sort(),
-    rodadas: Array.from(new Set(games.map((g) => g.rodada))).sort((a, b) => a - b),
-    times: (() => {
-      const s = new Set<string>();
-      const withMetric = games.filter((g) => getMetric(g) !== null);
-      withMetric.forEach((g) => { s.add(g.mandante); s.add(g.visitante); });
-      return Array.from(s).sort();
-    })(),
-  }), [games]);
+  const filterOptions = useMemo(() => {
+    function cross(exclude: keyof FilterState) {
+      let r = games;
+      if (exclude !== "anos" && filters.anos.length)
+        r = r.filter((g) => filters.anos.includes(g.ano));
+      if (exclude !== "dias" && filters.dias.length)
+        r = r.filter((g) => filters.dias.includes(g.dia));
+      if (exclude !== "horarios" && filters.horarios.length)
+        r = r.filter((g) => filters.horarios.includes(g.horario.substring(0, 5)));
+      if (exclude !== "rodadas" && filters.rodadas.length)
+        r = r.filter((g) => filters.rodadas.includes(g.rodada));
+      if (exclude !== "times" && filters.times.length)
+        r = r.filter((g) => filters.times.some((t) => g.mandante === t || g.visitante === t));
+      return r;
+    }
+    return {
+      anos: Array.from(new Set(cross("anos").map((g) => g.ano))).sort(),
+      dias: DIA_ORDER.filter((d) => cross("dias").some((g) => g.dia === d)),
+      horarios: Array.from(new Set(cross("horarios").map((g) => g.horario.substring(0, 5)))).sort(),
+      rodadas: Array.from(new Set(cross("rodadas").map((g) => g.rodada))).sort((a, b) => a - b),
+      times: (() => {
+        const subset = cross("times").filter((g) => getMetric(g) !== null);
+        const s = new Set<string>();
+        subset.forEach((g) => { s.add(g.mandante); s.add(g.visitante); });
+        return Array.from(s).sort();
+      })(),
+    };
+  }, [games, filters]);
 
   const enriched = useMemo(() => {
     return games.map((g) => {

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { games, DETENTORES, DETENTOR_COLORS, SEASON_COLORS } from "@/data/games";
 import { LOGOS } from "@/data/logos";
 import { getChartData, mediaDetentor, formatMetric, metricLabel, getMetric, PNT_DETENTORES } from "@/lib/stats";
-import AudienciaBarChart from "@/components/AudienciaBarChart";
+import AudienciaBarChart, { HoverData } from "@/components/AudienciaBarChart";
 import BreakdownTables from "@/components/BreakdownTables";
 import GamesTable from "@/components/GamesTable";
 
@@ -11,6 +11,7 @@ const TABS = ["Geral", ...DETENTORES] as const;
 
 export default function GeralPage() {
   const [activeTab, setActiveTab] = useState<string>("Geral");
+  const [chartHover, setChartHover] = useState<HoverData | null>(null);
   const detentor = activeTab === "Geral" ? null : activeTab;
   const filteredGames = detentor ? games.filter((g) => g.detentor === detentor) : games;
   const chartData = getChartData(games, detentor);
@@ -95,8 +96,8 @@ export default function GeralPage() {
 
       {/* Chart */}
       <div className="glass rounded-2xl p-6 mb-4">
-        <div className="flex items-center justify-between mb-5">
-          <div>
+        <div className="flex items-center gap-4 mb-5">
+          <div className="flex-1 min-w-0">
             <h2 className="text-sm font-semibold text-white uppercase tracking-widest">
               {detentor || "Visão Geral"} — por Rodada
             </h2>
@@ -106,13 +107,29 @@ export default function GeralPage() {
                 : "Média de espectadores — Amazon e CazéTV"}
             </p>
           </div>
+          {/* Hover comparison box — appears to the right of the title */}
+          {chartHover && (
+            <div className="flex items-center gap-3 px-4 py-2 rounded-xl border border-white/[0.07] bg-white/[0.04] text-xs flex-shrink-0">
+              <span className="text-white/35 font-medium">Rod. {chartHover.rodada}</span>
+              {chartHover.v25 !== null && (
+                <span className="font-bold" style={{ color: SEASON_COLORS[2025] }}>
+                  2025 · {formatMetric(detentor || "CazéTV", chartHover.v25)}
+                </span>
+              )}
+              {chartHover.v26 !== null && (
+                <span className="font-bold" style={{ color: SEASON_COLORS[2026] }}>
+                  2026 · {formatMetric(detentor || "CazéTV", chartHover.v26)}
+                </span>
+              )}
+            </div>
+          )}
           {detentor && LOGOS[detentor] && (
             <img src={LOGOS[detentor]} alt={detentor}
-              className="h-14 w-auto object-contain"
+              className="h-14 w-auto object-contain flex-shrink-0"
               style={{ filter: "brightness(0) invert(1)", opacity: 0.85 }} />
           )}
         </div>
-        <AudienciaBarChart data={chartData} isPnt={isPnt} />
+        <AudienciaBarChart data={chartData} isPnt={isPnt} onHoverChange={setChartHover} />
       </div>
 
       {/* Breakdown tables — only for specific detentor */}

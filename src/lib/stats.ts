@@ -92,7 +92,7 @@ export function parseDate(dateStr: string): number {
 export function getChartData(
   games: Game[],
   detentor: string | null
-): { rodada: number; "2025": number | null; "2026": number | null; avg2025: number; avg2026: number }[] {
+): { rodada: number; "2025": number | null; "2026": number | null; avg2025: number; avg2026: number; missing2025: boolean; missing2026: boolean }[] {
   const filtered = detentor ? games.filter((g) => g.detentor === detentor) : games.filter((g) => !PNT_DETENTORES.has(g.detentor));
   const maxRodada = filtered.length ? Math.max(...filtered.map((g) => g.rodada)) : 0;
 
@@ -103,12 +103,16 @@ export function getChartData(
 
   const result = [];
   for (let r = 1; r <= maxRodada; r++) {
-    const g25 = filtered.filter((g) => g.rodada === r && g.ano === 2025 && getMetric(g) !== null);
-    const g26 = filtered.filter((g) => g.rodada === r && g.ano === 2026 && getMetric(g) !== null);
+    const all25 = filtered.filter((g) => g.rodada === r && g.ano === 2025);
+    const all26 = filtered.filter((g) => g.rodada === r && g.ano === 2026);
+    const g25 = all25.filter((g) => getMetric(g) !== null);
+    const g26 = all26.filter((g) => getMetric(g) !== null);
     const v25 = g25.length ? avg(g25.map((g) => getMetric(g) as number)) : null;
     const v26 = g26.length ? avg(g26.map((g) => getMetric(g) as number)) : null;
-    if (v25 !== null || v26 !== null) {
-      result.push({ rodada: r, "2025": v25, "2026": v26, avg2025, avg2026 });
+    const missing2025 = all25.length > 0 && g25.length === 0;
+    const missing2026 = all26.length > 0 && g26.length === 0;
+    if (v25 !== null || v26 !== null || missing2025 || missing2026) {
+      result.push({ rodada: r, "2025": v25, "2026": v26, avg2025, avg2026, missing2025, missing2026 });
     }
   }
   return result;
