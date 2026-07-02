@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { games, DETENTORES, DETENTOR_COLORS } from "@/data/games";
+import { games, DETENTORES, DETENTOR_COLORS, SEASON_COLORS } from "@/data/games";
 import { LOGOS } from "@/data/logos";
 import { getChartData, mediaDetentor, formatMetric, metricLabel, getMetric, PNT_DETENTORES } from "@/lib/stats";
 import AudienciaBarChart from "@/components/AudienciaBarChart";
