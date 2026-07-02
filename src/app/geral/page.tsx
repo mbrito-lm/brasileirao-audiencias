@@ -4,6 +4,7 @@ import { games, DETENTORES, DETENTOR_COLORS } from "@/data/games";
 import { LOGOS } from "@/data/logos";
 import { getChartData, mediaDetentor, formatMetric, metricLabel, getMetric, PNT_DETENTORES } from "@/lib/stats";
 import AudienciaBarChart from "@/components/AudienciaBarChart";
+import BreakdownTables from "@/components/BreakdownTables";
 import GamesTable from "@/components/GamesTable";
 
 const TABS = ["Geral", ...DETENTORES] as const;
@@ -109,6 +110,11 @@ export default function GeralPage() {
         </div>
         <AudienciaBarChart data={chartData} isPnt={isPnt} />
       </div>
+
+      {/* Breakdown tables — only for specific detentor */}
+      {detentor && (
+        <BreakdownTables games={filteredGames} detentor={detentor} />
+      )}
 
       {/* Table */}
       <div className="glass rounded-2xl p-6 mt-4">
