@@ -76,14 +76,15 @@ function BreakdownTable({ title, rows, detentor }: {
 
   const ColHeader = ({ col, label }: { col: SortCol; label: string }) => {
     const active = sortCol === col;
-    const color = active ? colColor(col) : "rgba(255,255,255,0.25)";
+    // Season columns always use their season color; Geral is bright when active
+    const baseColor = col === "geral" ? (active ? "#ffffff" : "rgba(255,255,255,0.30)") : SEASON_COLORS[col as number] || "#ffffff";
     const arrow = sortDir === "desc" ? " ↓" : sortDir === "asc" ? " ↑" : "";
     return (
       <th
         onClick={() => handleColClick(col)}
         title={active && sortDir === "asc" ? "Clique para voltar ao padrão" : undefined}
-        className="px-3 py-2.5 text-right font-medium cursor-pointer select-none transition-all"
-        style={{ color }}>
+        className="px-3 py-2.5 text-right font-semibold cursor-pointer select-none transition-all"
+        style={{ color: baseColor, opacity: active ? 1 : 0.75 }}>
         {label}{active ? arrow : ""}
       </th>
     );
@@ -109,17 +110,12 @@ function BreakdownTable({ title, rows, detentor }: {
             {sorted.map(({ key, geral, vals }) => (
               <tr key={key} className="border-t border-white/[0.04] hover:bg-white/[0.02] transition-colors">
                 <td className="px-4 py-2.5 text-white/60 font-medium capitalize whitespace-nowrap">{key}</td>
-                <td className="px-3 py-2.5 text-right font-bold tabular-nums whitespace-nowrap"
-                  style={{ color: sortCol === "geral" ? "rgba(255,255,255,0.95)" : "rgba(255,255,255,0.50)" }}>
-                  {geral !== null ? formatMetric(detentor, geral) : <span style={{ opacity: 0.15 }}>—</span>}
+                <td className="px-3 py-2.5 text-right font-bold tabular-nums whitespace-nowrap text-white">
+                  {geral !== null ? formatMetric(detentor, geral) : <span className="text-white/15">—</span>}
                 </td>
                 {ANOS.map((a) => (
-                  <td key={a} className="px-3 py-2.5 text-right tabular-nums whitespace-nowrap font-semibold">
-                    <span style={{
-                      color: vals[a] !== null
-                        ? (sortCol === a ? SEASON_COLORS[a] : "rgba(255,255,255,0.50)")
-                        : "rgba(255,255,255,0.12)"
-                    }}>
+                  <td key={a} className="px-3 py-2.5 text-right tabular-nums whitespace-nowrap font-bold">
+                    <span style={{ color: vals[a] !== null ? "#ffffff" : "rgba(255,255,255,0.12)" }}>
                       {vals[a] !== null ? formatMetric(detentor, vals[a]) : "—"}
                     </span>
                   </td>

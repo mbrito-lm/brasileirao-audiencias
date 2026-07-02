@@ -42,15 +42,16 @@ export default function GeralPage() {
           return (
             <button key={tab} onClick={() => setActiveTab(tab)}
               title={tab}
-              className={`flex items-center justify-center px-3 py-2.5 rounded-xl transition-all duration-200 ${
-                isActive
-                  ? "bg-white/10 shadow-sm border border-white/10"
-                  : "hover:bg-white/[0.04]"
-              }`}>
+              className="flex items-center justify-center px-3 py-2.5 rounded-xl transition-all duration-200"
+              style={isActive ? {
+                background: "rgba(18, 60, 255, 0.18)",
+                border: "1px solid rgba(30, 80, 255, 0.35)",
+                boxShadow: "0 0 12px rgba(30, 80, 255, 0.15)"
+              } : { border: "1px solid transparent" }}>
               {logo ? (
                 <img src={logo} alt={tab}
                   className="h-8 w-auto object-contain"
-                  style={{ filter: isActive ? "none" : "grayscale(1) opacity(0.45)" }} />
+                  style={{ filter: isActive ? "brightness(0) invert(1)" : "grayscale(1) opacity(0.45)" }} />
               ) : (
                 <svg className={`w-5 h-5 ${isActive ? "text-white" : "text-white/35"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
@@ -106,7 +107,9 @@ export default function GeralPage() {
             </p>
           </div>
           {detentor && LOGOS[detentor] && (
-            <img src={LOGOS[detentor]} alt={detentor} className="h-8 object-contain opacity-70" />
+            <img src={LOGOS[detentor]} alt={detentor}
+              className="h-14 w-auto object-contain"
+              style={{ filter: "brightness(0) invert(1)", opacity: 0.85 }} />
           )}
         </div>
         <AudienciaBarChart data={chartData} isPnt={isPnt} />

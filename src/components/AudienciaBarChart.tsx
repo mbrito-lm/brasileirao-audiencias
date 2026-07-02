@@ -1,8 +1,8 @@
 "use client";
 import { useState } from "react";
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, ReferenceLine, Cell,
+  ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, ReferenceLine,
 } from "recharts";
 import { SEASON_COLORS } from "@/data/games";
 
@@ -32,17 +32,51 @@ function fmtVal(v: number, isPnt?: boolean) {
 
 function CustomTooltip({ active, payload, label, isPnt }: any) {
   if (!active || !payload?.length) return null;
+  const items = payload.filter((p: any) => p.value != null);
+  if (!items.length) return null;
   return (
     <div className="glass rounded-xl px-4 py-3 text-sm shadow-2xl">
       <p className="text-white/50 text-xs mb-2 font-medium">Rodada {label}</p>
-      {payload.map((p: any) => p.value != null && (
+      {items.map((p: any) => (
         <div key={p.dataKey} className="flex items-center gap-2 mb-1">
-          <span className="w-2 h-2 rounded-full" style={{ background: p.fill }} />
+          <svg width="16" height="10">
+            <line x1="0" y1="5" x2="16" y2="5" stroke={p.stroke} strokeWidth="2" />
+            <circle cx="8" cy="5" r="3.5" fill="transparent" stroke={p.stroke} strokeWidth="2" />
+          </svg>
           <span className="text-white/70">{p.dataKey}</span>
           <span className="font-bold text-white ml-auto pl-4">{fmtVal(p.value, isPnt)}</span>
         </div>
       ))}
     </div>
+  );
+}
+
+// Custom hollow dot component
+function HollowDot({ cx, cy, stroke, xOffset = 0 }: any) {
+  if (cx == null || cy == null) return null;
+  return (
+    <circle
+      cx={(cx ?? 0) + xOffset}
+      cy={cy ?? 0}
+      r={4}
+      fill="transparent"
+      stroke={stroke}
+      strokeWidth={2}
+    />
+  );
+}
+
+function ActiveDot({ cx, cy, stroke, xOffset = 0 }: any) {
+  if (cx == null || cy == null) return null;
+  return (
+    <circle
+      cx={(cx ?? 0) + xOffset}
+      cy={cy ?? 0}
+      r={5.5}
+      fill={stroke}
+      stroke="rgba(0,0,0,0.5)"
+      strokeWidth={1.5}
+    />
   );
 }
 
@@ -63,8 +97,12 @@ export default function AudienciaBarChart({ data, isPnt }: Props) {
   const avg25 = data[0]?.avg2025 ?? 0;
   const avg26 = data[0]?.avg2026 ?? 0;
 
+  // 2026 dots are shifted slightly right for visual separation
+  const DOT_OFFSET = 6;
+
   return (
     <div>
+      {/* Legend */}
       <div className="flex gap-4 mb-4 justify-end">
         {[2025, 2026].map((yr) => {
           const off = hidden.has(yr.toString());
@@ -72,11 +110,12 @@ export default function AudienciaBarChart({ data, isPnt }: Props) {
           return (
             <button key={yr} onClick={() => toggle(yr.toString())}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
-                off
-                  ? "border-white/10 text-white/25 bg-transparent"
-                  : "border-white/10 text-white/70 bg-white/5"
+                off ? "border-white/10 text-white/25" : "border-white/10 text-white/70 bg-white/5"
               }`}>
-              <span className="w-2.5 h-2.5 rounded-sm" style={{ background: off ? "#333" : SEASON_COLORS[yr] }} />
+              <svg width="20" height="12" className="flex-shrink-0">
+                <line x1="0" y1="6" x2="20" y2="6" stroke={off ? "#444" : SEASON_COLORS[yr]} strokeWidth="2" />
+                <circle cx="10" cy="6" r="3.5" fill="transparent" stroke={off ? "#444" : SEASON_COLORS[yr]} strokeWidth="2" />
+              </svg>
               {yr}
               {!off && avg > 0 && (
                 <span className="text-white/30 ml-1">· méd {fmtVal(avg, isPnt)}</span>
@@ -86,42 +125,71 @@ export default function AudienciaBarChart({ data, isPnt }: Props) {
         })}
       </div>
 
-      <ResponsiveContainer width="100%" height={260}>
-        <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 4 }} barGap={3} barCategoryGap="30%">
+      <ResponsiveContainer width="100%" height={280}>
+        <ComposedChart data={data} margin={{ top: 12, right: 16, left: 0, bottom: 4 }}>
           <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.04)" vertical={false} />
-          <XAxis dataKey="rodada" tick={{ fill: "rgba(255,255,255,0.25)", fontSize: 11 }}
-            axisLine={false} tickLine={false} />
-          <YAxis tickFormatter={(v) => fmtY(v, isPnt)} tick={{ fill: "rgba(255,255,255,0.25)", fontSize: 11 }}
-            axisLine={false} tickLine={false} width={isPnt ? 34 : 44} />
+          <XAxis
+            dataKey="rodada"
+            tick={{ fill: "rgba(255,255,255,0.25)", fontSize: 11 }}
+            axisLine={false}
+            tickLine={false}
+          />
+          <YAxis
+            tickFormatter={(v) => fmtY(v, isPnt)}
+            tick={{ fill: "rgba(255,255,255,0.25)", fontSize: 11 }}
+            axisLine={false}
+            tickLine={false}
+            width={isPnt ? 34 : 48}
+          />
           <Tooltip content={(props) => <CustomTooltip {...props} isPnt={isPnt} />}
-            cursor={{ fill: "rgba(255,255,255,0.03)", radius: 6 }} />
+            cursor={{ stroke: "rgba(255,255,255,0.06)", strokeWidth: 1 }} />
 
+          {/* Average reference lines */}
           {show25 && avg25 > 0 && (
-            <ReferenceLine y={avg25} stroke={SEASON_COLORS[2025]}
-              strokeDasharray="4 4" strokeWidth={1.5} strokeOpacity={0.5}
-              label={{ value: `méd 25`, position: "insideTopRight", fill: SEASON_COLORS[2025], fontSize: 10, opacity: 0.6 }} />
+            <ReferenceLine
+              y={avg25}
+              stroke={SEASON_COLORS[2025]}
+              strokeDasharray="5 4"
+              strokeWidth={1.5}
+              strokeOpacity={0.45}
+              label={{ value: "méd 25", position: "insideTopRight", fill: SEASON_COLORS[2025], fontSize: 10, opacity: 0.6 }}
+            />
           )}
           {show26 && avg26 > 0 && (
-            <ReferenceLine y={avg26} stroke={SEASON_COLORS[2026]}
-              strokeDasharray="4 4" strokeWidth={1.5} strokeOpacity={0.5}
-              label={{ value: `méd 26`, position: "insideTopRight", fill: SEASON_COLORS[2026], fontSize: 10, opacity: 0.6, dy: 14 }} />
+            <ReferenceLine
+              y={avg26}
+              stroke={SEASON_COLORS[2026]}
+              strokeDasharray="5 4"
+              strokeWidth={1.5}
+              strokeOpacity={0.45}
+              label={{ value: "méd 26", position: "insideTopRight", fill: SEASON_COLORS[2026], fontSize: 10, opacity: 0.6, dy: 14 }}
+            />
           )}
 
+          {/* 2025 line — standard position */}
           {show25 && (
-            <Bar dataKey="2025" fill={SEASON_COLORS[2025]} radius={[4, 4, 0, 0]} maxBarSize={22}>
-              {data.map((entry, i) => (
-                <Cell key={i} fill={SEASON_COLORS[2025]} fillOpacity={entry["2025"] != null ? 1 : 0} />
-              ))}
-            </Bar>
+            <Line
+              dataKey="2025"
+              stroke={SEASON_COLORS[2025]}
+              strokeWidth={2}
+              connectNulls={false}
+              dot={(props) => <HollowDot {...props} stroke={SEASON_COLORS[2025]} xOffset={0} />}
+              activeDot={(props) => <ActiveDot {...props} stroke={SEASON_COLORS[2025]} xOffset={0} />}
+            />
           )}
+
+          {/* 2026 line — dots shifted right for visual separation */}
           {show26 && (
-            <Bar dataKey="2026" fill={SEASON_COLORS[2026]} radius={[4, 4, 0, 0]} maxBarSize={22}>
-              {data.map((entry, i) => (
-                <Cell key={i} fill={SEASON_COLORS[2026]} fillOpacity={entry["2026"] != null ? 1 : 0} />
-              ))}
-            </Bar>
+            <Line
+              dataKey="2026"
+              stroke={SEASON_COLORS[2026]}
+              strokeWidth={2}
+              connectNulls={false}
+              dot={(props) => <HollowDot {...props} stroke={SEASON_COLORS[2026]} xOffset={DOT_OFFSET} />}
+              activeDot={(props) => <ActiveDot {...props} stroke={SEASON_COLORS[2026]} xOffset={DOT_OFFSET} />}
+            />
           )}
-        </BarChart>
+        </ComposedChart>
       </ResponsiveContainer>
     </div>
   );
