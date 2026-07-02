@@ -5,8 +5,9 @@ import { LOGOS } from "@/data/logos";
 import {
   mediaDetentor, mediaDiaHorario, mediaTimes,
   getMetric, formatMetric,
-  deltaPercent, formatDelta, deltaClass, getAllTeams, parseDate,
+  deltaPercent, formatDelta, deltaClass, parseDate,
 } from "@/lib/stats";
+import TeamLogo from "@/components/TeamLogo";
 
 type SortKey = "data" | "rodada" | "metric" | "deltaDet" | "deltaSlot" | "deltaTimes";
 
@@ -14,7 +15,12 @@ const DIAS = ["dom.", "sáb.", "sex.", "qui.", "qua.", "ter.", "seg."];
 const HORARIOS = Array.from(new Set(games.map((g) => g.horario.substring(0, 5)))).sort();
 const RODADAS = Array.from(new Set(games.map((g) => g.rodada))).sort((a, b) => a - b);
 const ANOS = [2025, 2026];
-const ALL_TEAMS = getAllTeams(games);
+// Only teams that have at least one game with metric data
+const ALL_TEAMS = (() => {
+  const s = new Set<string>();
+  games.filter((g) => getMetric(g) !== null).forEach((g) => { s.add(g.mandante); s.add(g.visitante); });
+  return Array.from(s).sort();
+})();
 
 export default function ComparacoesPage() {
   const [selDetentores, setSelDetentores] = useState<string[]>([]);
@@ -106,9 +112,7 @@ export default function ComparacoesPage() {
                     <button key={d} onClick={() => toggle(selDetentores, d, setSelDetentores)}
                       title={d}
                       className={`p-2 rounded-xl transition-all border ${
-                        active
-                          ? "bg-white/10 border-white/15"
-                          : "border-transparent hover:bg-white/[0.05]"
+                        active ? "bg-white/10 border-white/15" : "border-transparent hover:bg-white/[0.05]"
                       }`}>
                       {LOGOS[d] ? (
                         <img src={LOGOS[d]} alt={d}
@@ -197,7 +201,7 @@ export default function ComparacoesPage() {
                       <th className="px-4 py-3 text-left font-medium">Detentor</th>
                       <SortTh label="Ano" k="rodada" cur={sortKey} dir={sortDir} onSort={() => handleSort("rodada")} />
                       <SortTh label="Rod." k="rodada" cur={sortKey} dir={sortDir} onSort={() => handleSort("rodada")} />
-                      <th className="px-4 py-3 text-left font-medium">Jogo</th>
+                      <th className="px-4 py-3 text-center font-medium">Jogo</th>
                       <SortTh label="Data" k="data" cur={sortKey} dir={sortDir} onSort={() => handleSort("data")} />
                       <th className="px-4 py-3 text-left font-medium">Dia</th>
                       <th className="px-4 py-3 text-left font-medium">Horário</th>
@@ -220,8 +224,19 @@ export default function ComparacoesPage() {
                         </td>
                         <td className="px-4 py-3 text-xs text-white/30 tabular-nums">{g.ano}</td>
                         <td className="px-4 py-3 text-xs text-white/40 tabular-nums">{g.rodada}</td>
-                        <td className="px-4 py-3 font-medium text-white/90 whitespace-nowrap">
-                          {g.mandante} <span className="text-white/25 font-normal text-xs">vs</span> {g.visitante}
+                        {/* Jogo — centered by vs */}
+                        <td className="px-4 py-3">
+                          <div className="grid items-center gap-2" style={{ gridTemplateColumns: "1fr auto 1fr" }}>
+                            <div className="flex items-center gap-1.5 justify-end min-w-0">
+                              <span className="text-white/90 font-medium truncate text-right text-xs">{g.mandante}</span>
+                              <TeamLogo team={g.mandante} size={18} />
+                            </div>
+                            <span className="text-white/20 text-xs font-normal px-1 flex-shrink-0">vs</span>
+                            <div className="flex items-center gap-1.5 justify-start min-w-0">
+                              <TeamLogo team={g.visitante} size={18} />
+                              <span className="text-white/90 font-medium truncate text-xs">{g.visitante}</span>
+                            </div>
+                          </div>
                         </td>
                         <td className="px-4 py-3 text-white/40 whitespace-nowrap text-xs tabular-nums">{g.data}</td>
                         <td className="px-4 py-3 text-white/40 text-xs capitalize">{g.dia}</td>
