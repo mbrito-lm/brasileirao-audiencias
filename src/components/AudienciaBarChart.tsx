@@ -173,8 +173,8 @@ export default function AudienciaBarChart({ data, isPnt }: Props) {
               stroke={SEASON_COLORS[2025]}
               strokeWidth={2}
               connectNulls={false}
-              dot={(props) => <HollowDot {...props} stroke={SEASON_COLORS[2025]} xOffset={0} />}
-              activeDot={(props) => <ActiveDot {...props} stroke={SEASON_COLORS[2025]} xOffset={0} />}
+              dot={(props: any) => <HollowDot {...props} stroke={SEASON_COLORS[2025]} xOffset={0} />}
+              activeDot={(props: any) => <ActiveDot {...props} stroke={SEASON_COLORS[2025]} xOffset={0} />}
             />
           )}
 
@@ -185,8 +185,8 @@ export default function AudienciaBarChart({ data, isPnt }: Props) {
               stroke={SEASON_COLORS[2026]}
               strokeWidth={2}
               connectNulls={false}
-              dot={(props) => <HollowDot {...props} stroke={SEASON_COLORS[2026]} xOffset={DOT_OFFSET} />}
-              activeDot={(props) => <ActiveDot {...props} stroke={SEASON_COLORS[2026]} xOffset={DOT_OFFSET} />}
+              dot={(props: any) => <HollowDot {...props} stroke={SEASON_COLORS[2026]} xOffset={DOT_OFFSET} />}
+              activeDot={(props: any) => <ActiveDot {...props} stroke={SEASON_COLORS[2026]} xOffset={DOT_OFFSET} />}
             />
           )}
         </ComposedChart>
