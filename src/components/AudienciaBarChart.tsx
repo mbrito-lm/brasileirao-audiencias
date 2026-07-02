@@ -37,7 +37,7 @@ interface Props {
 
 const BG = "#08090f";
 const OFFSET = 0.38; // index units — shifts the entire 2026 series right
-const OUTLIER_THRESHOLD = 0.4; // 40% deviation from season average
+const OUTLIER_THRESHOLD = 0.65; // 65% deviation from season average
 
 function fmtVal(v: number, isPnt?: boolean) {
   if (isPnt) return v.toFixed(1).replace(".", ",") + " pts";
@@ -201,11 +201,11 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange }: Props)
         >
           <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.04)" vertical={false} />
 
-          {/* Column highlight for hovered round — kept narrow to not bleed into neighbors */}
+          {/* Column highlight — spans midpoint to midpoint between adjacent columns */}
           {activeIdx !== null && (
             <ReferenceArea
-              x1={activeIdx - 0.15}
-              x2={activeIdx + OFFSET + 0.15}
+              x1={activeIdx + OFFSET / 2 - 0.5}
+              x2={activeIdx + OFFSET / 2 + 0.5}
               fill="rgba(255,255,255,0.05)"
               stroke="none"
             />
@@ -251,7 +251,7 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange }: Props)
               dataKey="val"
               stroke={SEASON_COLORS[2025]}
               strokeWidth={1.5}
-              strokeOpacity={0.18}
+              strokeOpacity={0.30}
               strokeDasharray="3 3"
               type="monotone"
               connectNulls
@@ -267,7 +267,7 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange }: Props)
               dataKey="val"
               stroke={SEASON_COLORS[2026]}
               strokeWidth={1.5}
-              strokeOpacity={0.18}
+              strokeOpacity={0.30}
               strokeDasharray="3 3"
               type="monotone"
               connectNulls

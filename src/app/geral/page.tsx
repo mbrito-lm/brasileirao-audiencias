@@ -112,10 +112,12 @@ export default function GeralPage() {
                     </span>
                   )}
                   {(chartHover.isOutlier25 || chartHover.isOutlier26) && (() => {
+                    const outlierSeason = chartHover.isOutlier25 ? 2025 : 2026;
+                    const outlierColor = SEASON_COLORS[outlierSeason];
                     const outlierTeams = chartHover.isOutlier25 ? chartHover.teams25 : chartHover.teams26;
                     return (
                       <div className="flex items-center gap-1.5 border-l border-white/10 pl-2.5">
-                        <span className="text-amber-400/80 uppercase tracking-wide" style={{ fontSize: 9 }}>outlier</span>
+                        <span className="font-semibold uppercase tracking-wide" style={{ color: outlierColor, fontSize: 9 }}>outlier</span>
                         {outlierTeams.slice(0, 1).map((t, i) => (
                           <div key={i} className="flex items-center gap-1">
                             <TeamLogo team={t.mandante} size={14} />

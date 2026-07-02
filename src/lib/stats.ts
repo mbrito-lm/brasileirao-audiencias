@@ -114,7 +114,7 @@ export function getChartData(
   const avg2025 = avg(all25);
   const avg2026 = avg(all26);
 
-  const minRodada = detentor && filtered.length ? Math.min(...filtered.map((g) => g.rodada)) : 1;
+  const minRodada = 1;
 
   const result = [];
   for (let r = minRodada; r <= maxRodada; r++) {
