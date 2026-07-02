@@ -11,7 +11,7 @@ interface Props {
 const ANOS = [2025, 2026];
 const DIA_ORDER = ["seg.", "ter.", "qua.", "qui.", "sex.", "sáb.", "dom."];
 
-type SortCol = "geral" | 2025 | 2026;
+type SortCol = "geral" | number;
 type SortDir = "desc" | "asc";
 
 interface TableRow { key: string; geral: number | null; vals: Record<number, number | null> }
