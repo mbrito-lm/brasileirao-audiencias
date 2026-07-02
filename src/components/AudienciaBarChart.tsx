@@ -33,6 +33,8 @@ interface Props {
   data: DataPoint[];
   isPnt?: boolean;
   onHoverChange?: (d: HoverData | null) => void;
+  onDotClick?: (d: HoverData) => void;
+  lockedRodada?: number | null;
 }
 
 const BG = "#08090f";
@@ -78,11 +80,14 @@ function isOutlier(val: number | null, avg: number): boolean {
   return Math.abs((val - avg) / avg) > OUTLIER_THRESHOLD;
 }
 
-function HollowDot({ cx, cy, stroke, value, onMouseEnter, onMouseLeave }: any) {
+function HollowDot({ cx, cy, stroke, value, onMouseEnter, onMouseLeave, onClick, locked }: any) {
   if (cx == null || cy == null || value == null) return null;
   return (
-    <circle cx={cx} cy={cy} r={4} fill={BG} stroke={stroke} strokeWidth={2}
-      onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave} style={{ cursor: "crosshair" }} />
+    <circle cx={cx} cy={cy} r={locked ? 5 : 4}
+      fill={locked ? `${stroke}33` : BG}
+      stroke={stroke} strokeWidth={locked ? 2.5 : 2}
+      onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave} onClick={onClick}
+      style={{ cursor: "pointer" }} />
   );
 }
 
@@ -91,12 +96,12 @@ function ActiveHollowDot({ cx, cy, stroke, value }: any) {
   return <circle cx={cx} cy={cy} r={5.5} fill={BG} stroke={stroke} strokeWidth={2.5} />;
 }
 
-function OutlierDot({ cx, cy, stroke, value, onMouseEnter, onMouseLeave }: any) {
+function OutlierDot({ cx, cy, stroke, value, onMouseEnter, onMouseLeave, onClick, locked }: any) {
   if (cx == null || cy == null || value == null) return null;
   return (
-    <g onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave} style={{ cursor: "crosshair" }}>
-      <circle cx={cx} cy={cy} r={9} fill="none" stroke={stroke} strokeWidth={1.5} strokeDasharray="3 2" opacity={0.75} />
-      <circle cx={cx} cy={cy} r={4} fill={BG} stroke={stroke} strokeWidth={2} />
+    <g onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave} onClick={onClick} style={{ cursor: "pointer" }}>
+      <circle cx={cx} cy={cy} r={9} fill="none" stroke={stroke} strokeWidth={1.5} strokeDasharray="3 2" opacity={locked ? 1 : 0.75} />
+      <circle cx={cx} cy={cy} r={4} fill={locked ? `${stroke}44` : BG} stroke={stroke} strokeWidth={locked ? 2.5 : 2} />
     </g>
   );
 }
@@ -127,7 +132,7 @@ function CustomTick({ x, y, payload, allRods, missingSet, offset }: any) {
   );
 }
 
-export default function AudienciaBarChart({ data, isPnt, onHoverChange }: Props) {
+export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotClick, lockedRodada }: Props) {
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [activeIdx, setActiveIdx] = useState<number | null>(null);
   const [hoverDot, setHoverDot] = useState<{ val: number; color: string } | null>(null);
@@ -187,10 +192,26 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange }: Props)
     onHoverChange?.(null);
   }, [onHoverChange]);
 
-  const makeDotHandler = (val: number, color: string) => ({
-    onMouseEnter: () => setHoverDot({ val, color }),
-    onMouseLeave: () => setHoverDot(null),
-  });
+  const makeDotHandler = (val: number, color: string, rodadaIdx: number) => {
+    const rodada = allRods[rodadaIdx];
+    const point = data.find((d) => d.rodada === rodada);
+    return {
+      onMouseEnter: () => setHoverDot({ val, color }),
+      onMouseLeave: () => setHoverDot(null),
+      onClick: (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onDotClick?.({
+          rodada,
+          v25: point?.["2025"] ?? null,
+          v26: point?.["2026"] ?? null,
+          isOutlier25: isOutlier(point?.["2025"] ?? null, avg25),
+          isOutlier26: isOutlier(point?.["2026"] ?? null, avg26),
+          teams25: point?.teams25 ?? [],
+          teams26: point?.teams26 ?? [],
+        });
+      },
+    };
+  };
 
   return (
     <div>
@@ -218,7 +239,7 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange }: Props)
 
       <ResponsiveContainer width="100%" height={280}>
         <ComposedChart
-          margin={{ top: 12, right: 16, left: 0, bottom: 4 }}
+          margin={{ top: 28, right: 16, left: 0, bottom: 4 }}
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
         >
@@ -275,6 +296,7 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange }: Props)
             axisLine={false}
             tickLine={false}
             width={isPnt ? 34 : 48}
+            domain={[(d: number) => Math.max(0, d * 0.92), (d: number) => d * 1.14]}
           />
 
           {/* Bridge lines overlay — straight SVG lines drawn only in gap segments (avoids double-line on data segments) */}
@@ -316,11 +338,12 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange }: Props)
               type="monotone"
               dot={(props: any) => {
                 if (props.value == null) return null as any;
-                const handlers = makeDotHandler(props.value, SEASON_COLORS[2025]);
+                const handlers = makeDotHandler(props.value, SEASON_COLORS[2025], props.index);
+                const isLocked = lockedRodada === allRods[props.index];
                 if (isOutlier(props.value, avg25)) {
-                  return <OutlierDot {...props} stroke={SEASON_COLORS[2025]} {...handlers} />;
+                  return <OutlierDot {...props} stroke={SEASON_COLORS[2025]} {...handlers} locked={isLocked} />;
                 }
-                return <HollowDot {...props} stroke={SEASON_COLORS[2025]} {...handlers} />;
+                return <HollowDot {...props} stroke={SEASON_COLORS[2025]} {...handlers} locked={isLocked} />;
               }}
               activeDot={(props: any) => {
                 if (isOutlier(props.value, avg25)) return <OutlierActiveDot {...props} stroke={SEASON_COLORS[2025]} />;
@@ -341,11 +364,12 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange }: Props)
               type="monotone"
               dot={(props: any) => {
                 if (props.value == null) return null as any;
-                const handlers = makeDotHandler(props.value, SEASON_COLORS[2026]);
+                const handlers = makeDotHandler(props.value, SEASON_COLORS[2026], props.index);
+                const isLocked = lockedRodada === allRods[props.index];
                 if (isOutlier(props.value, avg26)) {
-                  return <OutlierDot {...props} stroke={SEASON_COLORS[2026]} {...handlers} />;
+                  return <OutlierDot {...props} stroke={SEASON_COLORS[2026]} {...handlers} locked={isLocked} />;
                 }
-                return <HollowDot {...props} stroke={SEASON_COLORS[2026]} {...handlers} />;
+                return <HollowDot {...props} stroke={SEASON_COLORS[2026]} {...handlers} locked={isLocked} />;
               }}
               activeDot={(props: any) => {
                 if (isOutlier(props.value, avg26)) return <OutlierActiveDot {...props} stroke={SEASON_COLORS[2026]} />;
@@ -375,8 +399,8 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange }: Props)
               const h = plotBottom - plotTop;
               return (
                 <g style={{ pointerEvents: "none" }}>
-                  <rect x={plotLeft} y={plotTop} width={Math.max(0, colLeft - plotLeft)} height={h} fill="rgba(0,0,0,0.38)" />
-                  <rect x={colRight} y={plotTop} width={Math.max(0, plotRight - colRight)} height={h} fill="rgba(0,0,0,0.38)" />
+                  <rect x={plotLeft} y={plotTop} width={Math.max(0, colLeft - plotLeft)} height={h} fill="rgba(0,0,0,0.16)" />
+                  <rect x={colRight} y={plotTop} width={Math.max(0, plotRight - colRight)} height={h} fill="rgba(0,0,0,0.16)" />
                 </g>
               );
             }}

@@ -13,6 +13,7 @@ const TABS = ["Geral", ...DETENTORES] as const;
 export default function GeralPage() {
   const [activeTab, setActiveTab] = useState<string>("Geral");
   const [chartHover, setChartHover] = useState<HoverData | null>(null);
+  const [lockedData, setLockedData] = useState<HoverData | null>(null);
   const detentor = activeTab === "Geral" ? null : activeTab;
   const filteredGames = detentor ? games.filter((g) => g.detentor === detentor) : games;
   const chartData = getChartData(games, detentor);
@@ -25,6 +26,12 @@ export default function GeralPage() {
     null as typeof gamesWithMetric[0] | null
   );
   const has2026 = filteredGames.some((g) => g.ano === 2026);
+
+  const handleDotClick = (d: HoverData) => {
+    setLockedData((prev) => (prev?.rodada === d.rodada ? null : d));
+  };
+
+  const displayHover = chartHover ?? lockedData;
 
   return (
     <div className="py-6">
@@ -42,7 +49,7 @@ export default function GeralPage() {
           const isActive = activeTab === tab;
           const logo = tab !== "Geral" ? LOGOS[tab] : undefined;
           return (
-            <button key={tab} onClick={() => setActiveTab(tab)}
+            <button key={tab} onClick={() => { setActiveTab(tab); setLockedData(null); }}
               title={tab}
               className="flex items-center justify-center px-3 py-2.5 rounded-xl transition-all duration-200"
               style={isActive ? {
@@ -98,37 +105,20 @@ export default function GeralPage() {
               <h2 className="text-sm font-semibold text-white uppercase tracking-widest whitespace-nowrap">
                 {detentor || "Visão Geral"} — por Rodada
               </h2>
-              {chartHover && (
-                <div className="flex items-center gap-2.5 px-3 py-1 rounded-lg border border-white/[0.08] bg-white/[0.04] text-xs">
-                  <span className="text-white/35">Rod. {chartHover.rodada}</span>
-                  {chartHover.v25 !== null && (
-                    <span className="font-bold" style={{ color: SEASON_COLORS[2025] }}>
-                      2025 · {formatMetric(detentor || "CazéTV", chartHover.v25)}
-                    </span>
-                  )}
-                  {chartHover.v26 !== null && (
-                    <span className="font-bold" style={{ color: SEASON_COLORS[2026] }}>
-                      2026 · {formatMetric(detentor || "CazéTV", chartHover.v26)}
-                    </span>
-                  )}
-                  {(chartHover.isOutlier25 || chartHover.isOutlier26) && (() => {
-                    const outlierSeason = chartHover.isOutlier25 ? 2025 : 2026;
-                    const outlierColor = SEASON_COLORS[outlierSeason];
-                    const outlierTeams = chartHover.isOutlier25 ? chartHover.teams25 : chartHover.teams26;
-                    return (
-                      <div className="flex items-center gap-1.5 border-l border-white/10 pl-2.5">
-                        <span className="font-semibold uppercase tracking-wide" style={{ color: outlierColor, fontSize: 9 }}>outlier</span>
-                        {outlierTeams.slice(0, 1).map((t, i) => (
-                          <div key={i} className="flex items-center gap-1">
-                            <TeamLogo team={t.mandante} size={14} />
-                            <span className="text-white/20">vs</span>
-                            <TeamLogo team={t.visitante} size={14} />
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  })()}
-                </div>
+
+              {/* Locked rod card (pinned) */}
+              {lockedData && (
+                <HoverCard
+                  data={lockedData}
+                  detentor={detentor}
+                  locked
+                  onUnlock={() => setLockedData(null)}
+                />
+              )}
+
+              {/* Live hover card — shown alongside locked if different rod */}
+              {displayHover && (!lockedData || displayHover.rodada !== lockedData.rodada) && (
+                <HoverCard data={displayHover} detentor={detentor} />
               )}
             </div>
             <p className="text-white/30 text-xs mt-0.5">
@@ -143,7 +133,13 @@ export default function GeralPage() {
               style={{ filter: "brightness(0) invert(1)", opacity: 0.85 }} />
           )}
         </div>
-        <AudienciaBarChart data={chartData} isPnt={isPnt} onHoverChange={setChartHover} />
+        <AudienciaBarChart
+          data={chartData}
+          isPnt={isPnt}
+          onHoverChange={setChartHover}
+          onDotClick={handleDotClick}
+          lockedRodada={lockedData?.rodada ?? null}
+        />
       </div>
 
       {/* Breakdown tables — only for specific detentor */}
@@ -165,6 +161,53 @@ export default function GeralPage() {
         </div>
         <GamesTable games={filteredGames} allGames={games} detentor={detentor} />
       </div>
+    </div>
+  );
+}
+
+function HoverCard({ data, detentor, locked, onUnlock }: {
+  data: HoverData; detentor: string | null; locked?: boolean; onUnlock?: () => void;
+}) {
+  const fmt = (v: number | null) => v !== null ? formatMetric(detentor || "CazéTV", v) : null;
+  const outlierSeason = data.isOutlier25 ? 2025 : data.isOutlier26 ? 2026 : null;
+  const outlierTeams = data.isOutlier25 ? data.teams25 : data.isOutlier26 ? data.teams26 : [];
+  return (
+    <div className={`flex items-center gap-2.5 px-3 py-1 rounded-lg border text-xs ${
+      locked
+        ? "border-white/15 bg-white/[0.06]"
+        : "border-white/[0.08] bg-white/[0.04]"
+    }`}>
+      {locked && (
+        <svg className="w-3 h-3 text-white/30 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 1a5 5 0 0 0-5 5v3H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V11a2 2 0 0 0-2-2h-2V6a5 5 0 0 0-5-5zm0 2a3 3 0 0 1 3 3v3H9V6a3 3 0 0 1 3-3zm0 10a2 2 0 1 1 0 4 2 2 0 0 1 0-4z"/>
+        </svg>
+      )}
+      <span className="text-white/35">Rod. {data.rodada}</span>
+      {data.v25 !== null && fmt(data.v25) && (
+        <span className="font-bold" style={{ color: SEASON_COLORS[2025] }}>
+          2025 · {fmt(data.v25)}
+        </span>
+      )}
+      {data.v26 !== null && fmt(data.v26) && (
+        <span className="font-bold" style={{ color: SEASON_COLORS[2026] }}>
+          2026 · {fmt(data.v26)}
+        </span>
+      )}
+      {outlierSeason && (
+        <div className="flex items-center gap-1.5 border-l border-white/10 pl-2.5">
+          <span className="font-semibold uppercase tracking-wide" style={{ color: SEASON_COLORS[outlierSeason], fontSize: 9 }}>outlier</span>
+          {outlierTeams.slice(0, 1).map((t, i) => (
+            <div key={i} className="flex items-center gap-1">
+              <TeamLogo team={t.mandante} size={14} />
+              <span className="text-white/20">vs</span>
+              <TeamLogo team={t.visitante} size={14} />
+            </div>
+          ))}
+        </div>
+      )}
+      {locked && onUnlock && (
+        <button onClick={onUnlock} className="ml-1 text-white/25 hover:text-white/50 transition-colors text-xs leading-none">✕</button>
+      )}
     </div>
   );
 }
