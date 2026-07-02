@@ -29,33 +29,60 @@ export interface HoverData {
   teams26: ChartTeam[];
 }
 
+export interface LockedDot {
+  rodada: number;
+  season: 2025 | 2026;
+  val: number;
+  teams: ChartTeam[];
+  isOutlier: boolean;
+}
+
 interface Props {
   data: DataPoint[];
   isPnt?: boolean;
   onHoverChange?: (d: HoverData | null) => void;
-  onDotClick?: (d: HoverData) => void;
-  lockedRodada?: number | null;
+  onDotClick?: (d: LockedDot) => void;
+  lockedDot?: LockedDot | null;
 }
 
 const BG = "#08090f";
 const OFFSET = 0.38;
 const OUTLIER_THRESHOLD = 0.65;
 
-interface BridgeSeg { x1: number; y1: number; x2: number; y2: number; color: string }
+interface BridgeSeg {
+  x0: number; y0: number;
+  x1: number; y1: number;
+  prevX: number | null; prevY: number | null;
+  nextX: number | null; nextY: number | null;
+  color: string;
+}
 
 function buildBridgeSegs(pts: { rod: number; val: number | null }[], color: string): BridgeSeg[] {
   const out: BridgeSeg[] = [];
+  let prevNonNull: { rod: number; val: number } | null = null;
   let lastNonNull: { rod: number; val: number } | null = null;
-  let inGap = false;
-  for (const p of pts) {
+  let gapState: { prevPrev: { rod: number; val: number } | null; bridgeStart: { rod: number; val: number } } | null = null;
+
+  for (let i = 0; i < pts.length; i++) {
+    const p = pts[i];
     if (p.val !== null) {
-      if (inGap && lastNonNull !== null) {
-        out.push({ x1: lastNonNull.rod, y1: lastNonNull.val, x2: p.rod, y2: p.val, color });
+      if (gapState !== null) {
+        const nextNonNull = pts.slice(i + 1).find((q) => q.val !== null);
+        out.push({
+          x0: gapState.bridgeStart.rod, y0: gapState.bridgeStart.val,
+          x1: p.rod, y1: p.val,
+          prevX: gapState.prevPrev?.rod ?? null,
+          prevY: gapState.prevPrev?.val ?? null,
+          nextX: nextNonNull?.rod ?? null,
+          nextY: nextNonNull?.val ?? null,
+          color,
+        });
       }
+      prevNonNull = lastNonNull;
       lastNonNull = { rod: p.rod, val: p.val };
-      inGap = false;
-    } else {
-      if (lastNonNull !== null) inGap = true;
+      gapState = null;
+    } else if (lastNonNull !== null && gapState === null) {
+      gapState = { prevPrev: prevNonNull, bridgeStart: lastNonNull };
     }
   }
   return out;
@@ -80,42 +107,6 @@ function isOutlier(val: number | null, avg: number): boolean {
   return Math.abs((val - avg) / avg) > OUTLIER_THRESHOLD;
 }
 
-function HollowDot({ cx, cy, stroke, value, onMouseEnter, onMouseLeave, onClick, locked }: any) {
-  if (cx == null || cy == null || value == null) return null;
-  return (
-    <circle cx={cx} cy={cy} r={locked ? 5 : 4}
-      fill={locked ? `${stroke}33` : BG}
-      stroke={stroke} strokeWidth={locked ? 2.5 : 2}
-      onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave} onClick={onClick}
-      style={{ cursor: "pointer" }} />
-  );
-}
-
-function ActiveHollowDot({ cx, cy, stroke, value }: any) {
-  if (cx == null || cy == null || value == null) return null;
-  return <circle cx={cx} cy={cy} r={5.5} fill={BG} stroke={stroke} strokeWidth={2.5} />;
-}
-
-function OutlierDot({ cx, cy, stroke, value, onMouseEnter, onMouseLeave, onClick, locked }: any) {
-  if (cx == null || cy == null || value == null) return null;
-  return (
-    <g onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave} onClick={onClick} style={{ cursor: "pointer" }}>
-      <circle cx={cx} cy={cy} r={9} fill="none" stroke={stroke} strokeWidth={1.5} strokeDasharray="3 2" opacity={locked ? 1 : 0.75} />
-      <circle cx={cx} cy={cy} r={4} fill={locked ? `${stroke}44` : BG} stroke={stroke} strokeWidth={locked ? 2.5 : 2} />
-    </g>
-  );
-}
-
-function OutlierActiveDot({ cx, cy, stroke, value }: any) {
-  if (cx == null || cy == null || value == null) return null;
-  return (
-    <g>
-      <circle cx={cx} cy={cy} r={10} fill="none" stroke={stroke} strokeWidth={1.5} strokeDasharray="3 2" opacity={0.9} />
-      <circle cx={cx} cy={cy} r={5.5} fill={BG} stroke={stroke} strokeWidth={2.5} />
-    </g>
-  );
-}
-
 function CustomTick({ x, y, payload, allRods, missingSet, offset }: any) {
   const rawIdx = payload?.value ?? 0;
   const idx = Math.round(rawIdx - offset / 2);
@@ -132,7 +123,7 @@ function CustomTick({ x, y, payload, allRods, missingSet, offset }: any) {
   );
 }
 
-export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotClick, lockedRodada }: Props) {
+export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotClick, lockedDot }: Props) {
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [activeIdx, setActiveIdx] = useState<number | null>(null);
   const [hoverDot, setHoverDot] = useState<{ val: number; color: string } | null>(null);
@@ -162,11 +153,15 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotCli
   const data25 = data.map((d) => ({ rod: rodToIdx.get(d.rodada)!, val: d["2025"] }));
   const data26 = data.map((d) => ({ rod: rodToIdx.get(d.rodada)! + OFFSET, val: d["2026"] }));
 
-  // Bridge segments: only the endpoints around gap regions — drawn as SVG lines to avoid overlap with main line
+  // Smooth bezier bridge segments for gaps
   const segs25 = show25 ? buildBridgeSegs(data25, SEASON_COLORS[2025]) : [];
   const segs26 = show26 ? buildBridgeSegs(data26, SEASON_COLORS[2026]) : [];
 
   const midTicks = allRods.map((_, i) => i + OFFSET / 2);
+
+  // Column highlight: active hover OR locked dot's column
+  const lockedRodadaIdx = lockedDot ? (rodToIdx.get(lockedDot.rodada) ?? null) : null;
+  const highlightIdx = activeIdx ?? lockedRodadaIdx;
 
   const handleMouseMove = useCallback((chartState: any) => {
     if (!chartState?.activeLabel) return;
@@ -191,27 +186,6 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotCli
     setHoverDot(null);
     onHoverChange?.(null);
   }, [onHoverChange]);
-
-  const makeDotHandler = (val: number, color: string, rodadaIdx: number) => {
-    const rodada = allRods[rodadaIdx];
-    const point = data.find((d) => d.rodada === rodada);
-    return {
-      onMouseEnter: () => setHoverDot({ val, color }),
-      onMouseLeave: () => setHoverDot(null),
-      onClick: (e: React.MouseEvent) => {
-        e.stopPropagation();
-        onDotClick?.({
-          rodada,
-          v25: point?.["2025"] ?? null,
-          v26: point?.["2026"] ?? null,
-          isOutlier25: isOutlier(point?.["2025"] ?? null, avg25),
-          isOutlier26: isOutlier(point?.["2026"] ?? null, avg26),
-          teams25: point?.teams25 ?? [],
-          teams26: point?.teams26 ?? [],
-        });
-      },
-    };
-  };
 
   return (
     <div>
@@ -245,11 +219,11 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotCli
         >
           <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.04)" vertical={false} />
 
-          {/* Active column highlight */}
-          {activeIdx !== null && (
+          {/* Column highlight for hover or locked dot */}
+          {highlightIdx !== null && (
             <ReferenceArea
-              x1={activeIdx + OFFSET / 2 - 0.5}
-              x2={activeIdx + OFFSET / 2 + 0.5}
+              x1={highlightIdx + OFFSET / 2 - 0.5}
+              x2={highlightIdx + OFFSET / 2 + 0.5}
               fill="rgba(255,255,255,0.05)"
               stroke="none"
             />
@@ -267,7 +241,7 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotCli
               label={{ value: "méd 26", position: "insideTopRight", fill: SEASON_COLORS[2026], fontSize: 10, opacity: 0.6, dy: 14 }} />
           )}
 
-          {/* Horizontal dot-hover line */}
+          {/* Horizontal dot-hover reference line */}
           {hoverDot && (
             <ReferenceLine
               y={hoverDot.val}
@@ -299,7 +273,7 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotCli
             domain={[(d: number) => Math.max(0, d * 0.92), (d: number) => d * 1.14]}
           />
 
-          {/* Bridge lines overlay — straight SVG lines drawn only in gap segments (avoids double-line on data segments) */}
+          {/* Smooth bezier bridge overlay — drawn below main lines */}
           <Customized
             component={(props: any) => {
               const xAxis = Object.values(props.xAxisMap ?? {})[0] as any;
@@ -311,23 +285,35 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotCli
               if (!allSegs.length) return null;
               return (
                 <g>
-                  {allSegs.map((seg, i) => (
-                    <line
-                      key={i}
-                      x1={xs(seg.x1)} y1={ys(seg.y1)}
-                      x2={xs(seg.x2)} y2={ys(seg.y2)}
-                      stroke={seg.color}
-                      strokeWidth={1.5}
-                      strokeOpacity={0.30}
-                      strokeDasharray="3 4"
-                    />
-                  ))}
+                  {allSegs.map((seg, i) => {
+                    const px0 = xs(seg.x0), py0 = ys(seg.y0);
+                    const px1 = xs(seg.x1), py1 = ys(seg.y1);
+                    const ppx = seg.prevX !== null ? xs(seg.prevX) : px0;
+                    const ppy = seg.prevY !== null ? ys(seg.prevY) : py0;
+                    const pnx = seg.nextX !== null ? xs(seg.nextX) : px1;
+                    const pny = seg.nextY !== null ? ys(seg.nextY) : py1;
+                    // Catmull-Rom tangents → cubic bezier control points
+                    const t0x = (px1 - ppx) / 2, t0y = (py1 - ppy) / 2;
+                    const t1x = (pnx - px0) / 2, t1y = (pny - py0) / 2;
+                    const cp1x = px0 + t0x / 3, cp1y = py0 + t0y / 3;
+                    const cp2x = px1 - t1x / 3, cp2y = py1 - t1y / 3;
+                    return (
+                      <path key={i}
+                        d={`M${px0},${py0} C${cp1x},${cp1y} ${cp2x},${cp2y} ${px1},${py1}`}
+                        fill="none"
+                        stroke={seg.color}
+                        strokeWidth={1.5}
+                        strokeOpacity={0.30}
+                        strokeDasharray="3 4"
+                      />
+                    );
+                  })}
                 </g>
               );
             }}
           />
 
-          {/* 2025 main line */}
+          {/* Lines: dim when hovering (dot layer handles per-dot opacity) */}
           {show25 && (
             <Line
               data={data25}
@@ -335,25 +321,13 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotCli
               name="2025"
               stroke={SEASON_COLORS[2025]}
               strokeWidth={2}
+              strokeOpacity={activeIdx !== null ? 0.22 : 1}
               type="monotone"
-              dot={(props: any) => {
-                if (props.value == null) return null as any;
-                const handlers = makeDotHandler(props.value, SEASON_COLORS[2025], props.index);
-                const isLocked = lockedRodada === allRods[props.index];
-                if (isOutlier(props.value, avg25)) {
-                  return <OutlierDot {...props} stroke={SEASON_COLORS[2025]} {...handlers} locked={isLocked} />;
-                }
-                return <HollowDot {...props} stroke={SEASON_COLORS[2025]} {...handlers} locked={isLocked} />;
-              }}
-              activeDot={(props: any) => {
-                if (isOutlier(props.value, avg25)) return <OutlierActiveDot {...props} stroke={SEASON_COLORS[2025]} />;
-                return <ActiveHollowDot {...props} stroke={SEASON_COLORS[2025]} />;
-              }}
+              dot={false}
+              activeDot={false}
               isAnimationActive={false}
             />
           )}
-
-          {/* 2026 main line */}
           {show26 && (
             <Line
               data={data26}
@@ -361,46 +335,67 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotCli
               name="2026"
               stroke={SEASON_COLORS[2026]}
               strokeWidth={2}
+              strokeOpacity={activeIdx !== null ? 0.22 : 1}
               type="monotone"
-              dot={(props: any) => {
-                if (props.value == null) return null as any;
-                const handlers = makeDotHandler(props.value, SEASON_COLORS[2026], props.index);
-                const isLocked = lockedRodada === allRods[props.index];
-                if (isOutlier(props.value, avg26)) {
-                  return <OutlierDot {...props} stroke={SEASON_COLORS[2026]} {...handlers} locked={isLocked} />;
-                }
-                return <HollowDot {...props} stroke={SEASON_COLORS[2026]} {...handlers} locked={isLocked} />;
-              }}
-              activeDot={(props: any) => {
-                if (isOutlier(props.value, avg26)) return <OutlierActiveDot {...props} stroke={SEASON_COLORS[2026]} />;
-                return <ActiveHollowDot {...props} stroke={SEASON_COLORS[2026]} />;
-              }}
+              dot={false}
+              activeDot={false}
               isAnimationActive={false}
             />
           )}
 
-          {/* Dim overlay — rendered after lines so it covers the non-active chart area */}
+          {/* Dot layer — always re-renders on state change, handles dim + lock + hover + click */}
           <Customized
             component={(props: any) => {
-              if (activeIdx === null) return null;
               const xAxis = Object.values(props.xAxisMap ?? {})[0] as any;
               const yAxis = Object.values(props.yAxisMap ?? {})[0] as any;
               if (!xAxis?.scale || !yAxis?.scale) return null;
               const xs = xAxis.scale;
               const ys = yAxis.scale;
-              const domain = xAxis.domain ?? [-0.6, maxIdx + OFFSET + 0.6];
-              const plotLeft = xs(domain[0]);
-              const plotRight = xs(domain[1]);
-              const yDomain = yAxis.domain ?? [0, 1];
-              const plotTop = Math.min(ys(yDomain[0]), ys(yDomain[1]));
-              const plotBottom = Math.max(ys(yDomain[0]), ys(yDomain[1]));
-              const colLeft = xs(activeIdx + OFFSET / 2 - 0.5);
-              const colRight = xs(activeIdx + OFFSET / 2 + 0.5);
-              const h = plotBottom - plotTop;
+
+              const renderDot = (pt: { rod: number; val: number | null }, idx: number, season: 2025 | 2026) => {
+                if (pt.val === null) return null;
+                const cx = xs(pt.rod);
+                const cy = ys(pt.val);
+                const rodada = allRods[idx];
+                const avg = season === 2025 ? avg25 : avg26;
+                const color = SEASON_COLORS[season];
+                const isOut = isOutlier(pt.val, avg);
+                const isActive = activeIdx !== null && allRods[activeIdx] === rodada;
+                const isLocked = lockedDot?.rodada === rodada && lockedDot?.season === season;
+                const dimmed = activeIdx !== null && !isActive && !isLocked;
+                const point = data.find((d) => d.rodada === rodada);
+                const teams = season === 2025 ? (point?.teams25 ?? []) : (point?.teams26 ?? []);
+
+                const r = isActive ? 5.5 : isLocked ? 5 : 4;
+                const fill = isLocked ? color : BG;
+                const sw = isActive || isLocked ? 2.5 : 2;
+
+                return (
+                  <g
+                    key={`${season}-${idx}`}
+                    opacity={dimmed ? 0.16 : 1}
+                    style={{ cursor: "pointer" }}
+                    onMouseEnter={() => setHoverDot({ val: pt.val!, color })}
+                    onMouseLeave={() => setHoverDot(null)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDotClick?.({ rodada, season, val: pt.val!, teams, isOutlier: isOut });
+                    }}
+                  >
+                    {isOut && (
+                      <circle cx={cx} cy={cy} r={isActive ? 10 : 9}
+                        fill="none" stroke={color} strokeWidth={1.5}
+                        strokeDasharray="3 2" opacity={isLocked ? 1 : 0.75} />
+                    )}
+                    <circle cx={cx} cy={cy} r={r} fill={fill} stroke={color} strokeWidth={sw} />
+                  </g>
+                );
+              };
+
               return (
-                <g style={{ pointerEvents: "none" }}>
-                  <rect x={plotLeft} y={plotTop} width={Math.max(0, colLeft - plotLeft)} height={h} fill="rgba(0,0,0,0.16)" />
-                  <rect x={colRight} y={plotTop} width={Math.max(0, plotRight - colRight)} height={h} fill="rgba(0,0,0,0.16)" />
+                <g>
+                  {show25 && data25.map((p, i) => renderDot(p, i, 2025))}
+                  {show26 && data26.map((p, i) => renderDot(p, i, 2026))}
                 </g>
               );
             }}

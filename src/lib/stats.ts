@@ -1,6 +1,6 @@
 import { Game } from "@/data/games";
 
-export const PNT_DETENTORES = new Set(["Globo", "Record", "Premiere", "SporTV"]);
+export const PNT_DETENTORES = new Set(["Record", "Premiere", "SporTV"]);
 
 export function normalizeHorario(h: string): string {
   const colon = h.indexOf(":");

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { games, DETENTORES, DETENTOR_COLORS, SEASON_COLORS } from "@/data/games";
 import { LOGOS } from "@/data/logos";
 import { getChartData, mediaDetentor, formatMetric, metricLabel, getMetric, PNT_DETENTORES, normalizeHorario } from "@/lib/stats";
-import AudienciaBarChart, { HoverData } from "@/components/AudienciaBarChart";
+import AudienciaBarChart, { HoverData, LockedDot } from "@/components/AudienciaBarChart";
 import BreakdownTables from "@/components/BreakdownTables";
 import GamesTable from "@/components/GamesTable";
 import TeamLogo from "@/components/TeamLogo";
@@ -13,7 +13,7 @@ const TABS = ["Geral", ...DETENTORES] as const;
 export default function GeralPage() {
   const [activeTab, setActiveTab] = useState<string>("Geral");
   const [chartHover, setChartHover] = useState<HoverData | null>(null);
-  const [lockedData, setLockedData] = useState<HoverData | null>(null);
+  const [lockedDot, setLockedDot] = useState<LockedDot | null>(null);
   const detentor = activeTab === "Geral" ? null : activeTab;
   const filteredGames = detentor ? games.filter((g) => g.detentor === detentor) : games;
   const chartData = getChartData(games, detentor);
@@ -27,11 +27,13 @@ export default function GeralPage() {
   );
   const has2026 = filteredGames.some((g) => g.ano === 2026);
 
-  const handleDotClick = (d: HoverData) => {
-    setLockedData((prev) => (prev?.rodada === d.rodada ? null : d));
+  const handleDotClick = (d: LockedDot) => {
+    setLockedDot((prev) =>
+      prev?.rodada === d.rodada && prev?.season === d.season ? null : d
+    );
   };
 
-  const displayHover = chartHover ?? lockedData;
+  const displayHover = chartHover;
 
   return (
     <div className="py-6">
@@ -49,7 +51,7 @@ export default function GeralPage() {
           const isActive = activeTab === tab;
           const logo = tab !== "Geral" ? LOGOS[tab] : undefined;
           return (
-            <button key={tab} onClick={() => { setActiveTab(tab); setLockedData(null); }}
+            <button key={tab} onClick={() => { setActiveTab(tab); setLockedDot(null); }}
               title={tab}
               className="flex items-center justify-center px-3 py-2.5 rounded-xl transition-all duration-200"
               style={isActive ? {
@@ -106,18 +108,17 @@ export default function GeralPage() {
                 {detentor || "Visão Geral"} — por Rodada
               </h2>
 
-              {/* Locked rod card (pinned) */}
-              {lockedData && (
-                <HoverCard
-                  data={lockedData}
+              {/* Locked dot card (pinned) */}
+              {lockedDot && (
+                <LockedDotCard
+                  dot={lockedDot}
                   detentor={detentor}
-                  locked
-                  onUnlock={() => setLockedData(null)}
+                  onUnlock={() => setLockedDot(null)}
                 />
               )}
 
-              {/* Live hover card — shown alongside locked if different rod */}
-              {displayHover && (!lockedData || displayHover.rodada !== lockedData.rodada) && (
+              {/* Live hover card */}
+              {displayHover && (
                 <HoverCard data={displayHover} detentor={detentor} />
               )}
             </div>
@@ -138,7 +139,7 @@ export default function GeralPage() {
           isPnt={isPnt}
           onHoverChange={setChartHover}
           onDotClick={handleDotClick}
-          lockedRodada={lockedData?.rodada ?? null}
+          lockedDot={lockedDot}
         />
       </div>
 
@@ -161,6 +162,32 @@ export default function GeralPage() {
         </div>
         <GamesTable games={filteredGames} allGames={games} detentor={detentor} />
       </div>
+    </div>
+  );
+}
+
+function LockedDotCard({ dot, detentor, onUnlock }: {
+  dot: LockedDot; detentor: string | null; onUnlock: () => void;
+}) {
+  const color = SEASON_COLORS[dot.season];
+  return (
+    <div className="flex items-center gap-2.5 px-3 py-1 rounded-lg border border-white/15 bg-white/[0.06] text-xs">
+      <svg className="w-3 h-3 text-white/30 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M12 1a5 5 0 0 0-5 5v3H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V11a2 2 0 0 0-2-2h-2V6a5 5 0 0 0-5-5zm0 2a3 3 0 0 1 3 3v3H9V6a3 3 0 0 1 3-3zm0 10a2 2 0 1 1 0 4 2 2 0 0 1 0-4z"/>
+      </svg>
+      <span className="text-white/35">Rod. {dot.rodada}</span>
+      <span className="font-bold" style={{ color }}>
+        {dot.season} · {formatMetric(detentor || "CazéTV", dot.val)}
+      </span>
+      {dot.isOutlier && dot.teams.slice(0, 1).map((t, i) => (
+        <div key={i} className="flex items-center gap-1 border-l border-white/10 pl-2.5">
+          <span className="font-semibold uppercase tracking-wide" style={{ color, fontSize: 9 }}>outlier</span>
+          <TeamLogo team={t.mandante} size={14} />
+          <span className="text-white/20">vs</span>
+          <TeamLogo team={t.visitante} size={14} />
+        </div>
+      ))}
+      <button onClick={onUnlock} className="ml-1 text-white/25 hover:text-white/50 transition-colors text-xs leading-none">✕</button>
     </div>
   );
 }
