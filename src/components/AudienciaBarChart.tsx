@@ -3,6 +3,7 @@ import React, { useState, useCallback } from "react";
 import {
   ComposedChart, Line, XAxis, YAxis, CartesianGrid,
   ResponsiveContainer, ReferenceArea, ReferenceLine, Customized,
+  BarChart, Bar, Tooltip,
 } from "recharts";
 import { SEASON_COLORS } from "@/data/games";
 import { ChartTeam } from "@/lib/stats";
@@ -135,6 +136,7 @@ export default function AudienciaBarChart({ data, isPnt, onDotHover, onDotClick,
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [activeIdx, setActiveIdx] = useState<number | null>(null);
   const [hoverDot, setHoverDot] = useState<{ val: number; color: string } | null>(null);
+  const [chartMode, setChartMode] = useState<"line" | "bar">("line");
 
   if (!data.length) return (
     <div className="h-64 flex items-center justify-center text-white/20 text-sm">
@@ -212,29 +214,126 @@ export default function AudienciaBarChart({ data, isPnt, onDotHover, onDotClick,
     onRodadaHover?.(null);
   }, [onDotHover, onRodadaHover]);
 
+  const handleBarMouseMove = useCallback((chartState: any) => {
+    if (!chartState?.activeLabel) return;
+    const rodada = Number(chartState.activeLabel);
+    const idx = rodToIdx.get(rodada) ?? null;
+    setActiveIdx(idx);
+    if (idx !== null && data[idx]) {
+      const pt = data[idx];
+      onRodadaHover?.({
+        rodada: pt.rodada,
+        v25: pt["2025"],
+        v26: pt["2026"],
+        teams25: pt.teams25,
+        teams26: pt.teams26,
+        avg2025: pt.avg2025,
+        avg2026: pt.avg2026,
+      });
+    }
+  }, [rodToIdx, data, onRodadaHover]);
+
+  const toolbar = (
+    <div className="flex gap-4 mb-4 justify-end items-center">
+      {[2025, 2026].map((yr) => {
+        const off = hidden.has(yr.toString());
+        const aval = yr === 2025 ? avg25 : avg26;
+        return (
+          <button key={yr} onClick={() => toggle(yr.toString())}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
+              off ? "border-white/10 text-white/25" : "border-white/10 text-white/70 bg-white/5"
+            }`}>
+            <svg width="20" height="12" className="flex-shrink-0">
+              <line x1="0" y1="6" x2="20" y2="6" stroke={off ? "#444" : SEASON_COLORS[yr]} strokeWidth="2" />
+              <circle cx="10" cy="6" r="3.5" fill={off ? "#222" : BG} stroke={off ? "#444" : SEASON_COLORS[yr]} strokeWidth="2" />
+            </svg>
+            {yr}
+            {!off && aval > 0 && (
+              <span className="text-white/30 ml-1">· méd {fmtVal(aval, isPnt)}</span>
+            )}
+          </button>
+        );
+      })}
+      <button
+        onClick={() => setChartMode((m) => m === "line" ? "bar" : "line")}
+        className="px-3 py-1.5 rounded-lg text-xs font-medium border border-white/10 text-white/50 hover:text-white/70 transition-all ml-1"
+      >
+        {chartMode === "line" ? "▐▌ Barras" : "━━ Linha"}
+      </button>
+    </div>
+  );
+
+  if (chartMode === "bar") {
+    return (
+      <div>
+        {toolbar}
+        <ResponsiveContainer width="100%" height={280}>
+          <BarChart
+            data={data}
+            margin={{ top: 28, right: 16, left: 0, bottom: 4 }}
+            onMouseMove={handleBarMouseMove}
+            onMouseLeave={handleMouseLeave}
+          >
+            <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.04)" vertical={false} />
+
+            <XAxis
+              dataKey="rodada"
+              type="category"
+              tick={{ fill: "rgba(255,255,255,0.85)", fontSize: 11 }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis
+              tickFormatter={(v) => fmtY(v, isPnt)}
+              tick={{ fill: "rgba(255,255,255,0.25)", fontSize: 11 }}
+              axisLine={false} tickLine={false}
+              width={isPnt ? 34 : 48}
+              domain={[(d: number) => Math.max(0, d * 0.92), (d: number) => d * 1.14]}
+            />
+
+            <Tooltip
+              contentStyle={{
+                background: "rgba(8,9,15,0.97)",
+                border: "1px solid rgba(255,255,255,0.10)",
+                borderRadius: 12,
+                fontSize: 12,
+                padding: "10px 14px",
+              }}
+              labelStyle={{ color: "rgba(255,255,255,0.40)", marginBottom: 6, fontSize: 11 }}
+              labelFormatter={(v) => `Rodada ${v}`}
+              formatter={(value: any, name: string) => [fmtVal(value as number, isPnt), name]}
+              itemStyle={{ padding: "2px 0" }}
+            />
+
+            {/* Average reference lines */}
+            {show25 && avg25 > 0 && (
+              <ReferenceLine y={avg25} stroke={SEASON_COLORS[2025]}
+                strokeDasharray="5 4" strokeWidth={1.5} strokeOpacity={0.45}
+                label={{ value: "méd 25", position: "insideTopRight", fill: SEASON_COLORS[2025], fontSize: 10, opacity: 0.6 }} />
+            )}
+            {show26 && avg26 > 0 && (
+              <ReferenceLine y={avg26} stroke={SEASON_COLORS[2026]}
+                strokeDasharray="5 4" strokeWidth={1.5} strokeOpacity={0.45}
+                label={{ value: "méd 26", position: "insideTopRight", fill: SEASON_COLORS[2026], fontSize: 10, opacity: 0.6, dy: 14 }} />
+            )}
+
+            {show25 && (
+              <Bar dataKey="2025" fill={SEASON_COLORS[2025]} name="2025"
+                maxBarSize={20} radius={[3, 3, 0, 0]} fillOpacity={0.85} />
+            )}
+            {show26 && (
+              <Bar dataKey="2026" fill={SEASON_COLORS[2026]} name="2026"
+                maxBarSize={20} radius={[3, 3, 0, 0]} fillOpacity={0.85} />
+            )}
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    );
+  }
+
   return (
     <div>
-      <div className="flex gap-4 mb-4 justify-end">
-        {[2025, 2026].map((yr) => {
-          const off = hidden.has(yr.toString());
-          const aval = yr === 2025 ? avg25 : avg26;
-          return (
-            <button key={yr} onClick={() => toggle(yr.toString())}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
-                off ? "border-white/10 text-white/25" : "border-white/10 text-white/70 bg-white/5"
-              }`}>
-              <svg width="20" height="12" className="flex-shrink-0">
-                <line x1="0" y1="6" x2="20" y2="6" stroke={off ? "#444" : SEASON_COLORS[yr]} strokeWidth="2" />
-                <circle cx="10" cy="6" r="3.5" fill={off ? "#222" : BG} stroke={off ? "#444" : SEASON_COLORS[yr]} strokeWidth="2" />
-              </svg>
-              {yr}
-              {!off && aval > 0 && (
-                <span className="text-white/30 ml-1">· méd {fmtVal(aval, isPnt)}</span>
-              )}
-            </button>
-          );
-        })}
-      </div>
+      {toolbar}
 
       <ResponsiveContainer width="100%" height={280}>
         <ComposedChart
