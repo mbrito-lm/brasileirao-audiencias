@@ -74,8 +74,7 @@ export default function DetentoresPage() {
 
   if (lockedDots.length === 0) {
     if (hoveredDot) {
-      if (hoveredDot.season === 2025) slot1 = hoveredDot;
-      else slot2 = hoveredDot;
+      slot1 = hoveredDot;
     } else if (rodadaHover) {
       slot1 = mkRodadaCard(rodadaHover, 2025);
       slot2 = mkRodadaCard(rodadaHover, 2026);

@@ -209,7 +209,6 @@ export default function GraficosPage() {
   const [editingLabelId, setEditingLabelId] = useState<string | null>(null);
   const [editingLabelText, setEditingLabelText] = useState("");
 
-  // All games merged and sorted desc by metric
   const unifiedGames = useMemo<UnifiedGame[]>(() => {
     const all = seriesList.flatMap((s) =>
       s.sortedGames.map((g) => ({ ...g, seriesId: s.id, seriesColor: s.color, seriesLabel: s.label }))
@@ -217,7 +216,6 @@ export default function GraficosPage() {
     return all.sort((a, b) => b.metric - a.metric);
   }, [seriesList]);
 
-  // Grouped mode: one point per series = series average
   const groupedGames = useMemo<UnifiedGame[]>(() => {
     return seriesList.map((s) => {
       const avgVal = s.sortedGames.length ? avg(s.sortedGames.map((g) => g.metric)) : 0;
@@ -233,7 +231,6 @@ export default function GraficosPage() {
 
   const activeGames = groupSeries ? groupedGames : unifiedGames;
 
-  // chartData: one entry per position
   const chartData = useMemo(() => {
     return activeGames.map((g, pos) => {
       const point: Record<string, any> = {
@@ -253,7 +250,6 @@ export default function GraficosPage() {
     }));
   }, [seriesList]);
 
-  // Mixed metrics warning
   const isMixed = useMemo(() => {
     const hasPnt = seriesList.some((s) => s.sortedGames.some((g) => PNT_DETENTORES.has(g.detentor)));
     const hasAud = seriesList.some((s) => s.sortedGames.some((g) => !PNT_DETENTORES.has(g.detentor)));
@@ -265,6 +261,24 @@ export default function GraficosPage() {
     [seriesList]
   );
 
+  // Adaptive label scale based on max metric
+  const maxMetric = activeGames.length > 0 ? Math.max(...activeGames.map((g) => g.metric)) : 0;
+  const labelUnit = allPnt ? "pts" : maxMetric >= 500_000 ? "M" : maxMetric >= 1_000 ? "k" : "raw";
+  const disclaimerText = allPnt
+    ? "Valores em pontos PNT"
+    : labelUnit === "M"
+    ? "Valores em milhões de espectadores"
+    : labelUnit === "k"
+    ? "Valores em milhares de espectadores"
+    : "Valores em espectadores";
+
+  const fmtLabel = useCallback((v: number) => {
+    if (labelUnit === "M") return (v / 1_000_000).toFixed(2).replace(".", ",");
+    if (labelUnit === "k") return Math.round(v / 1_000).toString();
+    if (labelUnit === "pts") return v.toFixed(1).replace(".", ",");
+    return v.toFixed(0);
+  }, [labelUnit]);
+
   const handleModalConfirm = useCallback((filters: FilterState) => {
     const filteredGames = applyFilters(filters);
     const newSeries: SeriesDef = {
@@ -272,7 +286,6 @@ export default function GraficosPage() {
       color: modalState.editId
         ? (seriesList.find((s) => s.id === modalState.editId)?.color ?? PALETTE[seriesList.length % PALETTE.length])
         : (PALETTE.find((c) => !seriesList.map((s) => s.color).includes(c)) ?? PALETTE[seriesList.length % PALETTE.length]),
-      // Preserve custom label when editing; auto-generate when adding new
       label: modalState.editId
         ? (seriesList.find((s) => s.id === modalState.editId)?.label ?? autoLabel(filters))
         : autoLabel(filters),
@@ -287,15 +300,10 @@ export default function GraficosPage() {
     setModalState({ open: false, editId: null, filters: EMPTY_FILTERS });
   }, [modalState, seriesList]);
 
-  // Slot logic: up to 2 locked positions; hovered fills the free slot
-  const slot1Pos = lockedPositions.length > 0
-    ? lockedPositions[0]
-    : hoveredPos;
+  const slot1Pos = lockedPositions.length > 0 ? lockedPositions[0] : hoveredPos;
   const slot2Pos = lockedPositions.length >= 2
     ? lockedPositions[1]
-    : (lockedPositions.length === 1 && hoveredPos !== null && !lockedPositions.includes(hoveredPos)
-      ? hoveredPos
-      : null);
+    : (lockedPositions.length === 1 && hoveredPos !== null && !lockedPositions.includes(hoveredPos) ? hoveredPos : null);
 
   const slot1Game = slot1Pos !== null ? activeGames[slot1Pos] : null;
   const slot2Game = slot2Pos !== null ? activeGames[slot2Pos] : null;
@@ -324,9 +332,8 @@ export default function GraficosPage() {
   const ticks = useMemo(() => Array.from({ length: maxLen }, (_, i) => i), [maxLen]);
   const tickInterval = maxLen > 40 ? Math.ceil(maxLen / 30) - 1 : 0;
 
-  // Adaptive sizing
-  const dynamicShieldSize = maxLen <= 5 ? 16 : maxLen <= 15 ? 13 : maxLen <= 30 ? 11 : 9;
-  const dynamicFontSize = maxLen <= 5 ? 11 : maxLen <= 15 ? 10 : 9;
+  const dynamicShieldSize = maxLen <= 5 ? 20 : maxLen <= 15 ? 16 : maxLen <= 30 ? 13 : 10;
+  const dynamicFontSize = maxLen <= 5 ? 13 : maxLen <= 15 ? 12 : maxLen <= 30 ? 11 : 10;
 
   const ShieldsTick = useCallback((props: any) => {
     const { x, y, payload } = props;
@@ -343,10 +350,10 @@ export default function GraficosPage() {
                 <TeamLogo team={entry.visitante} size={dynamicShieldSize} />
               </div>
             </foreignObject>
-            <text textAnchor="middle" dy={shieldH + 10} fill="rgba(255,255,255,0.15)" fontSize={8}>{pos + 1}</text>
+            <text textAnchor="middle" dy={shieldH + 10} fill="rgba(255,255,255,0.15)" fontSize={9}>{pos + 1}</text>
           </>
         ) : (
-          <text textAnchor="middle" dy={10} fill="rgba(255,255,255,0.20)" fontSize={9}>{pos + 1}</text>
+          <text textAnchor="middle" dy={10} fill="rgba(255,255,255,0.20)" fontSize={10}>{pos + 1}</text>
         )}
       </g>
     );
@@ -362,7 +369,6 @@ export default function GraficosPage() {
       <div className="flex gap-6 items-start">
         {/* Sidebar */}
         <aside className="w-64 flex-shrink-0 flex flex-col gap-4">
-          {/* Series list */}
           <div className="glass rounded-2xl p-4">
             <p className="text-[10px] font-semibold text-white/35 uppercase tracking-widest mb-3">Séries</p>
             {seriesList.length === 0 ? (
@@ -370,7 +376,7 @@ export default function GraficosPage() {
             ) : (
               <div className="flex flex-col gap-2">
                 {seriesList.map((s) => (
-                  <div key={s.id} className="flex items-center gap-2 p-2 rounded-xl border"
+                  <div key={s.id} className="flex items-center gap-1.5 p-2 rounded-xl border"
                     style={{ borderColor: s.color + "33", background: s.color + "10" }}>
                     <div className="w-2 h-2 rounded-full shrink-0" style={{ background: s.color }} />
                     {editingLabelId === s.id ? (
@@ -386,28 +392,23 @@ export default function GraficosPage() {
                         }}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") e.currentTarget.blur();
-                          if (e.key === "Escape") { setEditingLabelId(null); }
+                          if (e.key === "Escape") setEditingLabelId(null);
                         }}
                         className="text-xs flex-1 bg-transparent border-b outline-none min-w-0 pb-px"
                         style={{ color: s.color, borderColor: s.color + "66" }}
                       />
                     ) : (
                       <span
-                        className="text-xs flex-1 min-w-0 truncate"
+                        className="text-xs flex-1 min-w-0 truncate cursor-pointer"
                         style={{ color: s.color }}
+                        onClick={() => { setEditingLabelId(s.id); setEditingLabelText(s.label); }}
+                        title="Clique para renomear"
                       >
                         {s.label}
                       </span>
                     )}
-                    {editingLabelId !== s.id && (
-                      <button
-                        onClick={() => { setEditingLabelId(s.id); setEditingLabelText(s.label); }}
-                        className="text-white/20 hover:text-white/50 transition-colors leading-none shrink-0 text-[11px]"
-                        title="Renomear série"
-                      >✎</button>
-                    )}
                     <button onClick={() => setModalState({ open: true, editId: s.id, filters: s.filters })}
-                      className="text-white/30 hover:text-white/60 transition-colors text-sm leading-none shrink-0" title="Editar filtros">⚙</button>
+                      className="text-white/30 hover:text-white/60 transition-colors text-sm leading-none shrink-0" title="Editar filtros">✎</button>
                     <button onClick={() => { setSeriesList((prev) => prev.filter((x) => x.id !== s.id)); setLockedPositions([]); }}
                       className="text-white/25 hover:text-red-400 transition-colors text-sm leading-none shrink-0" title="Remover">✕</button>
                   </div>
@@ -421,22 +422,29 @@ export default function GraficosPage() {
             + Adicionar série
           </button>
 
-          {/* Options */}
           <div className="glass rounded-2xl p-4">
             <p className="text-[10px] font-semibold text-white/35 uppercase tracking-widest mb-3">Opções</p>
             <div className="flex flex-col gap-2">
-              {([
-                { key: "showAvgs", label: "Mostrar médias", value: showAvgs, set: setShowAvgs, disabled: false },
-                { key: "groupSeries", label: "Agrupar séries", value: groupSeries, set: setGroupSeries, disabled: false },
-                { key: "showLabels", label: "Mostrar audiências", value: showLabels, set: setShowLabels, disabled: false },
-                { key: "showShields", label: "Mostrar jogos", value: showShields, set: setShowShields, disabled: groupSeries },
-              ] as { key: string; label: string; value: boolean; set: (v: boolean) => void; disabled: boolean }[]).map(({ key, label, value, set, disabled }) => (
-                <label key={key} className={`flex items-center gap-2 ${disabled ? "opacity-35 cursor-not-allowed" : "cursor-pointer"}`}>
-                  <input type="checkbox" checked={value} disabled={disabled}
-                    onChange={(e) => !disabled && set(e.target.checked)} className="rounded accent-blue-500" />
-                  <span className="text-xs text-white/50">{label}</span>
-                </label>
-              ))}
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={showAvgs} onChange={(e) => setShowAvgs(e.target.checked)} className="rounded accent-blue-500" />
+                <span className="text-xs text-white/50">Mostrar médias</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={groupSeries} onChange={(e) => {
+                  setGroupSeries(e.target.checked);
+                  if (e.target.checked) setShowShields(false);
+                }} className="rounded accent-blue-500" />
+                <span className="text-xs text-white/50">Agrupar séries</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={showLabels} onChange={(e) => setShowLabels(e.target.checked)} className="rounded accent-blue-500" />
+                <span className="text-xs text-white/50">Mostrar audiências</span>
+              </label>
+              <label className={`flex items-center gap-2 ${groupSeries ? "opacity-35 cursor-not-allowed" : "cursor-pointer"}`}>
+                <input type="checkbox" checked={showShields} disabled={groupSeries}
+                  onChange={(e) => !groupSeries && setShowShields(e.target.checked)} className="rounded accent-blue-500" />
+                <span className="text-xs text-white/50">Mostrar jogos</span>
+              </label>
             </div>
           </div>
         </aside>
@@ -455,7 +463,6 @@ export default function GraficosPage() {
             </div>
           ) : (
             <div className="glass rounded-2xl p-6">
-              {/* Toolbar */}
               <div className="flex items-center justify-between mb-3">
                 <div className="flex flex-wrap gap-4 items-center">
                   {seriesList.map((s) => {
@@ -486,7 +493,6 @@ export default function GraficosPage() {
                 </button>
               </div>
 
-              {/* Hover/lock cards */}
               <div style={{ height: 56, marginBottom: 10, display: "flex", flexDirection: "column", gap: 4, overflow: "hidden" }}>
                 {slot1Game
                   ? <GraficosCard game={slot1Game} pos={slot1Pos!} locked={lockedPositions.includes(slot1Pos!)}
@@ -504,11 +510,10 @@ export default function GraficosPage() {
                 }
               </div>
 
-              {/* Chart */}
               <ResponsiveContainer width="100%" height={330}>
                 <ComposedChart
                   data={chartData}
-                  margin={{ top: 8, right: 16, left: 0, bottom: showShields && !groupSeries ? 40 : 4 }}
+                  margin={{ top: 8, right: 16, left: 0, bottom: showShields && !groupSeries ? 44 : 4 }}
                   onMouseMove={handleMouseMove}
                   onMouseLeave={handleMouseLeave}
                   onClick={handleClick}
@@ -551,8 +556,18 @@ export default function GraficosPage() {
                     <Bar dataKey="metric" isAnimationActive={false} maxBarSize={30} radius={[3, 3, 0, 0]}>
                       {showLabels && (
                         <LabelList dataKey="metric" position="top"
-                          formatter={fmtY}
-                          style={{ fill: "rgba(255,255,255,0.90)", fontSize: dynamicFontSize, fontWeight: "bold" }} />
+                          content={(props: any) => {
+                            const { x, y, width, value } = props;
+                            if (value == null) return null;
+                            return (
+                              <text x={(x ?? 0) + (width ?? 0) / 2} y={(y ?? 0) - 4}
+                                textAnchor="middle" fill="rgba(255,255,255,0.92)"
+                                fontSize={dynamicFontSize} fontWeight="bold">
+                                {fmtLabel(value)}
+                              </text>
+                            );
+                          }}
+                        />
                       )}
                       {chartData.map((entry, i) => (
                         <Cell key={i} fill={entry.seriesColor}
@@ -575,8 +590,8 @@ export default function GraficosPage() {
                                 stroke={s.color} strokeWidth={isActive ? 2.5 : 2} />
                               {showLabels && (
                                 <text x={cx} y={cy - 9} textAnchor="middle"
-                                  fill="rgba(255,255,255,0.90)" fontSize={dynamicFontSize} fontWeight="bold">
-                                  {fmtY(payload[s.id])}
+                                  fill="rgba(255,255,255,0.92)" fontSize={dynamicFontSize} fontWeight="bold">
+                                  {fmtLabel(payload[s.id])}
                                 </text>
                               )}
                             </g>
@@ -589,9 +604,8 @@ export default function GraficosPage() {
                 </ComposedChart>
               </ResponsiveContainer>
 
-              {/* Disclaimer */}
-              <p className="text-white/20 text-[10px] text-center mt-1">
-                {allPnt ? "valores em pontos PNT" : "valores em espectadores individuais"}
+              <p className="text-white/25 text-[10px] text-left mt-1.5">
+                {disclaimerText}
               </p>
             </div>
           )}

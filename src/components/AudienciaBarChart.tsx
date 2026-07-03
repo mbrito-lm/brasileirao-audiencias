@@ -285,7 +285,7 @@ export default function AudienciaBarChart({ data, isPnt, onDotHover, onDotClick,
               isOutlier: isOut,
             });
           }}
-          onMouseLeave={() => onDotHover?.(null)}
+          onMouseLeave={() => { if (value != null) onDotHover?.(null); }}
         >
           {height > 0 && (
             <rect x={x} y={y} width={width} height={Math.max(1, height)}
