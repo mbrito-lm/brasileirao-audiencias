@@ -62,7 +62,6 @@ function buildBridgeSegs(pts: { rod: number; val: number | null }[], color: stri
   let prevNonNull: { rod: number; val: number } | null = null;
   let lastNonNull: { rod: number; val: number } | null = null;
   let gapState: { prevPrev: { rod: number; val: number } | null; bridgeStart: { rod: number; val: number } } | null = null;
-
   for (let i = 0; i < pts.length; i++) {
     const p = pts[i];
     if (p.val !== null) {
@@ -123,6 +122,11 @@ function CustomTick({ x, y, payload, allRods, missingSet, offset }: any) {
   );
 }
 
+// bright-data helper: returns data array with only 3 points around idx non-null
+function mkBrightData(fullData: { rod: number; val: number | null }[], idx: number) {
+  return fullData.map((p, i) => ({ rod: p.rod, val: Math.abs(i - idx) <= 1 ? p.val : null }));
+}
+
 export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotClick, lockedDot }: Props) {
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [activeIdx, setActiveIdx] = useState<number | null>(null);
@@ -153,20 +157,35 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotCli
   const data25 = data.map((d) => ({ rod: rodToIdx.get(d.rodada)!, val: d["2025"] }));
   const data26 = data.map((d) => ({ rod: rodToIdx.get(d.rodada)! + OFFSET, val: d["2026"] }));
 
-  // Smooth bezier bridge segments for gaps
   const segs25 = show25 ? buildBridgeSegs(data25, SEASON_COLORS[2025]) : [];
   const segs26 = show26 ? buildBridgeSegs(data26, SEASON_COLORS[2026]) : [];
 
   const midTicks = allRods.map((_, i) => i + OFFSET / 2);
 
-  // Column highlight: active hover OR locked dot's column
   const lockedRodadaIdx = lockedDot ? (rodToIdx.get(lockedDot.rodada) ?? null) : null;
-  const highlightIdx = activeIdx ?? lockedRodadaIdx;
+
+  // Dim when hovering OR when a dot is locked
+  const isDimming = activeIdx !== null || lockedRodadaIdx !== null;
+
+  const colBounds = (idx: number) => ({
+    x1: idx + OFFSET / 2 - 0.5,
+    x2: idx + OFFSET / 2 + 0.5,
+  });
+
+  // Bright segment data for overlay lines at active and locked columns
+  const bright25Active = show25 && activeIdx !== null ? mkBrightData(data25, activeIdx) : null;
+  const bright26Active = show26 && activeIdx !== null ? mkBrightData(data26, activeIdx) : null;
+  const bright25Locked = show25 && lockedRodadaIdx !== null && lockedRodadaIdx !== activeIdx
+    ? mkBrightData(data25, lockedRodadaIdx) : null;
+  const bright26Locked = show26 && lockedRodadaIdx !== null && lockedRodadaIdx !== activeIdx
+    ? mkBrightData(data26, lockedRodadaIdx) : null;
 
   const handleMouseMove = useCallback((chartState: any) => {
     if (!chartState?.activeLabel) return;
     const idx = Math.round((chartState.activeLabel as number) - OFFSET / 2);
     if (idx < 0 || idx >= allRods.length) return;
+    // Clear hoverDot when switching columns
+    if (idx !== activeIdx) setHoverDot(null);
     const rodada = allRods[idx];
     setActiveIdx(idx);
     const point = data.find((d) => d.rodada === rodada);
@@ -179,7 +198,7 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotCli
       teams25: point?.teams25 ?? [],
       teams26: point?.teams26 ?? [],
     });
-  }, [data, allRods, onHoverChange, avg25, avg26]);
+  }, [data, allRods, activeIdx, onHoverChange, avg25, avg26]);
 
   const handleMouseLeave = useCallback(() => {
     setActiveIdx(null);
@@ -219,14 +238,13 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotCli
         >
           <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.04)" vertical={false} />
 
-          {/* Column highlight for hover or locked dot */}
-          {highlightIdx !== null && (
-            <ReferenceArea
-              x1={highlightIdx + OFFSET / 2 - 0.5}
-              x2={highlightIdx + OFFSET / 2 + 0.5}
-              fill="rgba(255,255,255,0.05)"
-              stroke="none"
-            />
+          {/* Active column highlight */}
+          {activeIdx !== null && (
+            <ReferenceArea {...colBounds(activeIdx)} fill="rgba(255,255,255,0.05)" stroke="none" />
+          )}
+          {/* Locked column highlight (when different from active) */}
+          {lockedRodadaIdx !== null && lockedRodadaIdx !== activeIdx && (
+            <ReferenceArea {...colBounds(lockedRodadaIdx)} fill="rgba(255,255,255,0.05)" stroke="none" />
           )}
 
           {/* Average reference lines */}
@@ -241,7 +259,7 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotCli
               label={{ value: "méd 26", position: "insideTopRight", fill: SEASON_COLORS[2026], fontSize: 10, opacity: 0.6, dy: 14 }} />
           )}
 
-          {/* Horizontal dot-hover reference line */}
+          {/* Horizontal dot hover reference line — stays while in column */}
           {hoverDot && (
             <ReferenceLine
               y={hoverDot.val}
@@ -273,7 +291,7 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotCli
             domain={[(d: number) => Math.max(0, d * 0.92), (d: number) => d * 1.14]}
           />
 
-          {/* Smooth bezier bridge overlay — drawn below main lines */}
+          {/* Smooth bezier bridges (below main lines) */}
           <Customized
             component={(props: any) => {
               const xAxis = Object.values(props.xAxisMap ?? {})[0] as any;
@@ -292,7 +310,6 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotCli
                     const ppy = seg.prevY !== null ? ys(seg.prevY) : py0;
                     const pnx = seg.nextX !== null ? xs(seg.nextX) : px1;
                     const pny = seg.nextY !== null ? ys(seg.nextY) : py1;
-                    // Catmull-Rom tangents → cubic bezier control points
                     const t0x = (px1 - ppx) / 2, t0y = (py1 - ppy) / 2;
                     const t1x = (pnx - px0) / 2, t1y = (pny - py0) / 2;
                     const cp1x = px0 + t0x / 3, cp1y = py0 + t0y / 3;
@@ -300,11 +317,8 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotCli
                     return (
                       <path key={i}
                         d={`M${px0},${py0} C${cp1x},${cp1y} ${cp2x},${cp2y} ${px1},${py1}`}
-                        fill="none"
-                        stroke={seg.color}
-                        strokeWidth={1.5}
-                        strokeOpacity={0.30}
-                        strokeDasharray="3 4"
+                        fill="none" stroke={seg.color}
+                        strokeWidth={1.5} strokeOpacity={0.30} strokeDasharray="3 4"
                       />
                     );
                   })}
@@ -313,37 +327,45 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotCli
             }}
           />
 
-          {/* Lines: dim when hovering (dot layer handles per-dot opacity) */}
+          {/* Main lines — dim when isDimming */}
           {show25 && (
-            <Line
-              data={data25}
-              dataKey="val"
-              name="2025"
-              stroke={SEASON_COLORS[2025]}
-              strokeWidth={2}
-              strokeOpacity={activeIdx !== null ? 0.22 : 1}
-              type="monotone"
-              dot={false}
-              activeDot={false}
-              isAnimationActive={false}
-            />
+            <Line data={data25} dataKey="val" name="2025"
+              stroke={SEASON_COLORS[2025]} strokeWidth={2}
+              strokeOpacity={isDimming ? 0.5 : 1}
+              type="monotone" dot={false} activeDot={false} isAnimationActive={false} />
           )}
           {show26 && (
-            <Line
-              data={data26}
-              dataKey="val"
-              name="2026"
-              stroke={SEASON_COLORS[2026]}
-              strokeWidth={2}
-              strokeOpacity={activeIdx !== null ? 0.22 : 1}
-              type="monotone"
-              dot={false}
-              activeDot={false}
-              isAnimationActive={false}
-            />
+            <Line data={data26} dataKey="val" name="2026"
+              stroke={SEASON_COLORS[2026]} strokeWidth={2}
+              strokeOpacity={isDimming ? 0.5 : 1}
+              type="monotone" dot={false} activeDot={false} isAnimationActive={false} />
           )}
 
-          {/* Dot layer — always re-renders on state change, handles dim + lock + hover + click */}
+          {/* Bright segment overlays for active column */}
+          {bright25Active && (
+            <Line data={bright25Active} dataKey="val" name="2025-bright-active"
+              stroke={SEASON_COLORS[2025]} strokeWidth={2.5} strokeOpacity={1}
+              type="monotone" dot={false} activeDot={false} isAnimationActive={false} legendType="none" />
+          )}
+          {bright26Active && (
+            <Line data={bright26Active} dataKey="val" name="2026-bright-active"
+              stroke={SEASON_COLORS[2026]} strokeWidth={2.5} strokeOpacity={1}
+              type="monotone" dot={false} activeDot={false} isAnimationActive={false} legendType="none" />
+          )}
+
+          {/* Bright segment overlays for locked column (when different from active) */}
+          {bright25Locked && (
+            <Line data={bright25Locked} dataKey="val" name="2025-bright-locked"
+              stroke={SEASON_COLORS[2025]} strokeWidth={2.5} strokeOpacity={1}
+              type="monotone" dot={false} activeDot={false} isAnimationActive={false} legendType="none" />
+          )}
+          {bright26Locked && (
+            <Line data={bright26Locked} dataKey="val" name="2026-bright-locked"
+              stroke={SEASON_COLORS[2026]} strokeWidth={2.5} strokeOpacity={1}
+              type="monotone" dot={false} activeDot={false} isAnimationActive={false} legendType="none" />
+          )}
+
+          {/* Dot layer — re-renders on state change, handles dim/lock/hover/click */}
           <Customized
             component={(props: any) => {
               const xAxis = Object.values(props.xAxisMap ?? {})[0] as any;
@@ -361,22 +383,23 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotCli
                 const color = SEASON_COLORS[season];
                 const isOut = isOutlier(pt.val, avg);
                 const isActive = activeIdx !== null && allRods[activeIdx] === rodada;
-                const isLocked = lockedDot?.rodada === rodada && lockedDot?.season === season;
-                const dimmed = activeIdx !== null && !isActive && !isLocked;
+                const isLockedSeason = lockedDot?.rodada === rodada && lockedDot?.season === season;
+                const isLockedRod = lockedDot?.rodada === rodada;
+                // Dim if isDimming and not active column and not locked column
+                const dimmed = isDimming && !isActive && !isLockedRod;
                 const point = data.find((d) => d.rodada === rodada);
                 const teams = season === 2025 ? (point?.teams25 ?? []) : (point?.teams26 ?? []);
 
-                const r = isActive ? 5.5 : isLocked ? 5 : 4;
-                const fill = isLocked ? color : BG;
-                const sw = isActive || isLocked ? 2.5 : 2;
+                const r = isActive ? 5.5 : isLockedSeason ? 5 : 4;
+                const fill = isLockedSeason ? color : BG;
+                const sw = isActive || isLockedSeason ? 2.5 : 2;
 
                 return (
                   <g
                     key={`${season}-${idx}`}
-                    opacity={dimmed ? 0.16 : 1}
+                    opacity={dimmed ? 0.6 : 1}
                     style={{ cursor: "pointer" }}
                     onMouseEnter={() => setHoverDot({ val: pt.val!, color })}
-                    onMouseLeave={() => setHoverDot(null)}
                     onClick={(e) => {
                       e.stopPropagation();
                       onDotClick?.({ rodada, season, val: pt.val!, teams, isOutlier: isOut });
@@ -385,7 +408,7 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotCli
                     {isOut && (
                       <circle cx={cx} cy={cy} r={isActive ? 10 : 9}
                         fill="none" stroke={color} strokeWidth={1.5}
-                        strokeDasharray="3 2" opacity={isLocked ? 1 : 0.75} />
+                        strokeDasharray="3 2" opacity={isLockedSeason ? 1 : 0.75} />
                     )}
                     <circle cx={cx} cy={cy} r={r} fill={fill} stroke={color} strokeWidth={sw} />
                   </g>

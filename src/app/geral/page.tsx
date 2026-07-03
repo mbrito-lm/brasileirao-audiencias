@@ -179,9 +179,11 @@ function LockedDotCard({ dot, detentor, onUnlock }: {
       <span className="font-bold" style={{ color }}>
         {dot.season} · {formatMetric(detentor || "CazéTV", dot.val)}
       </span>
-      {dot.isOutlier && dot.teams.slice(0, 1).map((t, i) => (
+      {dot.teams.slice(0, 1).map((t, i) => (
         <div key={i} className="flex items-center gap-1 border-l border-white/10 pl-2.5">
-          <span className="font-semibold uppercase tracking-wide" style={{ color, fontSize: 9 }}>outlier</span>
+          {dot.isOutlier && (
+            <span className="font-semibold uppercase tracking-wide mr-0.5" style={{ color, fontSize: 9 }}>outlier</span>
+          )}
           <TeamLogo team={t.mandante} size={14} />
           <span className="text-white/20">vs</span>
           <TeamLogo team={t.visitante} size={14} />
