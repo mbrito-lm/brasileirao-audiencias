@@ -10,6 +10,7 @@ export interface FilterState {
   rodadas: number[];
   times: string[];
   detentores?: string[];  // optional; single-select when used in Comparações
+  concorrencia: number[]; // concurrent game counts to include
 }
 
 interface FilterDialogProps {
@@ -21,9 +22,10 @@ interface FilterDialogProps {
     horarios: string[];
     rodadas: number[];
     times: string[];
-    detentores?: string[];  // when provided, shows a detentor strip at top
+    detentores?: string[];
+    concorrencia: number[];
   };
-  singleDetentor?: boolean;  // enforce max 1 detentor selection
+  singleDetentor?: boolean;
 }
 
 const DIA_ORDER = ["seg.", "ter.", "qua.", "qui.", "sex.", "sáb.", "dom."];
@@ -51,6 +53,7 @@ export function filterSummaryText(filters: FilterState): string | null {
     if (filters.times.length <= 3) parts.push(filters.times.join(" · "));
     else parts.push(`${filters.times.length} times`);
   }
+  if (filters.concorrencia.length) parts.push(`${filters.concorrencia.join("/")} concorr.`);
   return parts.length ? parts.join("  |  ") : null;
 }
 
@@ -73,7 +76,7 @@ export default function FilterDialog({ state, onChange, options, singleDetentor 
   }, []);
 
   const totalActive = state.anos.length + state.dias.length + state.horarios.length +
-    state.rodadas.length + state.times.length + (state.detentores?.length ?? 0);
+    state.rodadas.length + state.times.length + (state.detentores?.length ?? 0) + state.concorrencia.length;
 
   function startDrag(key: keyof FilterState, idx: number, displayItems: any[]) {
     const arr = state[key] as any[];
@@ -115,7 +118,7 @@ export default function FilterDialog({ state, onChange, options, singleDetentor 
   }
 
   function clearAll() {
-    onChange({ anos: [], dias: [], horarios: [], rodadas: [], times: [], detentores: [] });
+    onChange({ anos: [], dias: [], horarios: [], rodadas: [], times: [], detentores: [], concorrencia: [] });
   }
 
   function toggleDetentor(d: string) {
@@ -209,7 +212,7 @@ export default function FilterDialog({ state, onChange, options, singleDetentor 
             )}
 
             {/* Columns — flex-1 fills remaining modal height, overflow hidden so each column scrolls independently */}
-            <div className="grid grid-cols-5 divide-x divide-white/[0.06] flex-1 min-h-0" style={{ overflow: "hidden" }}>
+            <div className="grid grid-cols-6 divide-x divide-white/[0.06] flex-1 min-h-0" style={{ overflow: "hidden" }}>
               {/* Temporada */}
               <ColSection title="Temporada" count={state.anos.length} onClear={() => clearKey("anos")}>
                 <div className="space-y-1 px-4 py-3">
@@ -271,6 +274,25 @@ export default function FilterDialog({ state, onChange, options, singleDetentor 
                       {r}
                     </div>
                   ))}
+                </div>
+              </ColSection>
+
+              {/* Concorrência */}
+              <ColSection title="Concorrência" count={state.concorrencia.length} onClear={() => clearKey("concorrencia")}>
+                <div className="space-y-1 px-4 py-3">
+                  {options.concorrencia.map((n, i) => (
+                    <DragItem
+                      key={n}
+                      active={state.concorrencia.includes(n)}
+                      onPointerDown={() => startDrag("concorrencia", i, options.concorrencia)}
+                      onPointerEnter={() => enterDrag("concorrencia", i)}>
+                      <span className="text-sm font-semibold tabular-nums w-4 text-right">{n}</span>
+                      <span className="text-sm text-white/50">{n === 1 ? "concorrente" : "concorrentes"}</span>
+                    </DragItem>
+                  ))}
+                  {options.concorrencia.length === 0 && (
+                    <p className="text-xs text-white/25 py-4 text-center">Sem dados</p>
+                  )}
                 </div>
               </ColSection>
 

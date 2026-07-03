@@ -4,13 +4,14 @@ import { games, DETENTORES } from "@/data/games";
 import { getMetric, formatMetric, avg, normalizeHorario, PNT_DETENTORES } from "@/lib/stats";
 import FilterDialog, { FilterState, filterSummaryText } from "@/components/FilterDialog";
 import TeamLogo from "@/components/TeamLogo";
+import { getConcurrentCount } from "@/data/schedule";
 import {
   ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid,
   ResponsiveContainer, ReferenceLine, ReferenceArea, Cell, LabelList,
 } from "recharts";
 
 const PALETTE = ["#3b82f6", "#a855f7", "#f59e0b", "#10b981", "#ef4444", "#06b6d4", "#f97316", "#ec4899"];
-const EMPTY_FILTERS: FilterState = { anos: [], dias: [], horarios: [], rodadas: [], times: [], detentores: [] };
+const EMPTY_FILTERS: FilterState = { anos: [], dias: [], horarios: [], rodadas: [], times: [], detentores: [], concorrencia: [] };
 const DIA_ORDER = ["seg.", "ter.", "qua.", "qui.", "sex.", "sáb.", "dom."];
 
 interface EnrichedGame {
@@ -57,6 +58,8 @@ function buildOptions(base: typeof games, filters: FilterState) {
       r = r.filter((g) => filters.rodadas.includes(g.rodada));
     if (exclude !== "times" && filters.times.length)
       r = r.filter((g) => filters.times.some((t) => g.mandante === t || g.visitante === t));
+    if (exclude !== "concorrencia" && filters.concorrencia.length)
+      r = r.filter((g) => filters.concorrencia.includes(getConcurrentCount(g.data, g.horario)));
     return r;
   }
   return {
@@ -70,6 +73,7 @@ function buildOptions(base: typeof games, filters: FilterState) {
       cross("times").filter((g) => getMetric(g) !== null).forEach((g) => { s.add(g.mandante); s.add(g.visitante); });
       return Array.from(s).sort();
     })(),
+    concorrencia: Array.from(new Set(cross("concorrencia").map((g) => getConcurrentCount(g.data, g.horario)))).sort((a, b) => a - b),
   };
 }
 
@@ -81,6 +85,7 @@ function applyFilters(filters: FilterState): EnrichedGame[] {
   if (filters.horarios.length) r = r.filter((g) => filters.horarios.includes(normalizeHorario(g.horario.substring(0, 5))));
   if (filters.rodadas.length) r = r.filter((g) => filters.rodadas.includes(g.rodada));
   if (filters.times.length) r = r.filter((g) => filters.times.some((t) => g.mandante === t || g.visitante === t));
+  if (filters.concorrencia.length) r = r.filter((g) => filters.concorrencia.includes(getConcurrentCount(g.data, g.horario)));
   return r
     .filter((g) => getMetric(g) !== null)
     .map((g) => ({

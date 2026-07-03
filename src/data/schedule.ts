@@ -393,6 +393,18 @@ export const LIBRA_SCHEDULE: ScheduleGame[] = [
   { rodada: 38, data: "02/12/2026", hora: "", mandante: "Santos", visitante: "Botafogo", detentores: [] },
 ];
 
+export function getConcurrentCount(data: string, horario: string): number {
+  if (!horario) return 0;
+  const [hh, mm] = horario.substring(0, 5).split(":").map(Number);
+  const gameMin = hh * 60 + (mm || 0);
+  return ALL_SCHEDULE.filter(sg => {
+    if (sg.data !== data) return false;
+    if (!sg.hora) return false;
+    const [sh, sm] = sg.hora.split(":").map(Number);
+    return Math.abs(sh * 60 + (sm || 0) - gameMin) < 120;
+  }).length;
+}
+
 export type LigaType = "FFU" | "LIBRA";
 export type ScheduleGameTagged = ScheduleGame & { liga: LigaType };
 

@@ -5,10 +5,11 @@ import { LOGOS } from "@/data/logos";
 import { getMetric, formatMetric, formatAudiencia, parseDate, avg, normalizeHorario, PNT_DETENTORES } from "@/lib/stats";
 import FilterDialog, { FilterState, filterSummaryText } from "@/components/FilterDialog";
 import TeamLogo from "@/components/TeamLogo";
+import { getConcurrentCount } from "@/data/schedule";
 
 type SortKey = "rodada" | "metric" | "data";
 
-const EMPTY_FILTERS: FilterState = { anos: [], dias: [], horarios: [], rodadas: [], times: [], detentores: [] };
+const EMPTY_FILTERS: FilterState = { anos: [], dias: [], horarios: [], rodadas: [], times: [], detentores: [], concorrencia: [] };
 const DIA_ORDER = ["seg.", "ter.", "qua.", "qui.", "sex.", "sáb.", "dom."];
 
 function buildOptions(base: typeof games, filters: FilterState) {
@@ -26,6 +27,8 @@ function buildOptions(base: typeof games, filters: FilterState) {
       r = r.filter((g) => filters.rodadas.includes(g.rodada));
     if (exclude !== "times" && filters.times.length)
       r = r.filter((g) => filters.times.some((t) => g.mandante === t || g.visitante === t));
+    if (exclude !== "concorrencia" && filters.concorrencia.length)
+      r = r.filter((g) => filters.concorrencia.includes(getConcurrentCount(g.data, g.horario)));
     return r;
   }
   return {
@@ -39,6 +42,7 @@ function buildOptions(base: typeof games, filters: FilterState) {
       cross("times").filter((g) => getMetric(g) !== null).forEach((g) => { s.add(g.mandante); s.add(g.visitante); });
       return Array.from(s).sort();
     })(),
+    concorrencia: Array.from(new Set(cross("concorrencia").map((g) => getConcurrentCount(g.data, g.horario)))).sort((a, b) => a - b),
   };
 }
 
@@ -80,6 +84,7 @@ function ComparePanel({ label, accentColor }: { label: string; accentColor: stri
     if (filters.horarios.length) r = r.filter((g) => filters.horarios.includes(normalizeHorario(g.horario.substring(0, 5))));
     if (filters.rodadas.length) r = r.filter((g) => filters.rodadas.includes(g.rodada));
     if (filters.times.length) r = r.filter((g) => filters.times.some((t) => g.mandante === t || g.visitante === t));
+    if (filters.concorrencia.length) r = r.filter((g) => filters.concorrencia.includes(getConcurrentCount(g.data, g.horario)));
 
     const enriched = r.map((g) => ({ ...g, _metric: getMetric(g), _date: parseDate(g.data) }));
     return [...enriched].sort((a, b) => {
@@ -113,7 +118,7 @@ function ComparePanel({ label, accentColor }: { label: string; accentColor: stri
   }).filter((s) => s.count > 0);
 
   const totalActive = (filters.detentores?.length ?? 0) + filters.anos.length + filters.dias.length +
-    filters.horarios.length + filters.rodadas.length + filters.times.length;
+    filters.horarios.length + filters.rodadas.length + filters.times.length + filters.concorrencia.length;
 
   const handleSort = (k: SortKey) => {
     if (k === sortKey) setSortDir((d) => (d === "asc" ? "desc" : "asc"));

@@ -8,7 +8,7 @@ import {
 import { SEASON_COLORS } from "@/data/games";
 import FilterDialog, { FilterState, filterSummaryText } from "./FilterDialog";
 import TeamLogo from "./TeamLogo";
-import { ALL_SCHEDULE, ScheduleGameTagged } from "@/data/schedule";
+import { ALL_SCHEDULE, ScheduleGameTagged, getConcurrentCount } from "@/data/schedule";
 import { LOGOS, } from "@/data/logos";
 import { DETENTOR_COLORS } from "@/data/games";
 
@@ -42,7 +42,7 @@ interface Props { games: Game[]; allGames: Game[]; detentor: string | null }
 
 export default function GamesTable({ games, allGames, detentor }: Props) {
   const [filters, setFilters] = useState<FilterState>({
-    anos: [], dias: [], horarios: [], rodadas: [], times: [],
+    anos: [], dias: [], horarios: [], rodadas: [], times: [], concorrencia: [],
   });
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("data");
@@ -63,6 +63,8 @@ export default function GamesTable({ games, allGames, detentor }: Props) {
         r = r.filter((g) => filters.rodadas.includes(g.rodada));
       if (exclude !== "times" && filters.times.length)
         r = r.filter((g) => filters.times.some((t) => g.mandante === t || g.visitante === t));
+      if (exclude !== "concorrencia" && filters.concorrencia.length)
+        r = r.filter((g) => filters.concorrencia.includes(getConcurrentCount(g.data, g.horario)));
       return r;
     }
     return {
@@ -76,6 +78,7 @@ export default function GamesTable({ games, allGames, detentor }: Props) {
         subset.forEach((g) => { s.add(g.mandante); s.add(g.visitante); });
         return Array.from(s).sort();
       })(),
+      concorrencia: Array.from(new Set(cross("concorrencia").map((g) => getConcurrentCount(g.data, g.horario)))).sort((a, b) => a - b),
     };
   }, [games, filters]);
 
@@ -106,6 +109,7 @@ export default function GamesTable({ games, allGames, detentor }: Props) {
       if (horarios.length) base = base.filter((g) => horarios.includes(normalizeHorario(g.horario.substring(0, 5))));
       if (rodadas.length) base = base.filter((g) => rodadas.includes(g.rodada));
       if (times.length) base = base.filter((g) => times.some((t) => g.mandante === t || g.visitante === t));
+      if (filters.concorrencia.length) base = base.filter((g) => filters.concorrencia.includes(getConcurrentCount(g.data, g.horario)));
     } else {
       const q = search.trim().toLowerCase();
       if (q) base = base.filter((g) =>
@@ -156,7 +160,7 @@ export default function GamesTable({ games, allGames, detentor }: Props) {
   }, [filtered, detentor]);
 
   const totalActive = filters.anos.length + filters.dias.length + filters.horarios.length +
-    filters.rodadas.length + filters.times.length;
+    filters.rodadas.length + filters.times.length + filters.concorrencia.length;
 
   return (
     <div onClick={() => setTooltip(null)}>
@@ -166,7 +170,7 @@ export default function GamesTable({ games, allGames, detentor }: Props) {
           <>
             <FilterDialog state={filters} onChange={setFilters} options={filterOptions} />
             {totalActive > 0 && (
-              <button onClick={() => setFilters({ anos: [], dias: [], horarios: [], rodadas: [], times: [] })}
+              <button onClick={() => setFilters({ anos: [], dias: [], horarios: [], rodadas: [], times: [], concorrencia: [] })}
                 className="text-xs text-white/30 hover:text-white/50 transition-colors">
                 Limpar filtros
               </button>
