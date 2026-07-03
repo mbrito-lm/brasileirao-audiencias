@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState, useMemo, useCallback } from "react";
 import { games, DETENTORES } from "@/data/games";
 import { getMetric, formatMetric, avg, normalizeHorario, PNT_DETENTORES } from "@/lib/stats";
@@ -11,7 +11,7 @@ import {
 
 const PALETTE = ["#3b82f6", "#a855f7", "#f59e0b", "#10b981", "#ef4444", "#06b6d4", "#f97316", "#ec4899"];
 const EMPTY_FILTERS: FilterState = { anos: [], dias: [], horarios: [], rodadas: [], times: [], detentores: [] };
-const DIA_ORDER = ["seg.", "ter.", "qua.", "qui.", "sex.", "sáb.", "dom."];
+const DIA_ORDER = ["seg.", "ter.", "qua.", "qui.", "sex.", "sÃ¡b.", "dom."];
 
 interface EnrichedGame {
   mandante: string;
@@ -100,12 +100,12 @@ function autoLabel(filters: FilterState): string {
     if (filters.times.length <= 2) parts.push(filters.times.join("+"));
     else parts.push(`${filters.times.length} times`);
   }
-  return parts.length ? parts.join(" · ") : "Série";
+  return parts.length ? parts.join(" Â· ") : "SÃ©rie";
 }
 
-const INITIAL_FILTERS: FilterState = { detentores: ["CazéTV"], anos: [2026], dias: [], horarios: [], rodadas: [], times: [] };
+const INITIAL_FILTERS: FilterState = { detentores: ["CazÃ©TV"], anos: [2026], dias: [], horarios: [], rodadas: [], times: [] };
 const INITIAL_SERIES: SeriesDef = {
-  id: "s0", color: PALETTE[0], label: "CazéTV · 2026",
+  id: "s0", color: PALETTE[0], label: "CazÃ©TV Â· 2026",
   filters: INITIAL_FILTERS, sortedGames: applyFilters(INITIAL_FILTERS),
 };
 
@@ -131,8 +131,8 @@ function SeriesFilterModal({ editId, initialFilters, onConfirm, onCancel }: {
       <div className="glass-strong rounded-3xl w-full max-w-xl shadow-2xl overflow-hidden flex flex-col gap-0"
         onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-5 border-b border-white/[0.07]">
-          <h2 className="text-base font-semibold text-white">{editId ? "Editar Série" : "Configurar Série"}</h2>
-          <button onClick={onCancel} className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/[0.06] hover:bg-white/10 transition-colors text-white/50 hover:text-white">✕</button>
+          <h2 className="text-base font-semibold text-white">{editId ? "Editar SÃ©rie" : "Configurar SÃ©rie"}</h2>
+          <button onClick={onCancel} className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/[0.06] hover:bg-white/10 transition-colors text-white/50 hover:text-white">âœ•</button>
         </div>
         <div className="px-6 py-5 flex flex-col gap-3 border-b border-white/[0.07]">
           <FilterDialog state={filters} onChange={setFilters} options={filterOptions} singleDetentor />
@@ -142,7 +142,7 @@ function SeriesFilterModal({ editId, initialFilters, onConfirm, onCancel }: {
           <p className="text-xs font-semibold text-white/35 uppercase tracking-widest">{previewGames.length} jogos selecionados</p>
           {previewGames.slice(0, 5).map((g, i) => (
             <div key={i} className="flex items-center justify-between gap-2">
-              <span className="text-xs text-white/60 truncate">{g.mandante} × {g.visitante} · Rod.{g.rodada}</span>
+              <span className="text-xs text-white/60 truncate">{g.mandante} Ã— {g.visitante} Â· Rod.{g.rodada}</span>
               <span className="text-xs text-white/40 shrink-0">{formatMetric(g.detentor, g.metric)}</span>
             </div>
           ))}
@@ -188,7 +188,7 @@ function GraficosCard({ game, pos, locked, onUnlock }: {
       </div>
       <Sep />
       <div className="w-6 flex items-center justify-center shrink-0">
-        {onUnlock && <button onClick={onUnlock} className="text-white/25 hover:text-white/60 transition-colors leading-none">✕</button>}
+        {onUnlock && <button onClick={onUnlock} className="text-white/25 hover:text-white/60 transition-colors leading-none">âœ•</button>}
       </div>
     </div>
   );
@@ -222,7 +222,7 @@ export default function GraficosPage() {
       const best = s.sortedGames[0];
       return {
         mandante: best?.mandante ?? "", visitante: best?.visitante ?? "",
-        rodada: 0, ano: 0, detentor: best?.detentor ?? "CazéTV",
+        rodada: 0, ano: 0, detentor: best?.detentor ?? "CazÃ©TV",
         dia: "", horario: "", metric: avgVal,
         seriesId: s.id, seriesColor: s.color, seriesLabel: s.label,
       } as UnifiedGame;
@@ -267,7 +267,7 @@ export default function GraficosPage() {
   const disclaimerText = allPnt
     ? "Valores em pontos PNT"
     : labelUnit === "M"
-    ? "Valores em milhões de espectadores"
+    ? "Valores em milhÃµes de espectadores"
     : labelUnit === "k"
     ? "Valores em milhares de espectadores"
     : "Valores em espectadores";
@@ -362,17 +362,17 @@ export default function GraficosPage() {
   return (
     <div className="py-6">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white tracking-tight">Gráficos</h1>
-        <p className="text-white/40 text-sm mt-1.5">Compare séries com filtros personalizados, ordenadas por audiência</p>
+        <h1 className="text-3xl font-bold text-white tracking-tight">GrÃ¡ficos</h1>
+        <p className="text-white/40 text-sm mt-1.5">Compare sÃ©ries com filtros personalizados, ordenadas por audiÃªncia</p>
       </div>
 
       <div className="flex gap-6 items-start">
         {/* Sidebar */}
         <aside className="w-64 flex-shrink-0 flex flex-col gap-4">
           <div className="glass rounded-2xl p-4">
-            <p className="text-[10px] font-semibold text-white/35 uppercase tracking-widest mb-3">Séries</p>
+            <p className="text-[10px] font-semibold text-white/35 uppercase tracking-widest mb-3">SÃ©ries</p>
             {seriesList.length === 0 ? (
-              <p className="text-xs text-white/25">Nenhuma série adicionada</p>
+              <p className="text-xs text-white/25">Nenhuma sÃ©rie adicionada</p>
             ) : (
               <div className="flex flex-col gap-2">
                 {seriesList.map((s) => (
@@ -408,9 +408,9 @@ export default function GraficosPage() {
                       </span>
                     )}
                     <button onClick={() => setModalState({ open: true, editId: s.id, filters: s.filters })}
-                      className="text-white/30 hover:text-white/60 transition-colors text-sm leading-none shrink-0" title="Editar filtros">✎</button>
+                      className="text-white/30 hover:text-white/60 transition-colors text-sm leading-none shrink-0" title="Editar filtros">âœŽ</button>
                     <button onClick={() => { setSeriesList((prev) => prev.filter((x) => x.id !== s.id)); setLockedPositions([]); }}
-                      className="text-white/25 hover:text-red-400 transition-colors text-sm leading-none shrink-0" title="Remover">✕</button>
+                      className="text-white/25 hover:text-red-400 transition-colors text-sm leading-none shrink-0" title="Remover">âœ•</button>
                   </div>
                 ))}
               </div>
@@ -419,26 +419,26 @@ export default function GraficosPage() {
 
           <button onClick={() => setModalState({ open: true, editId: null, filters: EMPTY_FILTERS })}
             className="w-full py-2.5 rounded-2xl text-xs font-semibold bg-blue-600/20 text-blue-300 border border-blue-500/35 hover:bg-blue-600/30 transition-colors">
-            + Adicionar série
+            + Adicionar sÃ©rie
           </button>
 
           <div className="glass rounded-2xl p-4">
-            <p className="text-[10px] font-semibold text-white/35 uppercase tracking-widest mb-3">Opções</p>
+            <p className="text-[10px] font-semibold text-white/35 uppercase tracking-widest mb-3">OpÃ§Ãµes</p>
             <div className="flex flex-col gap-2">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" checked={showAvgs} onChange={(e) => setShowAvgs(e.target.checked)} className="rounded accent-blue-500" />
-                <span className="text-xs text-white/50">Mostrar médias</span>
+                <span className="text-xs text-white/50">Mostrar mÃ©dias</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" checked={groupSeries} onChange={(e) => {
                   setGroupSeries(e.target.checked);
                   if (e.target.checked) setShowShields(false);
                 }} className="rounded accent-blue-500" />
-                <span className="text-xs text-white/50">Agrupar séries</span>
+                <span className="text-xs text-white/50">Agrupar sÃ©ries</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" checked={showLabels} onChange={(e) => setShowLabels(e.target.checked)} className="rounded accent-blue-500" />
-                <span className="text-xs text-white/50">Mostrar audiências</span>
+                <span className="text-xs text-white/50">Mostrar audiÃªncias</span>
               </label>
               <label className={`flex items-center gap-2 ${groupSeries ? "opacity-35 cursor-not-allowed" : "cursor-pointer"}`}>
                 <input type="checkbox" checked={showShields} disabled={groupSeries}
@@ -458,7 +458,7 @@ export default function GraficosPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1}
                     d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
                 </svg>
-                <p className="text-sm">Adicione pelo menos uma série para ver o gráfico</p>
+                <p className="text-sm">Adicione pelo menos uma sÃ©rie para ver o grÃ¡fico</p>
               </div>
             </div>
           ) : (
@@ -472,7 +472,7 @@ export default function GraficosPage() {
                         <div className="w-4 h-0.5 rounded" style={{ background: s.color }} />
                         <span className="text-xs" style={{ color: s.color }}>{s.label}</span>
                         {sa?.avg != null && !groupSeries && (
-                          <span className="text-[10px] text-white/25">({fmtY(sa.avg)} méd)</span>
+                          <span className="text-[10px] text-white/25">({fmtY(sa.avg)} mÃ©d)</span>
                         )}
                       </div>
                     );
@@ -483,13 +483,13 @@ export default function GraficosPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                           d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
                       </svg>
-                      <span className="text-[9px] font-semibold text-red-400 uppercase tracking-wide">Métricas mistas</span>
+                      <span className="text-[9px] font-semibold text-red-400 uppercase tracking-wide">MÃ©tricas mistas</span>
                     </div>
                   )}
                 </div>
                 <button onClick={() => setChartMode((m) => m === "line" ? "bar" : "line")}
                   className="px-3 py-1.5 rounded-lg text-xs font-medium border border-white/10 text-white/50 hover:text-white/70 transition-all ml-4 shrink-0">
-                  {chartMode === "line" ? "▐▌ Barras" : "━━ Linha"}
+                  {chartMode === "line" ? "â–â–Œ Barras" : "â”â” Linha"}
                 </button>
               </div>
 
@@ -623,3 +623,4 @@ export default function GraficosPage() {
     </div>
   );
 }
+

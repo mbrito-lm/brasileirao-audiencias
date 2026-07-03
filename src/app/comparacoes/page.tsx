@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState, useMemo } from "react";
 import { games, DETENTORES, DETENTOR_COLORS, SEASON_COLORS } from "@/data/games";
 import { LOGOS } from "@/data/logos";
@@ -9,7 +9,7 @@ import TeamLogo from "@/components/TeamLogo";
 type SortKey = "rodada" | "metric" | "data";
 
 const EMPTY_FILTERS: FilterState = { anos: [], dias: [], horarios: [], rodadas: [], times: [], detentores: [] };
-const DIA_ORDER = ["seg.", "ter.", "qua.", "qui.", "sex.", "sáb.", "dom."];
+const DIA_ORDER = ["seg.", "ter.", "qua.", "qui.", "sex.", "sÃ¡b.", "dom."];
 
 function buildOptions(base: typeof games, filters: FilterState) {
   function cross(exclude: keyof FilterState) {
@@ -46,7 +46,7 @@ export default function ComparacoesPage() {
   return (
     <div className="py-6">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white tracking-tight">Comparações</h1>
+        <h1 className="text-3xl font-bold text-white tracking-tight">ComparaÃ§Ãµes</h1>
         <p className="text-white/40 text-sm mt-1.5">
           Compare dois conjuntos de jogos com filtros independentes
         </p>
@@ -97,18 +97,18 @@ function ComparePanel({ label, accentColor }: { label: string; accentColor: stri
   const isAudOnly = withMetric.length > 0 && withMetric.every((g) => !PNT_DETENTORES.has(g.detentor));
   const isMixed = withMetric.length > 0 && !isPntOnly && !isAudOnly;
 
-  const firstDet = withMetric[0]?.detentor ?? "CazéTV";
+  const firstDet = withMetric[0]?.detentor ?? "CazÃ©TV";
   const avgAll = withMetric.length ? avg(withMetric.map((g) => g._metric as number)) : null;
-  const avgAllFmt = avgAll !== null ? (isMixed ? formatAudiencia(avgAll) : formatMetric(firstDet, avgAll)) : "—";
+  const avgAllFmt = avgAll !== null ? (isMixed ? formatAudiencia(avgAll) : formatMetric(firstDet, avgAll)) : "â€”";
 
   const statsBySeason = [2025, 2026].map((ano) => {
     const subset = withMetric.filter((g) => g.ano === ano);
-    const det = subset[0]?.detentor ?? "CazéTV";
+    const det = subset[0]?.detentor ?? "CazÃ©TV";
     const avgVal = subset.length ? avg(subset.map((g) => g._metric as number)) : null;
     return {
       ano,
       count: filtered.filter((g) => g.ano === ano).length,
-      avgFmt: avgVal !== null ? (isMixed ? formatAudiencia(avgVal) : formatMetric(det, avgVal)) : "—",
+      avgFmt: avgVal !== null ? (isMixed ? formatAudiencia(avgVal) : formatMetric(det, avgVal)) : "â€”",
     };
   }).filter((s) => s.count > 0);
 
@@ -153,7 +153,7 @@ function ComparePanel({ label, accentColor }: { label: string; accentColor: stri
           <>
             {/* Top row: label + filter summary + mixed alert */}
             <div className="flex items-start justify-between gap-3 mb-1">
-              <p className="text-[10px] text-white/35 uppercase tracking-widest shrink-0">Média geral</p>
+              <p className="text-[10px] text-white/35 uppercase tracking-widest shrink-0">MÃ©dia geral</p>
               <div className="flex items-center gap-2 min-w-0">
                 {filterSummaryText(filters) && (
                   <p className="text-[9px] text-white/20 text-right leading-tight truncate" title={filterSummaryText(filters) ?? undefined}>
@@ -165,7 +165,7 @@ function ComparePanel({ label, accentColor }: { label: string; accentColor: stri
                     <svg className="w-3 h-3 text-red-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
                     </svg>
-                    <span className="text-[9px] font-semibold text-red-400 uppercase tracking-wide whitespace-nowrap">Métricas mistas</span>
+                    <span className="text-[9px] font-semibold text-red-400 uppercase tracking-wide whitespace-nowrap">MÃ©tricas mistas</span>
                   </div>
                 )}
               </div>
@@ -203,8 +203,8 @@ function ComparePanel({ label, accentColor }: { label: string; accentColor: stri
                   <SortTh label="Rod." k="rodada" cur={sortKey} dir={sortDir} onSort={handleSort} />
                   <th className="px-3 py-3 text-center font-medium">Jogo</th>
                   <th className="px-3 py-3 text-left font-medium">Dia</th>
-                  <th className="px-3 py-3 text-left font-medium">Horário</th>
-                  <SortTh label="Audiência" k="metric" cur={sortKey} dir={sortDir} onSort={handleSort} right />
+                  <th className="px-3 py-3 text-left font-medium">HorÃ¡rio</th>
+                  <SortTh label="AudiÃªncia" k="metric" cur={sortKey} dir={sortDir} onSort={handleSort} right />
                 </tr>
               </thead>
               <tbody>
@@ -267,8 +267,9 @@ function SortTh({ label, k, cur, dir, onSort, right }: {
       onClick={() => onSort(k)}>
       {label}
       {cur === k
-        ? <span className="ml-1 text-blue-400">{dir === "desc" ? "↓" : "↑"}</span>
-        : <span className="ml-1 text-white/15">↕</span>}
+        ? <span className="ml-1 text-blue-400">{dir === "desc" ? "â†“" : "â†‘"}</span>
+        : <span className="ml-1 text-white/15">â†•</span>}
     </th>
   );
 }
+

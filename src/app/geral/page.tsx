@@ -280,13 +280,13 @@ function Timeline({ season, onSeasonChange }: { season: 2025 | 2026; onSeasonCha
             return (
               <div key={gi} style={{ display: "flex", flexDirection: "column", flexShrink: 0, paddingRight: 14, marginRight: 4, borderRight: !isLastGroup ? "1px solid rgba(255,255,255,0.08)" : "none", overflow: "visible" }}>
                 {/* Rodada header spanning all days in this group */}
-                <div style={{ height: 22, display: "flex", alignItems: "center", paddingLeft: 4, marginBottom: 6 }}>
+                <div style={{ height: 28, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 8 }}>
                   {group.rodada !== null ? (
-                    <span style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                      Rod. {group.rodada}
+                    <span style={{ fontSize: 13, fontWeight: 800, color: "rgba(255,255,255,0.50)", textTransform: "uppercase", letterSpacing: "0.10em" }}>
+                      Rodada {group.rodada}
                     </span>
                   ) : (
-                    <span style={{ fontSize: 10, color: "rgba(255,255,255,0.15)" }}>—</span>
+                    <span style={{ fontSize: 11, color: "rgba(255,255,255,0.15)" }}>—</span>
                   )}
                 </div>
                 {/* Days in this group side by side */}
