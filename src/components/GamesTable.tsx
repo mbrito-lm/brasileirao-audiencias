@@ -235,11 +235,11 @@ export default function GamesTable({ games, allGames, detentor }: Props) {
                   <SortTh label="Data" sortKey="data" current={sortKey} dir={sortDir} onSort={handleSort} />
                   <th className="px-4 py-3 text-left font-medium">Dia</th>
                   <th className="px-4 py-3 text-left font-medium">Horário</th>
+                  <th className="px-4 py-3 text-center font-medium">Simultâneos</th>
                   <SortTh label="Audiência" sortKey="metric" current={sortKey} dir={sortDir} onSort={handleSort} right />
                   <DeltaTh label="Δ Detentor" tipKey="deltaDet" sortKey="deltaDet" current={sortKey} dir={sortDir} onSort={handleSort} onTip={setTooltip} />
                   <DeltaTh label="Δ Slot" tipKey="deltaSlot" sortKey="deltaSlot" current={sortKey} dir={sortDir} onSort={handleSort} onTip={setTooltip} />
                   <DeltaTh label="Δ Times" tipKey="deltaTimes" sortKey="deltaTimes" current={sortKey} dir={sortDir} onSort={handleSort} onTip={setTooltip} />
-                  <th className="px-4 py-3 text-center font-medium">Simultâneos</th>
                 </tr>
               </thead>
               <tbody>
@@ -274,13 +274,13 @@ export default function GamesTable({ games, allGames, detentor }: Props) {
                       <td className="px-4 py-3 text-white/40 whitespace-nowrap text-xs tabular-nums">{g.data}</td>
                       <td className="px-4 py-3 text-white/40 text-xs capitalize">{g.dia}</td>
                       <td className="px-4 py-3 text-white/40 text-xs tabular-nums">{normalizeHorario(g.horario.substring(0, 5))}</td>
+                      <ConcurrentCell game={g} onHover={setConcPopup} />
                       <td className="px-4 py-3 text-right font-bold text-white tabular-nums">
                         {formatMetric(g.detentor, g._metric)}
                       </td>
                       <DeltaCell value={g.deltaDet} />
                       <DeltaCell value={g.deltaSlot} />
                       <DeltaCell value={g.deltaTimes} />
-                      <ConcurrentCell game={g} onHover={setConcPopup} />
                     </tr>
                   ))
                 )}
@@ -373,7 +373,7 @@ function ConcurrentCell({ game, onHover }: {
         className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-white/[0.07] text-white/60 text-xs font-semibold cursor-default hover:bg-white/[0.13] transition-colors"
         onMouseEnter={(e) => {
           const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-          onHover({ games: concurrent, x: r.left + r.width / 2, y: r.top + window.scrollY });
+          onHover({ games: concurrent, x: r.left + r.width / 2, y: r.top });
         }}
         onMouseLeave={() => onHover(null)}
       >
