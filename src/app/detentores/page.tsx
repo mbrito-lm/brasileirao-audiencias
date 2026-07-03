@@ -178,17 +178,20 @@ export default function DetentoresPage() {
           {LOGOS[detentor] && (() => {
             const color = DETENTOR_COLORS[detentor] || "#3b82f6";
             const r = parseInt(color.slice(1,3),16), g = parseInt(color.slice(3,5),16), b = parseInt(color.slice(5,7),16);
+            const lr = Math.min(255, Math.round(r + (255-r)*0.30));
+            const lg = Math.min(255, Math.round(g + (255-g)*0.30));
+            const lb = Math.min(255, Math.round(b + (255-b)*0.30));
+            const lighter = `#${lr.toString(16).padStart(2,"0")}${lg.toString(16).padStart(2,"0")}${lb.toString(16).padStart(2,"0")}`;
             return (
               <div className="flex-shrink-0 ml-4" style={{
-                background: `rgba(${r},${g},${b},0.18)`,
-                border: `1px solid rgba(${r},${g},${b},0.55)`,
-                boxShadow: `0 0 20px rgba(${r},${g},${b},0.30)`,
+                background: color,
+                border: `1px solid ${lighter}`,
                 borderRadius: 14,
                 padding: "10px 16px",
               }}>
                 <img src={LOGOS[detentor]} alt={detentor}
                   className="h-14 w-auto object-contain"
-                  style={{ filter: "brightness(0) invert(1)", opacity: 0.90 }} />
+                  style={{ filter: "brightness(0) invert(1)", opacity: 0.95 }} />
               </div>
             );
           })()}

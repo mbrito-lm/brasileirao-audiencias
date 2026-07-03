@@ -14,11 +14,17 @@ function hexToRgba(hex: string, alpha: number) {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
+function lighten(hex: string, amount = 0.3): string {
+  const r = Math.min(255, Math.round(parseInt(hex.slice(1,3),16) + (255 - parseInt(hex.slice(1,3),16)) * amount));
+  const g = Math.min(255, Math.round(parseInt(hex.slice(3,5),16) + (255 - parseInt(hex.slice(3,5),16)) * amount));
+  const b = Math.min(255, Math.round(parseInt(hex.slice(5,7),16) + (255 - parseInt(hex.slice(5,7),16)) * amount));
+  return `#${r.toString(16).padStart(2,"0")}${g.toString(16).padStart(2,"0")}${b.toString(16).padStart(2,"0")}`;
+}
+
 function detentorBoxStyle(color: string) {
   return {
-    background: hexToRgba(color, 0.18),
-    border: `1px solid ${hexToRgba(color, 0.55)}`,
-    boxShadow: `0 0 14px ${hexToRgba(color, 0.25)}`,
+    background: color,
+    border: `1px solid ${lighten(color, 0.30)}`,
     borderRadius: 10,
     padding: "5px 10px",
     display: "flex",
@@ -507,8 +513,8 @@ function RankingCard({ title, type }: { title: string; type: "top10" | "clubs" |
                   <div className="text-xs text-white/35 mt-0.5 pl-0.5">{c.count} jogos</div>
                 </div>
                 <div className="flex-1 h-2 rounded-full overflow-hidden"
-                  style={{ background: hexToRgba(accent, 0.10), border: `1px solid ${hexToRgba(accent, 0.25)}`, boxShadow: `0 0 8px ${hexToRgba(accent, 0.20)}` }}>
-                  <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: accent, boxShadow: `0 0 6px ${hexToRgba(accent, 0.60)}` }} />
+                  style={{ background: hexToRgba(accent, 0.12), border: `1px solid ${lighten(accent, 0.25)}` }}>
+                  <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: accent }} />
                 </div>
                 <span className="text-base font-bold text-white tabular-nums whitespace-nowrap shrink-0">
                   {formatMetric(data.detentor, c.avg)}
