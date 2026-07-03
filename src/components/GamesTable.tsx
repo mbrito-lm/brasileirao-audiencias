@@ -9,6 +9,8 @@ import { SEASON_COLORS } from "@/data/games";
 import FilterDialog, { FilterState, filterSummaryText } from "./FilterDialog";
 import TeamLogo from "./TeamLogo";
 import { ALL_SCHEDULE, ScheduleGameTagged } from "@/data/schedule";
+import { LOGOS, } from "@/data/logos";
+import { DETENTOR_COLORS } from "@/data/games";
 
 type SortKey = "data" | "rodada" | "metric" | "deltaDet" | "deltaSlot" | "deltaTimes";
 
@@ -235,7 +237,7 @@ export default function GamesTable({ games, allGames, detentor }: Props) {
                   <SortTh label="Data" sortKey="data" current={sortKey} dir={sortDir} onSort={handleSort} />
                   <th className="px-4 py-3 text-left font-medium">Dia</th>
                   <th className="px-4 py-3 text-left font-medium">Horário</th>
-                  <th className="px-4 py-3 text-center font-medium">Simultâneos</th>
+                  <th className="px-4 py-3 text-center font-medium">Concorrentes</th>
                   <SortTh label="Audiência" sortKey="metric" current={sortKey} dir={sortDir} onSort={handleSort} right />
                   <DeltaTh label="Δ Detentor" tipKey="deltaDet" sortKey="deltaDet" current={sortKey} dir={sortDir} onSort={handleSort} onTip={setTooltip} />
                   <DeltaTh label="Δ Slot" tipKey="deltaSlot" sortKey="deltaSlot" current={sortKey} dir={sortDir} onSort={handleSort} onTip={setTooltip} />
@@ -300,18 +302,30 @@ export default function GamesTable({ games, allGames, detentor }: Props) {
       )}
       {concPopup && (
         <div
-          className="fixed z-50 glass rounded-xl p-3 shadow-2xl pointer-events-none"
-          style={{ left: concPopup.x, top: concPopup.y - 8, transform: "translate(-50%, -100%)", minWidth: 260, maxWidth: 340 }}
+          className="fixed z-50 rounded-xl p-3 shadow-2xl pointer-events-none"
+          style={{ left: concPopup.x, top: concPopup.y - 8, transform: "translate(-50%, -100%)", minWidth: 280, maxWidth: 380, background: "rgb(12,14,28)", border: "1px solid rgba(255,255,255,0.10)" }}
         >
-          <p className="text-white/40 text-[10px] uppercase tracking-widest mb-2">Jogos simultâneos</p>
-          <div className="flex flex-col gap-1.5">
+          <p className="text-white/40 text-[10px] uppercase tracking-widest mb-2.5">Concorrentes</p>
+          <div className="flex flex-col gap-2">
             {concPopup.games.map((sg, i) => (
-              <div key={i} className="flex items-center gap-2 text-xs">
-                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${sg.liga === "FFU" ? "bg-blue-500/20 text-blue-300" : "bg-white/10 text-white/40"}`}>
+              <div key={i} className="flex items-center gap-2.5">
+                <span className={`text-[9px] font-bold w-10 text-center py-0.5 rounded shrink-0 ${sg.liga === "FFU" ? "bg-blue-500/25 text-blue-300" : "bg-white/10 text-white/45"}`}>
                   {sg.liga}
                 </span>
-                <span className="text-white/70 font-medium">{sg.mandante} × {sg.visitante}</span>
-                <span className="text-white/35 tabular-nums ml-auto">{sg.hora}</span>
+                <TeamLogo team={sg.mandante} size={16} />
+                <span className="text-white/20 text-[10px]">vs</span>
+                <TeamLogo team={sg.visitante} size={16} />
+                <span className="text-white/35 tabular-nums text-xs ml-auto shrink-0">{sg.hora}</span>
+                <div className="flex gap-1 shrink-0">
+                  {sg.detentores.map(det => (
+                    LOGOS[det]
+                      ? <div key={det} className="w-5 h-5 rounded flex items-center justify-center shrink-0"
+                          style={{ background: DETENTOR_COLORS[det] || "#444" }}>
+                          <img src={LOGOS[det]} alt={det} style={{ width: 14, height: 14, objectFit: "contain", filter: "brightness(0) invert(1)", opacity: 0.9 }} />
+                        </div>
+                      : <span key={det} className="text-[9px] text-white/40">{det}</span>
+                  ))}
+                </div>
               </div>
             ))}
           </div>
