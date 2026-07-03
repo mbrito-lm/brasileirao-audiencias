@@ -36,7 +36,22 @@ function BrandedLogo({ detentor, src, className, imgStyle }: {
   detentor: string; src: string; className?: string; imgStyle?: React.CSSProperties;
 }) {
   if (detentor === "SporTV") {
-    return <img src={src} alt={detentor} className={className} style={{ ...imgStyle, filter: "none", opacity: 0.95 }} />;
+    const bgColor = DETENTOR_COLORS["SporTV"]; // #060927
+    return (
+      <div style={{ position: "relative", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+        <img src={src} alt={detentor} className={className} style={{ ...imgStyle, filter: "brightness(0) invert(1)", opacity: 0.95 }} />
+        {/* mask the white bleeding from the bottom of the S */}
+        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "28%", background: bgColor }} />
+        {/* red parallelogram accent */}
+        <div style={{
+          position: "absolute", bottom: "4%", left: "8%",
+          width: "48%", height: "22%",
+          background: "#E8002D",
+          transform: "skewX(-20deg)",
+          borderRadius: 1,
+        }} />
+      </div>
+    );
   }
   return <img src={src} alt={detentor} className={className} style={imgStyle} />;
 }
