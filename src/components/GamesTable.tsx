@@ -12,7 +12,7 @@ import { ALL_SCHEDULE, ScheduleGameTagged, getConcurrentCount } from "@/data/sch
 import { LOGOS, } from "@/data/logos";
 import { DETENTOR_COLORS } from "@/data/games";
 
-type SortKey = "data" | "rodada" | "metric" | "deltaDet" | "deltaSlot" | "deltaTimes" | "peak" | "streams" | "liveMinutes" | "totalViewers" | "ytPeak";
+type SortKey = "data" | "rodada" | "metric" | "deltaDet" | "deltaSlot" | "deltaTimes" | "peak" | "streams" | "liveMinutes" | "totalViewers" | "ytPeak" | "ytAlcance";
 
 function timeToMin(h: string): number {
   const [hh, mm] = h.split(":").map(Number);
@@ -137,6 +137,10 @@ export default function GamesTable({ games, allGames, detentor, showDeltas = tru
       else if (sortKey === "ytPeak") {
         va = YOUTUBE_EXTRA_METRICS[a.data]?.peak ?? null;
         vb = YOUTUBE_EXTRA_METRICS[b.data]?.peak ?? null;
+      }
+      else if (sortKey === "ytAlcance") {
+        va = YOUTUBE_EXTRA_METRICS[a.data]?.alcance ?? null;
+        vb = YOUTUBE_EXTRA_METRICS[b.data]?.alcance ?? null;
       }
       else { va = a[sortKey]; vb = b[sortKey]; }
       if (va === null && vb === null) return 0;
@@ -291,9 +295,10 @@ export default function GamesTable({ games, allGames, detentor, showDeltas = tru
                       </button>
                     </th>
                   )}
-                  {isYoutube && showYoutubeExtras && (
-                    <SortTh label="Pico Individual" sortKey="ytPeak" current={sortKey} dir={sortDir} onSort={handleSort} right accent="#f87171" />
-                  )}
+                  {isYoutube && showYoutubeExtras && <>
+                    <SortTh label="Pico" sortKey="ytPeak" current={sortKey} dir={sortDir} onSort={handleSort} right accent="#f87171" />
+                    <SortTh label="Alcance" sortKey="ytAlcance" current={sortKey} dir={sortDir} onSort={handleSort} right accent="#f87171" />
+                  </>}
                   {showDeltas && <DeltaTh label="Δ Detentor" tipKey="deltaDet" sortKey="deltaDet" current={sortKey} dir={sortDir} onSort={handleSort} onTip={setTooltip} />}
                   {showDeltas && <DeltaTh label="Δ Slot" tipKey="deltaSlot" sortKey="deltaSlot" current={sortKey} dir={sortDir} onSort={handleSort} onTip={setTooltip} />}
                   {showDeltas && <DeltaTh label="Δ Times" tipKey="deltaTimes" sortKey="deltaTimes" current={sortKey} dir={sortDir} onSort={handleSort} onTip={setTooltip} />}
@@ -339,9 +344,14 @@ export default function GamesTable({ games, allGames, detentor, showDeltas = tru
                       {isYoutube && <td style={{ width: 24, minWidth: 24 }} />}
                       {isYoutube && showYoutubeExtras && (() => {
                         const ex = YOUTUBE_EXTRA_METRICS[g.data];
-                        return ex
-                          ? <td className="px-4 py-3 text-right tabular-nums text-xs" style={{ color: "#fca5a5" }}>{ex.peak.toLocaleString("pt-BR")}</td>
-                          : <td className="px-4 py-3 text-right text-xs text-white/15">—</td>;
+                        const fmt = (n: number) => n.toLocaleString("pt-BR");
+                        return ex ? <>
+                          <td className="px-4 py-3 text-right tabular-nums text-xs" style={{ color: "#fca5a5" }}>{fmt(ex.peak)}</td>
+                          <td className="px-4 py-3 text-right tabular-nums text-xs" style={{ color: "#fca5a5" }}>{ex.alcance != null ? fmt(ex.alcance) : <span className="text-white/15">—</span>}</td>
+                        </> : <>
+                          <td className="px-4 py-3 text-right text-xs text-white/15">—</td>
+                          <td className="px-4 py-3 text-right text-xs text-white/15">—</td>
+                        </>;
                       })()}
                       {isAmazon && showAmazonExtras && (() => {
                         const ex = AMAZON_EXTRA_METRICS[g.data];
