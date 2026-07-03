@@ -12,7 +12,7 @@ import { ALL_SCHEDULE, ScheduleGameTagged, getConcurrentCount } from "@/data/sch
 import { LOGOS, } from "@/data/logos";
 import { DETENTOR_COLORS } from "@/data/games";
 
-type SortKey = "data" | "rodada" | "metric" | "deltaDet" | "deltaSlot" | "deltaTimes";
+type SortKey = "data" | "rodada" | "metric" | "deltaDet" | "deltaSlot" | "deltaTimes" | "peak" | "streams" | "liveMinutes" | "totalViewers";
 
 function timeToMin(h: string): number {
   const [hh, mm] = h.split(":").map(Number);
@@ -128,6 +128,10 @@ export default function GamesTable({ games, allGames, detentor, showDeltas = tru
       if (sortKey === "data") { va = a._date; vb = b._date; }
       else if (sortKey === "rodada") { va = a.rodada; vb = b.rodada; }
       else if (sortKey === "metric") { va = a._metric; vb = b._metric; }
+      else if (sortKey === "peak" || sortKey === "streams" || sortKey === "liveMinutes" || sortKey === "totalViewers") {
+        const ea = AMAZON_EXTRA_METRICS[a.data]; const eb = AMAZON_EXTRA_METRICS[b.data];
+        va = ea ? ea[sortKey] : null; vb = eb ? eb[sortKey] : null;
+      }
       else { va = a[sortKey]; vb = b[sortKey]; }
       if (va === null && vb === null) return 0;
       if (va === null) return 1;
@@ -261,10 +265,10 @@ export default function GamesTable({ games, allGames, detentor, showDeltas = tru
                     </th>
                   )}
                   {isAmazon && showAmazonExtras && <>
-                    <th className="px-4 py-3 text-right font-medium whitespace-nowrap" style={{ color: "#60a5fa" }}>Peak</th>
-                    <th className="px-4 py-3 text-right font-medium whitespace-nowrap" style={{ color: "#60a5fa" }}>Streams</th>
-                    <th className="px-4 py-3 text-right font-medium whitespace-nowrap" style={{ color: "#60a5fa" }}>Min./Stream</th>
-                    <th className="px-4 py-3 text-right font-medium whitespace-nowrap" style={{ color: "#60a5fa" }}>Total Viewers</th>
+                    <SortTh label="Peak" sortKey="peak" current={sortKey} dir={sortDir} onSort={handleSort} right accent="#60a5fa" />
+                    <SortTh label="Streams" sortKey="streams" current={sortKey} dir={sortDir} onSort={handleSort} right accent="#60a5fa" />
+                    <SortTh label="Min./Stream" sortKey="liveMinutes" current={sortKey} dir={sortDir} onSort={handleSort} right accent="#60a5fa" />
+                    <SortTh label="Total Viewers" sortKey="totalViewers" current={sortKey} dir={sortDir} onSort={handleSort} right accent="#60a5fa" />
                   </>}
                   {showDeltas && <DeltaTh label="Δ Detentor" tipKey="deltaDet" sortKey="deltaDet" current={sortKey} dir={sortDir} onSort={handleSort} onTip={setTooltip} />}
                   {showDeltas && <DeltaTh label="Δ Slot" tipKey="deltaSlot" sortKey="deltaSlot" current={sortKey} dir={sortDir} onSort={handleSort} onTip={setTooltip} />}
@@ -383,16 +387,19 @@ export default function GamesTable({ games, allGames, detentor, showDeltas = tru
   );
 }
 
-function SortTh({ label, sortKey, current, dir, onSort, right }: {
+function SortTh({ label, sortKey, current, dir, onSort, right, accent }: {
   label: string; sortKey: SortKey; current: SortKey; dir: "asc" | "desc";
-  onSort: (k: SortKey) => void; right?: boolean;
+  onSort: (k: SortKey) => void; right?: boolean; accent?: string;
 }) {
+  const isActive = current === sortKey;
   return (
-    <th className={`px-4 py-3 font-medium cursor-pointer select-none hover:text-white/60 transition-colors ${right ? "text-right" : "text-left"}`}
+    <th
+      className={`px-4 py-3 font-medium cursor-pointer select-none transition-colors whitespace-nowrap ${right ? "text-right" : "text-left"}`}
+      style={{ color: accent ?? undefined }}
       onClick={() => onSort(sortKey)}>
       {label}
-      {current === sortKey ? (
-        <span className="ml-1 text-blue-400">{dir === "desc" ? "↓" : "↑"}</span>
+      {isActive ? (
+        <span className="ml-1" style={{ color: accent ?? "#60a5fa" }}>{dir === "desc" ? "↓" : "↑"}</span>
       ) : (
         <span className="ml-1 text-white/15">↕</span>
       )}
