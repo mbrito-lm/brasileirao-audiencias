@@ -158,11 +158,11 @@ export default function DetentoresPage() {
           sub={`${gamesWithMetric.length} com dados`} accent="#3b82f6" />
         <KpiCard
           label={isPnt ? "PNT médio" : "Audiência média"}
-          value={formatMetric(detentor, globalAvg || null)}
-          sub={metricLabel(detentor)} accent={DETENTOR_COLORS[detentor]} />
+          value={formatMetric(detentor ?? "", globalAvg || null)}
+          sub={metricLabel(detentor ?? "")} accent={DETENTOR_COLORS[detentor ?? ""] || "#3b82f6"} />
         <KpiCard
           label="Recorde"
-          value={maxGame ? formatMetric(detentor, getMetric(maxGame)) : "—"}
+          value={maxGame ? formatMetric(detentor ?? "", getMetric(maxGame)) : "—"}
           sub={maxGame ? `${maxGame.mandante} × ${maxGame.visitante}` : undefined}
           sub2={maxGame ? `Rod. ${maxGame.rodada} · ${maxGame.dia} · ${normalizeHorario(maxGame.horario.substring(0, 5))} · ${maxGame.ano}` : undefined}
           accent="#f59e0b" />
@@ -179,7 +179,7 @@ export default function DetentoresPage() {
             </div>
             <div className="mt-1.5" style={{ height: 56, display: "flex", flexDirection: "column", gap: 4, overflow: "hidden" }}>
               {slot1
-                ? <GameCard dot={slot1} detentor={detentor}
+                ? <GameCard dot={slot1} detentor={detentor ?? ""}
                     locked={lockedDots.some((ld) => ld.rodada === slot1!.rodada && ld.season === slot1!.season)}
                     onUnlock={lockedDots.some((ld) => ld.rodada === slot1!.rodada && ld.season === slot1!.season)
                       ? () => setLockedDots((prev) => prev.filter((ld) => !(ld.rodada === slot1!.rodada && ld.season === slot1!.season)))
@@ -188,7 +188,7 @@ export default function DetentoresPage() {
                 : <div style={{ height: 26, flexShrink: 0 }} />
               }
               {slot2
-                ? <GameCard dot={slot2} detentor={detentor}
+                ? <GameCard dot={slot2} detentor={detentor ?? ""}
                     locked={lockedDots.some((ld) => ld.rodada === slot2!.rodada && ld.season === slot2!.season)}
                     onUnlock={lockedDots.some((ld) => ld.rodada === slot2!.rodada && ld.season === slot2!.season)
                       ? () => setLockedDots((prev) => prev.filter((ld) => !(ld.rodada === slot2!.rodada && ld.season === slot2!.season)))
@@ -201,7 +201,7 @@ export default function DetentoresPage() {
               {isPnt ? "Pontos PNT por rodada" : "Média de espectadores individuais"}
             </p>
           </div>
-          {LOGOS[detentor] && (() => {
+          {detentor && LOGOS[detentor] && (() => {
             const color = DETENTOR_COLORS[detentor] || "#3b82f6";
             const r = parseInt(color.slice(1,3),16), g = parseInt(color.slice(3,5),16), b = parseInt(color.slice(5,7),16);
             const lr = Math.min(255, Math.round(r + (255-r)*0.30));
@@ -232,7 +232,7 @@ export default function DetentoresPage() {
         />
       </div>
 
-      <BreakdownTables games={filteredGames} detentor={detentor} />
+      <BreakdownTables games={filteredGames} detentor={detentor ?? ""} />
 
       <div className="glass rounded-2xl p-6 mt-4">
         <div className="flex items-center justify-between mb-4">
