@@ -5,5 +5,6 @@ export const LOGOS: Record<string, string> = {
   Premiere: "/logos/premiere.png",
   Record:   "/logos/record.png",
   SporTV:   "/logos/sportv.png",
-  TNT:      "/logos/tnt.png",
+  TNT:           "/logos/tnt.png",
+  GloboEsporte:  "/logos/getv.png",
 };

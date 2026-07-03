@@ -308,23 +308,28 @@ export default function GamesTable({ games, allGames, detentor }: Props) {
           <p className="text-white/40 text-[10px] uppercase tracking-widest mb-2.5">Concorrentes</p>
           <div className="flex flex-col gap-2">
             {concPopup.games.map((sg, i) => (
-              <div key={i} className="flex items-center gap-2.5">
-                <span className={`text-[9px] font-bold w-10 text-center py-0.5 rounded shrink-0 ${sg.liga === "FFU" ? "bg-blue-500/25 text-blue-300" : "bg-white/10 text-white/45"}`}>
+              <div key={i} className="grid items-center gap-x-2" style={{ gridTemplateColumns: "40px 16px 14px 16px 40px 1fr" }}>
+                {/* liga */}
+                <span className={`text-[9px] font-bold text-center py-0.5 rounded ${sg.liga === "FFU" ? "bg-blue-500/25 text-blue-300" : "bg-white/10 text-white/45"}`}>
                   {sg.liga}
                 </span>
+                {/* mandante */}
                 <TeamLogo team={sg.mandante} size={16} />
-                <span className="text-white/20 text-[10px]">vs</span>
+                <span className="text-white/20 text-[10px] text-center">vs</span>
+                {/* visitante */}
                 <TeamLogo team={sg.visitante} size={16} />
-                <span className="text-white/35 tabular-nums text-xs ml-auto shrink-0">{sg.hora}</span>
-                <div className="flex gap-1 shrink-0">
-                  {sg.detentores.map(det => (
+                {/* horário — sempre na mesma coluna */}
+                <span className="text-white/40 tabular-nums text-xs text-center">{sg.hora}</span>
+                {/* logos detentores */}
+                <div className="flex gap-1">
+                  {sg.detentores.map(det =>
                     LOGOS[det]
                       ? <div key={det} className="w-5 h-5 rounded flex items-center justify-center shrink-0"
                           style={{ background: DETENTOR_COLORS[det] || "#444" }}>
-                          <img src={LOGOS[det]} alt={det} style={{ width: 14, height: 14, objectFit: "contain", filter: "brightness(0) invert(1)", opacity: 0.9 }} />
+                          <img src={LOGOS[det]} alt={det} style={{ width: 13, height: 13, objectFit: "contain", filter: "brightness(0) invert(1)", opacity: 0.9 }} />
                         </div>
                       : <span key={det} className="text-[9px] text-white/40">{det}</span>
-                  ))}
+                  )}
                 </div>
               </div>
             ))}

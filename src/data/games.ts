@@ -23,6 +23,7 @@ export const DETENTOR_COLORS: Record<string, string> = {
   Premiere: "#27AE60",
   Record: "#5C70A8",
   SporTV: "#060927",
+  GloboEsporte: "#4B0096",
 };
 
 export const SEASON_COLORS: Record<number, string> = {
