@@ -1,6 +1,6 @@
 "use client";
 import { useState, useMemo } from "react";
-import { games, DETENTOR_COLORS, SEASON_COLORS } from "@/data/games";
+import { games, DETENTORES, DETENTOR_COLORS, SEASON_COLORS } from "@/data/games";
 import { LOGOS } from "@/data/logos";
 import { getMetric, formatMetric, formatAudiencia, parseDate, avg, normalizeHorario, PNT_DETENTORES } from "@/lib/stats";
 import FilterDialog, { FilterState } from "@/components/FilterDialog";
@@ -8,12 +8,14 @@ import TeamLogo from "@/components/TeamLogo";
 
 type SortKey = "rodada" | "metric" | "data";
 
-const EMPTY_FILTERS: FilterState = { anos: [], dias: [], horarios: [], rodadas: [], times: [] };
+const EMPTY_FILTERS: FilterState = { anos: [], dias: [], horarios: [], rodadas: [], times: [], detentores: [] };
 const DIA_ORDER = ["seg.", "ter.", "qua.", "qui.", "sex.", "sáb.", "dom."];
 
 function buildOptions(base: typeof games, filters: FilterState) {
   function cross(exclude: keyof FilterState) {
     let r = base;
+    if (exclude !== "detentores" && (filters.detentores?.length ?? 0) > 0)
+      r = r.filter((g) => filters.detentores!.includes(g.detentor));
     if (exclude !== "anos" && filters.anos.length)
       r = r.filter((g) => filters.anos.includes(g.ano));
     if (exclude !== "dias" && filters.dias.length)
@@ -27,6 +29,7 @@ function buildOptions(base: typeof games, filters: FilterState) {
     return r;
   }
   return {
+    detentores: DETENTORES,
     anos: Array.from(new Set(cross("anos").map((g) => g.ano))).sort(),
     dias: DIA_ORDER.filter((d) => cross("dias").some((g) => g.dia === d)),
     horarios: Array.from(new Set(cross("horarios").map((g) => normalizeHorario(g.horario.substring(0, 5))))).sort(),
@@ -48,9 +51,15 @@ export default function ComparacoesPage() {
           Compare dois conjuntos de jogos com filtros independentes
         </p>
       </div>
-      <div className="grid grid-cols-2 gap-6 items-start">
-        <ComparePanel label="Lista A" accentColor="#3b82f6" />
-        <ComparePanel label="Lista B" accentColor="#a855f7" />
+      <div className="flex gap-0 items-start">
+        <div className="flex-1 min-w-0">
+          <ComparePanel label="Lista A" accentColor="#3b82f6" />
+        </div>
+        {/* Thin vertical separator */}
+        <div className="w-px self-stretch mx-6" style={{ background: "rgba(255,255,255,0.06)" }} />
+        <div className="flex-1 min-w-0">
+          <ComparePanel label="Lista B" accentColor="#a855f7" />
+        </div>
       </div>
     </div>
   );
@@ -65,6 +74,7 @@ function ComparePanel({ label, accentColor }: { label: string; accentColor: stri
 
   const filtered = useMemo(() => {
     let r = games;
+    if ((filters.detentores?.length ?? 0) > 0) r = r.filter((g) => filters.detentores!.includes(g.detentor));
     if (filters.anos.length) r = r.filter((g) => filters.anos.includes(g.ano));
     if (filters.dias.length) r = r.filter((g) => filters.dias.includes(g.dia));
     if (filters.horarios.length) r = r.filter((g) => filters.horarios.includes(normalizeHorario(g.horario.substring(0, 5))));
@@ -72,7 +82,6 @@ function ComparePanel({ label, accentColor }: { label: string; accentColor: stri
     if (filters.times.length) r = r.filter((g) => filters.times.some((t) => g.mandante === t || g.visitante === t));
 
     const enriched = r.map((g) => ({ ...g, _metric: getMetric(g), _date: parseDate(g.data) }));
-
     return [...enriched].sort((a, b) => {
       const va = sortKey === "rodada" ? a.rodada : sortKey === "data" ? a._date : a._metric;
       const vb = sortKey === "rodada" ? b.rodada : sortKey === "data" ? b._date : b._metric;
@@ -88,24 +97,23 @@ function ComparePanel({ label, accentColor }: { label: string; accentColor: stri
   const isAudOnly = withMetric.length > 0 && withMetric.every((g) => !PNT_DETENTORES.has(g.detentor));
   const isMixed = withMetric.length > 0 && !isPntOnly && !isAudOnly;
 
-  function fmtAvg(vals: number[], detentor: string) {
-    if (!vals.length) return "—";
-    const a = avg(vals);
-    return isMixed ? formatAudiencia(a) : formatMetric(detentor, a);
-  }
+  const firstDet = withMetric[0]?.detentor ?? "CazéTV";
+  const avgAll = withMetric.length ? avg(withMetric.map((g) => g._metric as number)) : null;
+  const avgAllFmt = avgAll !== null ? (isMixed ? formatAudiencia(avgAll) : formatMetric(firstDet, avgAll)) : "—";
 
-  const stats = [2025, 2026].map((ano) => {
-    const subset = filtered.filter((g) => g.ano === ano && g._metric !== null);
-    const firstDet = subset[0]?.detentor ?? "CazéTV";
+  const statsBySeason = [2025, 2026].map((ano) => {
+    const subset = withMetric.filter((g) => g.ano === ano);
+    const det = subset[0]?.detentor ?? "CazéTV";
+    const avgVal = subset.length ? avg(subset.map((g) => g._metric as number)) : null;
     return {
       ano,
       count: filtered.filter((g) => g.ano === ano).length,
-      avgVal: subset.length ? fmtAvg(subset.map((g) => g._metric as number), firstDet) : "—",
+      avgFmt: avgVal !== null ? (isMixed ? formatAudiencia(avgVal) : formatMetric(det, avgVal)) : "—",
     };
   }).filter((s) => s.count > 0);
 
-  const totalActive = filters.anos.length + filters.dias.length + filters.horarios.length +
-    filters.rodadas.length + filters.times.length;
+  const totalActive = (filters.detentores?.length ?? 0) + filters.anos.length + filters.dias.length +
+    filters.horarios.length + filters.rodadas.length + filters.times.length;
 
   const handleSort = (k: SortKey) => {
     if (k === sortKey) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -114,13 +122,18 @@ function ComparePanel({ label, accentColor }: { label: string; accentColor: stri
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Header */}
+      {/* Header row */}
       <div className="flex items-center gap-3">
         <span className="text-xs font-bold uppercase tracking-widest px-2.5 py-1 rounded-lg"
           style={{ background: accentColor + "22", color: accentColor, border: `1px solid ${accentColor}44` }}>
           {label}
         </span>
-        <FilterDialog state={filters} onChange={setFilters} options={filterOptions} />
+        <FilterDialog
+          state={filters}
+          onChange={setFilters}
+          options={filterOptions}
+          singleDetentor
+        />
         {totalActive > 0 && (
           <button onClick={() => setFilters(EMPTY_FILTERS)}
             className="text-xs text-white/30 hover:text-white/50 transition-colors">
@@ -133,25 +146,39 @@ function ComparePanel({ label, accentColor }: { label: string; accentColor: stri
       </div>
 
       {/* Stats box */}
-      <div className="glass rounded-2xl p-4">
-        {stats.length === 0 ? (
-          <p className="text-white/25 text-xs">Nenhum jogo selecionado</p>
-        ) : (
-          <div className="flex items-stretch gap-6">
-            {stats.map((s) => (
-              <div key={s.ano}>
-                <p className="text-xs mb-1.5">
-                  <span className="font-bold" style={{ color: SEASON_COLORS[s.ano] }}>{s.ano}</span>
-                  <span className="text-white/30"> · {s.count} jogo{s.count !== 1 ? "s" : ""}</span>
-                </p>
-                <p className="text-xl font-bold text-white tabular-nums">{s.avgVal}</p>
-                <p className="text-[10px] text-white/30 mt-0.5 uppercase tracking-wider">Média</p>
-              </div>
-            ))}
-            {isMixed && (
-              <p className="text-[10px] text-white/25 self-end pb-0.5">* Métricas mistas (pts + espectadores)</p>
-            )}
+      <div className="glass rounded-2xl p-4 relative">
+        {/* Mixed-metrics alert — top-right */}
+        {isMixed && (
+          <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-red-500/15 border border-red-500/30 rounded-lg px-2.5 py-1.5">
+            <svg className="w-3.5 h-3.5 text-red-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+            </svg>
+            <span className="text-[10px] font-semibold text-red-400 uppercase tracking-wide">Métricas mistas</span>
           </div>
+        )}
+
+        {withMetric.length === 0 ? (
+          <p className="text-white/25 text-xs">Nenhum jogo com dados</p>
+        ) : (
+          <>
+            {/* Primary: overall average */}
+            <p className="text-[10px] text-white/35 uppercase tracking-widest mb-1">Média geral</p>
+            <p className="text-3xl font-bold text-white tabular-nums mb-3">{avgAllFmt}</p>
+
+            {/* Secondary: per-season breakdown */}
+            {statsBySeason.length > 0 && (
+              <div className="flex items-center gap-5 pt-3 border-t border-white/[0.06]">
+                {statsBySeason.map((s) => (
+                  <div key={s.ano} className="flex items-baseline gap-2">
+                    <span className="text-[10px] font-semibold uppercase tracking-widest"
+                      style={{ color: SEASON_COLORS[s.ano] }}>{s.ano}</span>
+                    <span className="text-sm font-bold text-white/80 tabular-nums">{s.avgFmt}</span>
+                    <span className="text-[10px] text-white/25">{s.count} jogo{s.count !== 1 ? "s" : ""}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -181,23 +208,17 @@ function ComparePanel({ label, accentColor }: { label: string; accentColor: stri
                   </tr>
                 ) : filtered.map((g, i) => (
                   <tr key={i} className="border-t border-white/[0.04] hover:bg-white/[0.025] transition-colors">
-                    {/* Detentor */}
                     <td className="px-3 py-2.5">
-                      <div className="flex items-center gap-1.5">
-                        {LOGOS[g.detentor]
-                          ? <img src={LOGOS[g.detentor]} alt={g.detentor} className="h-4 w-auto object-contain" />
-                          : <span className="text-xs" style={{ color: DETENTOR_COLORS[g.detentor] || "#9ca3af" }}>{g.detentor}</span>
-                        }
-                      </div>
+                      {LOGOS[g.detentor]
+                        ? <img src={LOGOS[g.detentor]} alt={g.detentor} className="h-4 w-auto object-contain" />
+                        : <span className="text-xs" style={{ color: DETENTOR_COLORS[g.detentor] || "#9ca3af" }}>{g.detentor}</span>
+                      }
                     </td>
-                    {/* Temporada */}
                     <td className="px-3 py-2.5 text-xs font-semibold tabular-nums"
                       style={{ color: SEASON_COLORS[g.ano] || "rgba(255,255,255,0.30)" }}>
                       {g.ano}
                     </td>
-                    {/* Rodada */}
                     <td className="px-3 py-2.5 text-xs text-white/40 tabular-nums">{g.rodada}</td>
-                    {/* Jogo */}
                     <td className="px-3 py-2.5">
                       <div className="grid items-center gap-1.5" style={{ gridTemplateColumns: "1fr auto 1fr" }}>
                         <div className="flex items-center gap-1 justify-end min-w-0">
@@ -211,13 +232,10 @@ function ComparePanel({ label, accentColor }: { label: string; accentColor: stri
                         </div>
                       </div>
                     </td>
-                    {/* Dia da semana (sem data específica) */}
                     <td className="px-3 py-2.5 text-white/40 text-xs capitalize">{g.dia}</td>
-                    {/* Horário */}
                     <td className="px-3 py-2.5 text-white/40 text-xs tabular-nums">
                       {normalizeHorario(g.horario.substring(0, 5))}
                     </td>
-                    {/* Audiência */}
                     <td className="px-3 py-2.5 text-right font-bold text-white tabular-nums text-xs">
                       {formatMetric(g.detentor, g._metric)}
                     </td>

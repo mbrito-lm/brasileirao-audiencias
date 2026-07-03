@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import TeamLogo from "./TeamLogo";
+import { LOGOS } from "@/data/logos";
 
 export interface FilterState {
   anos: number[];
@@ -8,6 +9,7 @@ export interface FilterState {
   horarios: string[];
   rodadas: number[];
   times: string[];
+  detentores?: string[];  // optional; single-select when used in Comparações
 }
 
 interface FilterDialogProps {
@@ -19,7 +21,9 @@ interface FilterDialogProps {
     horarios: string[];
     rodadas: number[];
     times: string[];
+    detentores?: string[];  // when provided, shows a detentor strip at top
   };
+  singleDetentor?: boolean;  // enforce max 1 detentor selection
 }
 
 const DIA_ORDER = ["seg.", "ter.", "qua.", "qui.", "sex.", "sáb.", "dom."];
@@ -28,7 +32,7 @@ const DIA_LABELS: Record<string, string> = {
   "qui.": "Quinta", "sex.": "Sexta", "sáb.": "Sábado", "dom.": "Domingo",
 };
 
-export default function FilterDialog({ state, onChange, options }: FilterDialogProps) {
+export default function FilterDialog({ state, onChange, options, singleDetentor }: FilterDialogProps) {
   const [open, setOpen] = useState(false);
   const [teamSearch, setTeamSearch] = useState("");
 
@@ -47,7 +51,7 @@ export default function FilterDialog({ state, onChange, options }: FilterDialogP
   }, []);
 
   const totalActive = state.anos.length + state.dias.length + state.horarios.length +
-    state.rodadas.length + state.times.length;
+    state.rodadas.length + state.times.length + (state.detentores?.length ?? 0);
 
   function startDrag(key: keyof FilterState, idx: number, displayItems: any[]) {
     const arr = state[key] as any[];
@@ -89,7 +93,17 @@ export default function FilterDialog({ state, onChange, options }: FilterDialogP
   }
 
   function clearAll() {
-    onChange({ anos: [], dias: [], horarios: [], rodadas: [], times: [] });
+    onChange({ anos: [], dias: [], horarios: [], rodadas: [], times: [], detentores: [] });
+  }
+
+  function toggleDetentor(d: string) {
+    const cur = state.detentores ?? [];
+    if (singleDetentor) {
+      // single-select: toggle off if already selected, otherwise replace
+      onChange({ ...state, detentores: cur.includes(d) ? [] : [d] });
+    } else {
+      onChange({ ...state, detentores: cur.includes(d) ? cur.filter((x) => x !== d) : [...cur, d] });
+    }
   }
 
   const filteredTeams = options.times.filter((t) =>
@@ -136,6 +150,40 @@ export default function FilterDialog({ state, onChange, options }: FilterDialogP
                 </button>
               </div>
             </div>
+
+            {/* Detentor strip — only shown when options.detentores is provided */}
+            {options.detentores && options.detentores.length > 0 && (
+              <div className="px-6 py-4 border-b border-white/[0.06] flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-semibold text-white/40 uppercase tracking-widest mr-2">Detentor</span>
+                {options.detentores.map((d) => {
+                  const active = (state.detentores ?? []).includes(d);
+                  return (
+                    <button key={d} onClick={() => toggleDetentor(d)}
+                      title={d}
+                      className={`h-9 px-3 flex items-center rounded-xl transition-all border ${
+                        active
+                          ? "bg-blue-600/25 border-blue-500/40"
+                          : "bg-white/[0.04] border-white/[0.07] hover:bg-white/[0.08]"
+                      }`}>
+                      {LOGOS[d]
+                        ? <img src={LOGOS[d]} alt={d} className="h-5 w-auto object-contain"
+                            style={{ filter: active ? "none" : "grayscale(1) opacity(0.45)" }} />
+                        : <span className={`text-xs font-medium ${active ? "text-blue-200" : "text-white/40"}`}>{d}</span>
+                      }
+                    </button>
+                  );
+                })}
+                {(state.detentores?.length ?? 0) > 0 && (
+                  <button onClick={() => onChange({ ...state, detentores: [] })}
+                    className="text-xs text-blue-400/70 hover:text-blue-300 transition-colors ml-1">
+                    Limpar
+                  </button>
+                )}
+                {singleDetentor && (
+                  <span className="ml-auto text-[10px] text-white/20 uppercase tracking-widest">seleção única</span>
+                )}
+              </div>
+            )}
 
             {/* Columns */}
             <div className="grid grid-cols-5 divide-x divide-white/[0.06]" style={{ maxHeight: "65vh" }}>
