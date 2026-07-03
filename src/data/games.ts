@@ -554,3 +554,34 @@ export const games: Game[] = rawGames.map(
     pnt: parsePNT(pntStr as string),
   })
 );
+
+export interface AmazonExtra {
+  peak: number;
+  streams: number;
+  liveMinutes: number;
+  totalViewers: number;
+}
+
+function p(v: string): number { return parseInt(v.replace(/\./g, ""), 10); }
+function pf(v: string): number { return parseFloat(v.replace(",", ".")); }
+
+export const AMAZON_EXTRA_METRICS: Record<string, AmazonExtra> = {
+  "29/01/2026": { peak: p("630.760"),   streams: p("1.792.151"), liveMinutes: pf("43,17"), totalViewers: p("989.508") },
+  "05/02/2026": { peak: p("371.112"),   streams: p("1.119.084"), liveMinutes: pf("38,46"), totalViewers: p("619.130") },
+  "12/02/2026": { peak: p("827.768"),   streams: p("2.247.001"), liveMinutes: pf("45,64"), totalViewers: p("1.248.337") },
+  "25/02/2026": { peak: p("445.533"),   streams: p("1.367.436"), liveMinutes: pf("37,88"), totalViewers: p("735.986") },
+  "10/03/2026": { peak: p("329.916"),   streams: p("1.083.856"), liveMinutes: pf("38,08"), totalViewers: p("630.680") },
+  "14/03/2026": { peak: p("1.199.816"), streams: p("3.469.544"), liveMinutes: pf("48,58"), totalViewers: p("1.708.173") },
+  "19/03/2026": { peak: p("715.637"),   streams: p("2.043.703"), liveMinutes: pf("44,48"), totalViewers: p("1.107.523") },
+  "21/03/2026": { peak: p("575.352"),   streams: p("1.523.098"), liveMinutes: pf("43,77"), totalViewers: p("867.110") },
+  "01/04/2026": { peak: p("882.134"),   streams: p("2.503.406"), liveMinutes: pf("44,56"), totalViewers: p("1.394.640") },
+  "05/04/2026": { peak: p("897.109"),   streams: p("2.667.102"), liveMinutes: pf("45,09"), totalViewers: p("1.371.084") },
+  "11/04/2026": { peak: p("560.017"),   streams: p("1.624.259"), liveMinutes: pf("42,22"), totalViewers: p("845.057") },
+  "18/04/2026": { peak: p("691.258"),   streams: p("2.084.167"), liveMinutes: pf("42,63"), totalViewers: p("1.091.210") },
+  "25/04/2026": { peak: p("471.272"),   streams: p("1.324.859"), liveMinutes: pf("42,09"), totalViewers: p("774.454") },
+  "02/05/2026": { peak: p("294.962"),   streams: p("884.661"),   liveMinutes: pf("43,62"), totalViewers: p("511.835") },
+  "10/05/2026": { peak: p("1.315.721"), streams: p("4.145.709"), liveMinutes: pf("48,74"), totalViewers: p("1.910.988") },
+  "16/05/2026": { peak: p("479.347"),   streams: p("1.461.576"), liveMinutes: pf("42,20"), totalViewers: p("839.396") },
+  "24/05/2026": { peak: p("392.323"),   streams: p("1.025.527"), liveMinutes: pf("47,14"), totalViewers: p("601.187") },
+  "31/05/2026": { peak: p("521.208"),   streams: p("1.345.435"), liveMinutes: pf("45,15"), totalViewers: p("776.117") },
+};
