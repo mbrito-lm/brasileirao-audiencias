@@ -292,7 +292,7 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotCli
             domain={[(d: number) => Math.max(0, d * 0.92), (d: number) => d * 1.14]}
           />
 
-          {/* Smooth bezier bridges + bright SVG segments for active/locked columns */}
+          {/* Bezier bridges only — rendered BEFORE main lines so lines cover them */}
           <Customized
             component={(props: any) => {
               const xAxis = Object.values(props.xAxisMap ?? {})[0] as any;
@@ -300,66 +300,31 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotCli
               if (!xAxis?.scale || !yAxis?.scale) return null;
               const xs = xAxis.scale;
               const ys = yAxis.scale;
-
-              // Bezier bridges
               const allSegs = [...segs25, ...segs26];
-              const bridgePaths = allSegs.map((seg, i) => {
-                const px0 = xs(seg.x0), py0 = ys(seg.y0);
-                const px1 = xs(seg.x1), py1 = ys(seg.y1);
-                const ppx = seg.prevX !== null ? xs(seg.prevX) : px0;
-                const ppy = seg.prevY !== null ? ys(seg.prevY) : py0;
-                const pnx = seg.nextX !== null ? xs(seg.nextX) : px1;
-                const pny = seg.nextY !== null ? ys(seg.nextY) : py1;
-                const t0x = (px1 - ppx) / 2, t0y = (py1 - ppy) / 2;
-                const t1x = (pnx - px0) / 2, t1y = (pny - py0) / 2;
-                const cp1x = px0 + t0x / 3, cp1y = py0 + t0y / 3;
-                const cp2x = px1 - t1x / 3, cp2y = py1 - t1y / 3;
-                return (
-                  <path key={`b${i}`}
-                    d={`M${px0},${py0} C${cp1x},${cp1y} ${cp2x},${cp2y} ${px1},${py1}`}
-                    fill="none" stroke={seg.color}
-                    strokeWidth={1.5} strokeOpacity={0.30} strokeDasharray="3 4"
-                  />
-                );
-              });
-
-              // Bright SVG line segments for active and locked columns
-              // These are straight lines — for short adjacent segments, visually indistinguishable from monotone curves
-              const brightIdxs = new Set<number>();
-              if (activeIdx !== null) brightIdxs.add(activeIdx);
-              lockedRodadaIdxs.forEach((li) => brightIdxs.add(li));
-
-              const brightSegs: React.ReactElement[] = [];
-              brightIdxs.forEach((colIdx) => {
-                const series: [typeof data25, string, boolean][] = [
-                  [data25, SEASON_COLORS[2025], show25],
-                  [data26, SEASON_COLORS[2026], show26],
-                ];
-                series.forEach(([d, color, show]) => {
-                  if (!show) return;
-                  const prev = colIdx > 0 ? d[colIdx - 1] : null;
-                  const curr = d[colIdx];
-                  const next = colIdx < d.length - 1 ? d[colIdx + 1] : null;
-                  if (prev?.val != null && curr?.val != null) {
-                    brightSegs.push(
-                      <line key={`bs-${colIdx}-${color}-prev`}
-                        x1={xs(prev.rod)} y1={ys(prev.val)}
-                        x2={xs(curr.rod)} y2={ys(curr.val)}
-                        stroke={color} strokeWidth={2.5} strokeOpacity={1} />
+              if (!allSegs.length) return null;
+              return (
+                <g>
+                  {allSegs.map((seg, i) => {
+                    const px0 = xs(seg.x0), py0 = ys(seg.y0);
+                    const px1 = xs(seg.x1), py1 = ys(seg.y1);
+                    const ppx = seg.prevX !== null ? xs(seg.prevX) : px0;
+                    const ppy = seg.prevY !== null ? ys(seg.prevY) : py0;
+                    const pnx = seg.nextX !== null ? xs(seg.nextX) : px1;
+                    const pny = seg.nextY !== null ? ys(seg.nextY) : py1;
+                    const t0x = (px1 - ppx) / 2, t0y = (py1 - ppy) / 2;
+                    const t1x = (pnx - px0) / 2, t1y = (pny - py0) / 2;
+                    const cp1x = px0 + t0x / 3, cp1y = py0 + t0y / 3;
+                    const cp2x = px1 - t1x / 3, cp2y = py1 - t1y / 3;
+                    return (
+                      <path key={`b${i}`}
+                        d={`M${px0},${py0} C${cp1x},${cp1y} ${cp2x},${cp2y} ${px1},${py1}`}
+                        fill="none" stroke={seg.color}
+                        strokeWidth={1.5} strokeOpacity={0.30} strokeDasharray="3 4"
+                      />
                     );
-                  }
-                  if (curr?.val != null && next?.val != null) {
-                    brightSegs.push(
-                      <line key={`bs-${colIdx}-${color}-next`}
-                        x1={xs(curr.rod)} y1={ys(curr.val)}
-                        x2={xs(next.rod)} y2={ys(next.val)}
-                        stroke={color} strokeWidth={2.5} strokeOpacity={1} />
-                    );
-                  }
-                });
-              });
-
-              return <g>{bridgePaths}{brightSegs}</g>;
+                  })}
+                </g>
+              );
             }}
           />
 
@@ -377,7 +342,7 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotCli
               type="monotone" dot={false} activeDot={false} isAnimationActive={false} />
           )}
 
-          {/* Dot layer — handles dim/lock/hover/click */}
+          {/* Bright segments + dot layer — rendered AFTER main lines so they overlay the dim lines */}
           <Customized
             component={(props: any) => {
               const xAxis = Object.values(props.xAxisMap ?? {})[0] as any;
@@ -385,6 +350,40 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotCli
               if (!xAxis?.scale || !yAxis?.scale) return null;
               const xs = xAxis.scale;
               const ys = yAxis.scale;
+
+              // Bright SVG segments for active/locked columns — drawn on top of dim main lines
+              const brightIdxs = new Set<number>();
+              if (activeIdx !== null) brightIdxs.add(activeIdx);
+              lockedRodadaIdxs.forEach((li) => brightIdxs.add(li));
+              const brightSegs: React.ReactElement[] = [];
+              brightIdxs.forEach((colIdx) => {
+                const series: [typeof data25, string, boolean][] = [
+                  [data25, SEASON_COLORS[2025], show25],
+                  [data26, SEASON_COLORS[2026], show26],
+                ];
+                series.forEach(([d, color, show]) => {
+                  if (!show) return;
+                  const prev = colIdx > 0 ? d[colIdx - 1] : null;
+                  const curr = d[colIdx];
+                  const next = colIdx < d.length - 1 ? d[colIdx + 1] : null;
+                  if (prev?.val != null && curr?.val != null) {
+                    brightSegs.push(
+                      <line key={`bs-${colIdx}-${color}-prev`}
+                        x1={xs(prev.rod)} y1={ys(prev.val)}
+                        x2={xs(curr.rod)} y2={ys(curr.val)}
+                        stroke={color} strokeWidth={2} strokeOpacity={1} />
+                    );
+                  }
+                  if (curr?.val != null && next?.val != null) {
+                    brightSegs.push(
+                      <line key={`bs-${colIdx}-${color}-next`}
+                        x1={xs(curr.rod)} y1={ys(curr.val)}
+                        x2={xs(next.rod)} y2={ys(next.val)}
+                        stroke={color} strokeWidth={2} strokeOpacity={1} />
+                    );
+                  }
+                });
+              });
 
               const renderDot = (pt: { rod: number; val: number | null }, idx: number, season: 2025 | 2026) => {
                 if (pt.val === null) return null;
@@ -425,6 +424,7 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotCli
 
               return (
                 <g>
+                  {brightSegs}
                   {show25 && data25.map((p, i) => renderDot(p, i, 2025))}
                   {show26 && data26.map((p, i) => renderDot(p, i, 2026))}
                 </g>

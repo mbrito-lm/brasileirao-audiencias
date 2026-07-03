@@ -200,41 +200,45 @@ function HoverCard({ data, detentor }: { data: HoverData; detentor: string | nul
   const fmt = (v: number | null) => v !== null ? formatMetric(detentor || "CazéTV", v) : null;
   const singleGame25 = data.teams25.length === 1;
   const singleGame26 = data.teams26.length === 1;
+  const has25 = data.v25 !== null && fmt(data.v25);
+  const has26 = data.v26 !== null && fmt(data.v26);
   return (
-    <div className="flex items-center gap-2 px-3 py-1 rounded-lg border border-white/[0.08] bg-white/[0.04] text-xs">
-      <span className="text-white/35">Rod. {data.rodada}</span>
-      {data.v25 !== null && fmt(data.v25) && (
-        <div className="flex items-center gap-1.5">
-          <span className="font-bold" style={{ color: SEASON_COLORS[2025] }}>2025</span>
-          {singleGame25 && (
-            <>
-              <TeamLogo team={data.teams25[0].mandante} size={13} />
-              <span className="text-white/20 text-[10px]">vs</span>
-              <TeamLogo team={data.teams25[0].visitante} size={13} />
-            </>
-          )}
-          <span className="font-bold" style={{ color: SEASON_COLORS[2025] }}>{fmt(data.v25)}</span>
-        </div>
-      )}
-      {data.v26 !== null && fmt(data.v26) && (
-        <div className="flex items-center gap-1.5">
-          <span className="font-bold" style={{ color: SEASON_COLORS[2026] }}>2026</span>
-          {singleGame26 && (
-            <>
-              <TeamLogo team={data.teams26[0].mandante} size={13} />
-              <span className="text-white/20 text-[10px]">vs</span>
-              <TeamLogo team={data.teams26[0].visitante} size={13} />
-            </>
-          )}
-          <span className="font-bold" style={{ color: SEASON_COLORS[2026] }}>{fmt(data.v26)}</span>
-        </div>
-      )}
-      {(data.isOutlier25 || data.isOutlier26) && (
-        <span className="font-semibold uppercase tracking-wide border-l border-white/10 pl-2"
-          style={{ color: data.isOutlier25 ? SEASON_COLORS[2025] : SEASON_COLORS[2026], fontSize: 9 }}>
-          outlier
-        </span>
-      )}
+    <div className="flex gap-3 px-3 py-1.5 rounded-lg border border-white/[0.08] bg-white/[0.04] text-xs">
+      <span className="text-white/35 self-center">Rod. {data.rodada}</span>
+      <div className="flex flex-col gap-0.5">
+        {has25 && (
+          <div className="flex items-center gap-1.5">
+            <span className="font-bold w-8 shrink-0" style={{ color: SEASON_COLORS[2025] }}>2025</span>
+            {singleGame25 && (
+              <>
+                <TeamLogo team={data.teams25[0].mandante} size={13} />
+                <span className="text-white/20 text-[10px]">vs</span>
+                <TeamLogo team={data.teams25[0].visitante} size={13} />
+              </>
+            )}
+            <span className="font-bold" style={{ color: SEASON_COLORS[2025] }}>{fmt(data.v25)}</span>
+            {data.isOutlier25 && (
+              <span className="font-semibold uppercase tracking-wide" style={{ color: SEASON_COLORS[2025], fontSize: 9 }}>outlier</span>
+            )}
+          </div>
+        )}
+        {has26 && (
+          <div className="flex items-center gap-1.5">
+            <span className="font-bold w-8 shrink-0" style={{ color: SEASON_COLORS[2026] }}>2026</span>
+            {singleGame26 && (
+              <>
+                <TeamLogo team={data.teams26[0].mandante} size={13} />
+                <span className="text-white/20 text-[10px]">vs</span>
+                <TeamLogo team={data.teams26[0].visitante} size={13} />
+              </>
+            )}
+            <span className="font-bold" style={{ color: SEASON_COLORS[2026] }}>{fmt(data.v26)}</span>
+            {data.isOutlier26 && (
+              <span className="font-semibold uppercase tracking-wide" style={{ color: SEASON_COLORS[2026], fontSize: 9 }}>outlier</span>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
