@@ -625,3 +625,28 @@ export const AMAZON_EXTRA_METRICS: Record<string, AmazonExtra> = {
   "24/05/2026": { peak: p("392.323"),   streams: p("1.025.527"), liveMinutes: pf("47,14"), totalViewers: p("601.187") },
   "31/05/2026": { peak: p("521.208"),   streams: p("1.345.435"), liveMinutes: pf("45,15"), totalViewers: p("776.117") },
 };
+
+export interface YoutubeExtra {
+  peak: number;
+}
+
+export const YOUTUBE_EXTRA_METRICS: Record<string, YoutubeExtra> = {
+  // 2026
+  "28/01/2026": { peak: 856100 },
+  "19/02/2026": { peak: 2326960 },
+  "12/02/2026": { peak: 907900 },
+  "12/03/2026": { peak: 2643569 },
+  "15/03/2026": { peak: 1852032 },
+  "18/03/2026": { peak: 964832 },
+  "22/03/2026": { peak: 5457494 },
+  "01/04/2026": { peak: 1667814 },
+  "04/04/2026": { peak: 623937 },
+  "12/04/2026": { peak: 4585608 },
+  "18/04/2026": { peak: 928223 },
+  "26/04/2026": { peak: 527802 },
+  "03/05/2026": { peak: 2039138 },
+  "10/05/2026": { peak: 843124 },
+  "16/05/2026": { peak: 1027442 },
+  "24/05/2026": { peak: 2562695 },
+  "31/05/2026": { peak: 941187 },
+};
