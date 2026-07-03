@@ -1,5 +1,5 @@
 "use client";
-import { useState, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import {
   ComposedChart, Line, XAxis, YAxis, CartesianGrid,
   ResponsiveContainer, ReferenceArea, ReferenceLine, Customized,
@@ -329,7 +329,7 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotCli
               if (activeIdx !== null) brightIdxs.add(activeIdx);
               lockedRodadaIdxs.forEach((li) => brightIdxs.add(li));
 
-              const brightSegs: JSX.Element[] = [];
+              const brightSegs: React.ReactElement[] = [];
               brightIdxs.forEach((colIdx) => {
                 const series: [typeof data25, string, boolean][] = [
                   [data25, SEASON_COLORS[2025], show25],
