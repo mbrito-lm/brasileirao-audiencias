@@ -189,24 +189,9 @@ export default function DetentoresPage() {
                 borderRadius: 14,
                 padding: "10px 16px",
               }}>
-                {detentor === "SporTV" ? (
-                  <div style={{ position: "relative", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
-                    <img src={LOGOS[detentor]} alt={detentor}
-                      className="h-14 w-auto object-contain"
-                      style={{ filter: "brightness(0) invert(1)", opacity: 0.95 }} />
-                    <div style={{
-                      position: "absolute", bottom: "4%", left: "14%",
-                      width: "36%", height: "18%",
-                      background: "#E8002D",
-                      transform: "skewX(-18deg)",
-                      borderRadius: 2,
-                    }} />
-                  </div>
-                ) : (
-                  <img src={LOGOS[detentor]} alt={detentor}
-                    className="h-14 w-auto object-contain"
-                    style={{ filter: "brightness(0) invert(1)", opacity: 0.95 }} />
-                )}
+                <img src={LOGOS[detentor]} alt={detentor}
+                  className="h-14 w-auto object-contain"
+                  style={{ filter: detentor === "SporTV" ? "none" : "brightness(0) invert(1)", opacity: 0.95 }} />
               </div>
             );
           })()}

@@ -36,18 +36,7 @@ function BrandedLogo({ detentor, src, className, imgStyle }: {
   detentor: string; src: string; className?: string; imgStyle?: React.CSSProperties;
 }) {
   if (detentor === "SporTV") {
-    return (
-      <div style={{ position: "relative", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
-        <img src={src} alt={detentor} className={className} style={imgStyle} />
-        <div style={{
-          position: "absolute", bottom: "4%", left: "14%",
-          width: "36%", height: "18%",
-          background: "#E8002D",
-          transform: "skewX(-18deg)",
-          borderRadius: 2,
-        }} />
-      </div>
-    );
+    return <img src={src} alt={detentor} className={className} style={{ ...imgStyle, filter: "none", opacity: 0.95 }} />;
   }
   return <img src={src} alt={detentor} className={className} style={imgStyle} />;
 }
