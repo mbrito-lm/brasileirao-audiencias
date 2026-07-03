@@ -247,16 +247,16 @@ export default function GamesTable({ games, allGames, detentor, showDeltas = tru
                   <SortTh label="Data" sortKey="data" current={sortKey} dir={sortDir} onSort={handleSort} />
                   <th className="px-4 py-3 text-left font-medium">Dia</th>
                   <th className="px-4 py-3 text-left font-medium">Horário</th>
-                  <th className="px-4 py-3 text-center font-medium">Concorrentes</th>
+                  <th className="px-2 py-3 text-center font-medium" style={{ width: 80, minWidth: 80 }}>Conc.</th>
                   <SortTh label="Audiência" sortKey="metric" current={sortKey} dir={sortDir} onSort={handleSort} right />
                   {isAmazon && (
-                    <th className="px-1 py-3 text-center" style={{ width: 24, minWidth: 24 }}>
+                    <th className="pl-4 pr-1 py-3 text-center" style={{ width: 28, minWidth: 28 }}>
                       <button
                         onClick={() => setShowAmazonExtras((v) => !v)}
                         title={showAmazonExtras ? "Ocultar métricas" : "Ver métricas Amazon"}
                         className="w-5 h-5 flex items-center justify-center mx-auto transition-colors"
-                        style={{ color: showAmazonExtras ? "#60a5fa" : "rgba(255,255,255,0.20)" }}>
-                        <svg viewBox="0 0 10 14" width="8" height="12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        style={{ color: "rgba(255,255,255,0.70)" }}>
+                        <svg viewBox="0 0 10 14" width="8" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           {showAmazonExtras
                             ? <polyline points="8,2 2,7 8,12" />
                             : <polyline points="2,2 8,7 2,12" />}
@@ -435,9 +435,9 @@ function ConcurrentCell({ game, onHover }: {
   onHover: (p: { games: ScheduleGameTagged[]; x: number; y: number } | null) => void;
 }) {
   const concurrent = useMemo(() => findConcurrent(game), [game]);
-  if (concurrent.length === 0) return <td className="px-4 py-3 text-center text-white/15 text-xs">—</td>;
+  if (concurrent.length === 0) return <td className="px-2 py-3 text-center text-white/15 text-xs" style={{ width: 80, minWidth: 80 }}>—</td>;
   return (
-    <td className="px-4 py-3 text-center">
+    <td className="px-2 py-3 text-center" style={{ width: 80, minWidth: 80 }}>
       <span
         className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-white/[0.07] text-white/60 text-xs font-semibold cursor-default hover:bg-white/[0.13] transition-colors"
         onMouseEnter={(e) => {
