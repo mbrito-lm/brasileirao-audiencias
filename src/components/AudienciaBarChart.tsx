@@ -19,16 +19,6 @@ interface DataPoint {
   teams26: ChartTeam[];
 }
 
-export interface HoverData {
-  rodada: number;
-  v25: number | null;
-  v26: number | null;
-  isOutlier25: boolean;
-  isOutlier26: boolean;
-  teams25: ChartTeam[];
-  teams26: ChartTeam[];
-}
-
 export interface LockedDot {
   rodada: number;
   season: 2025 | 2026;
@@ -40,7 +30,7 @@ export interface LockedDot {
 interface Props {
   data: DataPoint[];
   isPnt?: boolean;
-  onHoverChange?: (d: HoverData | null) => void;
+  onDotHover?: (d: LockedDot | null) => void;
   onDotClick?: (d: LockedDot) => void;
   lockedDots?: LockedDot[];
 }
@@ -106,9 +96,9 @@ function isOutlier(val: number | null, avg: number): boolean {
   return Math.abs((val - avg) / avg) > OUTLIER_THRESHOLD;
 }
 
-function CustomTick({ x, y, payload, allRods, missingSet, offset, activeIdx, lockedIdxSet, isDimming }: any) {
+function CustomTick({ x, y, payload, allRods, missingSet, activeIdx, lockedIdxSet, isDimming }: any) {
   const rawIdx = payload?.value ?? 0;
-  const idx = Math.round(rawIdx - offset / 2);
+  const idx = Math.round(rawIdx - OFFSET / 2);
   const rodada = allRods[idx] as number | undefined;
   const isMissing = rodada != null && (missingSet as Set<number>).has(rodada);
   const isActiveOrLocked = activeIdx === idx || (lockedIdxSet as Set<number>).has(idx);
@@ -118,8 +108,8 @@ function CustomTick({ x, y, payload, allRods, missingSet, offset, activeIdx, loc
       <text x={0} y={0} dy={14}
         fill={
           isMissing
-            ? (dimmed ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.18)")
-            : (dimmed ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.85)")
+            ? (dimmed ? "rgba(255,255,255,0.07)" : "rgba(255,255,255,0.18)")
+            : (dimmed ? "rgba(255,255,255,0.925)" : "rgba(255,255,255,0.85)")
         }
         fontSize={11} textAnchor="middle">
         {rodada ?? ""}
@@ -128,7 +118,7 @@ function CustomTick({ x, y, payload, allRods, missingSet, offset, activeIdx, loc
   );
 }
 
-export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotClick, lockedDots = [] }: Props) {
+export default function AudienciaBarChart({ data, isPnt, onDotHover, onDotClick, lockedDots = [] }: Props) {
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [activeIdx, setActiveIdx] = useState<number | null>(null);
   const [hoverDot, setHoverDot] = useState<{ val: number; color: string } | null>(null);
@@ -155,7 +145,6 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotCli
     data.filter((d) => d["2025"] === null && d["2026"] === null).map((d) => d.rodada)
   );
 
-  // Center series when only one season is visible
   const bothVisible = show25 && show26;
   const offset25 = bothVisible ? 0 : OFFSET / 2;
   const offset26 = bothVisible ? OFFSET : OFFSET / 2;
@@ -168,17 +157,12 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotCli
 
   const midTicks = allRods.map((_, i) => i + OFFSET / 2);
 
-  // Locked columns
   const lockedRodadaIdxs = lockedDots
     .map((ld) => rodToIdx.get(ld.rodada) ?? null)
     .filter((v): v is number => v !== null);
   const lockedIdxSet = new Set(lockedRodadaIdxs);
 
   const isDimming = activeIdx !== null || lockedRodadaIdxs.length > 0;
-
-  const isActiveOrLocked = (rodada: number) =>
-    (activeIdx !== null && allRods[activeIdx] === rodada) ||
-    lockedDots.some((ld) => ld.rodada === rodada);
 
   const colBounds = (idx: number) => ({
     x1: idx + OFFSET / 2 - 0.5,
@@ -189,26 +173,12 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotCli
     if (!chartState?.activeLabel) return;
     const idx = Math.round((chartState.activeLabel as number) - OFFSET / 2);
     if (idx < 0 || idx >= allRods.length) return;
-    if (idx !== activeIdx) setHoverDot(null);
-    const rodada = allRods[idx];
     setActiveIdx(idx);
-    const point = data.find((d) => d.rodada === rodada);
-    const v25 = point?.["2025"] ?? null;
-    const v26 = point?.["2026"] ?? null;
-    onHoverChange?.({
-      rodada, v25, v26,
-      isOutlier25: isOutlier(v25, avg25),
-      isOutlier26: isOutlier(v26, avg26),
-      teams25: point?.teams25 ?? [],
-      teams26: point?.teams26 ?? [],
-    });
-  }, [data, allRods, activeIdx, onHoverChange, avg25, avg26]);
+  }, [allRods]);
 
   const handleMouseLeave = useCallback(() => {
     setActiveIdx(null);
-    setHoverDot(null);
-    onHoverChange?.(null);
-  }, [onHoverChange]);
+  }, []);
 
   return (
     <div>
@@ -263,7 +233,7 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotCli
               label={{ value: "méd 26", position: "insideTopRight", fill: SEASON_COLORS[2026], fontSize: 10, opacity: 0.6, dy: 14 }} />
           )}
 
-          {/* Horizontal dot hover line — persists while in same column */}
+          {/* Horizontal hover line — only active while directly hovering a dot */}
           {hoverDot && (
             <ReferenceLine y={hoverDot.val} stroke={hoverDot.color}
               strokeDasharray="3 4" strokeWidth={1} strokeOpacity={0.55} />
@@ -277,7 +247,7 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotCli
             interval={0}
             tick={(props: any) => (
               <CustomTick {...props}
-                allRods={allRods} missingSet={missingSet} offset={OFFSET}
+                allRods={allRods} missingSet={missingSet}
                 activeIdx={activeIdx} lockedIdxSet={lockedIdxSet} isDimming={isDimming}
               />
             )}
@@ -292,7 +262,7 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotCli
             domain={[(d: number) => Math.max(0, d * 0.92), (d: number) => d * 1.14]}
           />
 
-          {/* Bezier bridges only — rendered BEFORE main lines so lines cover them */}
+          {/* Bezier bridges — below main lines */}
           <Customized
             component={(props: any) => {
               const xAxis = Object.values(props.xAxisMap ?? {})[0] as any;
@@ -328,21 +298,19 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotCli
             }}
           />
 
-          {/* Main lines — dim when isDimming */}
+          {/* Main lines — always full opacity; no overlay needed, no double lines */}
           {show25 && (
             <Line data={data25} dataKey="val" name="2025"
-              stroke={SEASON_COLORS[2025]} strokeWidth={2}
-              strokeOpacity={isDimming ? 0.5 : 1}
+              stroke={SEASON_COLORS[2025]} strokeWidth={2} strokeOpacity={1}
               type="monotone" dot={false} activeDot={false} isAnimationActive={false} />
           )}
           {show26 && (
             <Line data={data26} dataKey="val" name="2026"
-              stroke={SEASON_COLORS[2026]} strokeWidth={2}
-              strokeOpacity={isDimming ? 0.5 : 1}
+              stroke={SEASON_COLORS[2026]} strokeWidth={2} strokeOpacity={1}
               type="monotone" dot={false} activeDot={false} isAnimationActive={false} />
           )}
 
-          {/* Bright segments + dot layer — rendered AFTER main lines so they overlay the dim lines */}
+          {/* Dot layer */}
           <Customized
             component={(props: any) => {
               const xAxis = Object.values(props.xAxisMap ?? {})[0] as any;
@@ -350,40 +318,6 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotCli
               if (!xAxis?.scale || !yAxis?.scale) return null;
               const xs = xAxis.scale;
               const ys = yAxis.scale;
-
-              // Bright SVG segments for active/locked columns — drawn on top of dim main lines
-              const brightIdxs = new Set<number>();
-              if (activeIdx !== null) brightIdxs.add(activeIdx);
-              lockedRodadaIdxs.forEach((li) => brightIdxs.add(li));
-              const brightSegs: React.ReactElement[] = [];
-              brightIdxs.forEach((colIdx) => {
-                const series: [typeof data25, string, boolean][] = [
-                  [data25, SEASON_COLORS[2025], show25],
-                  [data26, SEASON_COLORS[2026], show26],
-                ];
-                series.forEach(([d, color, show]) => {
-                  if (!show) return;
-                  const prev = colIdx > 0 ? d[colIdx - 1] : null;
-                  const curr = d[colIdx];
-                  const next = colIdx < d.length - 1 ? d[colIdx + 1] : null;
-                  if (prev?.val != null && curr?.val != null) {
-                    brightSegs.push(
-                      <line key={`bs-${colIdx}-${color}-prev`}
-                        x1={xs(prev.rod)} y1={ys(prev.val)}
-                        x2={xs(curr.rod)} y2={ys(curr.val)}
-                        stroke={color} strokeWidth={2} strokeOpacity={1} />
-                    );
-                  }
-                  if (curr?.val != null && next?.val != null) {
-                    brightSegs.push(
-                      <line key={`bs-${colIdx}-${color}-next`}
-                        x1={xs(curr.rod)} y1={ys(curr.val)}
-                        x2={xs(next.rod)} y2={ys(next.val)}
-                        stroke={color} strokeWidth={2} strokeOpacity={1} />
-                    );
-                  }
-                });
-              });
 
               const renderDot = (pt: { rod: number; val: number | null }, idx: number, season: 2025 | 2026) => {
                 if (pt.val === null) return null;
@@ -405,8 +339,17 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotCli
                 const sw = isActive || isLockedSeason ? 2.5 : 2;
 
                 return (
-                  <g key={`${season}-${idx}`} opacity={dimmed ? 0.85 : 1} style={{ cursor: "pointer" }}
-                    onMouseEnter={() => setHoverDot({ val: pt.val!, color })}
+                  <g key={`${season}-${idx}`}
+                    opacity={dimmed ? 0.925 : 1}
+                    style={{ cursor: "pointer" }}
+                    onMouseEnter={() => {
+                      setHoverDot({ val: pt.val!, color });
+                      onDotHover?.({ rodada, season, val: pt.val!, teams, isOutlier: isOut });
+                    }}
+                    onMouseLeave={() => {
+                      setHoverDot(null);
+                      onDotHover?.(null);
+                    }}
                     onClick={(e) => {
                       e.stopPropagation();
                       onDotClick?.({ rodada, season, val: pt.val!, teams, isOutlier: isOut });
@@ -424,7 +367,6 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotCli
 
               return (
                 <g>
-                  {brightSegs}
                   {show25 && data25.map((p, i) => renderDot(p, i, 2025))}
                   {show26 && data26.map((p, i) => renderDot(p, i, 2026))}
                 </g>
