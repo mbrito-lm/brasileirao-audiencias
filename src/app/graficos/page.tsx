@@ -108,7 +108,7 @@ function autoLabel(filters: FilterState): string {
   return parts.length ? parts.join(" · ") : "Série";
 }
 
-const INITIAL_FILTERS: FilterState = { detentores: ["YouTube"], anos: [2026], dias: [], horarios: [], rodadas: [], times: [] };
+const INITIAL_FILTERS: FilterState = { detentores: ["YouTube"], anos: [2026], dias: [], horarios: [], rodadas: [], times: [], concorrencia: [] };
 const INITIAL_SERIES: SeriesDef = {
   id: "s0", color: PALETTE[0], label: "YouTube · 2026",
   filters: INITIAL_FILTERS, sortedGames: applyFilters(INITIAL_FILTERS),
