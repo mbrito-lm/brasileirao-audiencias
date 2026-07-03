@@ -1,17 +1,15 @@
 "use client";
 import { useState, useMemo, useCallback } from "react";
-import { games, DETENTORES, SEASON_COLORS } from "@/data/games";
-import { getMetric, formatMetric, avg, normalizeHorario, PNT_DETENTORES } from "@/lib/stats";
+import { games, DETENTORES } from "@/data/games";
+import { getMetric, formatMetric, avg, normalizeHorario } from "@/lib/stats";
 import FilterDialog, { FilterState, filterSummaryText } from "@/components/FilterDialog";
 import {
   ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid,
-  ResponsiveContainer, ReferenceLine, ReferenceArea, Tooltip, Customized,
+  ResponsiveContainer, ReferenceLine, ReferenceArea, Cell,
 } from "recharts";
 
 const PALETTE = ["#3b82f6", "#a855f7", "#f59e0b", "#10b981", "#ef4444", "#06b6d4", "#f97316", "#ec4899"];
-
 const EMPTY_FILTERS: FilterState = { anos: [], dias: [], horarios: [], rodadas: [], times: [], detentores: [] };
-
 const DIA_ORDER = ["seg.", "ter.", "qua.", "qui.", "sex.", "sáb.", "dom."];
 
 interface EnrichedGame {
@@ -31,6 +29,12 @@ interface SeriesDef {
   label: string;
   filters: FilterState;
   sortedGames: EnrichedGame[];
+}
+
+interface UnifiedGame extends EnrichedGame {
+  seriesId: string;
+  seriesColor: string;
+  seriesLabel: string;
 }
 
 function buildOptions(base: typeof games, filters: FilterState) {
@@ -100,7 +104,6 @@ function autoLabel(filters: FilterState): string {
 }
 
 const INITIAL_FILTERS: FilterState = { detentores: ["CazéTV"], anos: [2026], dias: [], horarios: [], rodadas: [], times: [] };
-
 const INITIAL_SERIES: SeriesDef = {
   id: "s0",
   color: PALETTE[0],
@@ -115,12 +118,8 @@ function fmtY(v: number) {
   return v.toFixed(1).replace(".", ",");
 }
 
-// Modal component
 function SeriesFilterModal({
-  editId,
-  initialFilters,
-  onConfirm,
-  onCancel,
+  editId, initialFilters, onConfirm, onCancel,
 }: {
   editId: string | null;
   initialFilters: FilterState;
@@ -142,45 +141,29 @@ function SeriesFilterModal({
         className="glass-strong rounded-3xl w-full max-w-xl shadow-2xl overflow-hidden flex flex-col gap-0"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-white/[0.07]">
           <h2 className="text-base font-semibold text-white">
             {editId ? "Editar Série" : "Configurar Série"}
           </h2>
-          <button
-            onClick={onCancel}
-            className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/[0.06] hover:bg-white/10 transition-colors text-white/50 hover:text-white"
-          >
+          <button onClick={onCancel}
+            className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/[0.06] hover:bg-white/10 transition-colors text-white/50 hover:text-white">
             ✕
           </button>
         </div>
 
-        {/* Filters */}
         <div className="px-6 py-5 flex flex-col gap-3 border-b border-white/[0.07]">
-          <FilterDialog
-            state={filters}
-            onChange={setFilters}
-            options={filterOptions}
-            singleDetentor
-          />
-          {summary && (
-            <p className="text-xs text-white/40">{summary}</p>
-          )}
+          <FilterDialog state={filters} onChange={setFilters} options={filterOptions} singleDetentor />
+          {summary && <p className="text-xs text-white/40">{summary}</p>}
         </div>
 
-        {/* Preview */}
         <div className="px-6 py-4 flex flex-col gap-2 border-b border-white/[0.07]">
           <p className="text-xs font-semibold text-white/35 uppercase tracking-widest">
             {previewGames.length} jogos selecionados
           </p>
           {previewGames.slice(0, 5).map((g, i) => (
             <div key={i} className="flex items-center justify-between gap-2">
-              <span className="text-xs text-white/60 truncate">
-                {g.mandante} × {g.visitante} · Rod.{g.rodada}
-              </span>
-              <span className="text-xs text-white/40 shrink-0">
-                {formatMetric(g.detentor, g.metric)}
-              </span>
+              <span className="text-xs text-white/60 truncate">{g.mandante} × {g.visitante} · Rod.{g.rodada}</span>
+              <span className="text-xs text-white/40 shrink-0">{formatMetric(g.detentor, g.metric)}</span>
             </div>
           ))}
           {previewGames.length === 0 && (
@@ -188,19 +171,15 @@ function SeriesFilterModal({
           )}
         </div>
 
-        {/* Footer */}
         <div className="flex items-center justify-end gap-3 px-6 py-4">
-          <button
-            onClick={onCancel}
-            className="px-4 py-2 rounded-xl text-sm text-white/50 hover:text-white/70 transition-colors border border-white/10 hover:bg-white/5"
-          >
+          <button onClick={onCancel}
+            className="px-4 py-2 rounded-xl text-sm text-white/50 hover:text-white/70 transition-colors border border-white/10 hover:bg-white/5">
             Cancelar
           </button>
           <button
             onClick={() => onConfirm(filters)}
             disabled={previewGames.length === 0}
-            className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-          >
+            className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
             Confirmar
           </button>
         </div>
@@ -216,23 +195,38 @@ export default function GraficosPage() {
   });
   const [chartMode, setChartMode] = useState<"line" | "bar">("line");
   const [showAvgs, setShowAvgs] = useState(true);
-  const [activePos, setActivePos] = useState<number | null>(null);
+  const [hoveredPos, setHoveredPos] = useState<number | null>(null);
+  const [lockedPos, setLockedPos] = useState<number | null>(null);
 
-  const maxLen = Math.max(0, ...seriesList.map((s) => s.sortedGames.length));
+  // All games from all series merged and sorted descending by metric
+  const unifiedGames = useMemo<UnifiedGame[]>(() => {
+    const all = seriesList.flatMap((s) =>
+      s.sortedGames.map((g) => ({ ...g, seriesId: s.id, seriesColor: s.color, seriesLabel: s.label }))
+    );
+    return all.sort((a, b) => b.metric - a.metric);
+  }, [seriesList]);
 
+  // One chart entry per unified rank position
   const chartData = useMemo(() => {
-    return Array.from({ length: maxLen }, (_, pos) => {
-      const point: Record<string, any> = { pos };
+    return unifiedGames.map((g, pos) => {
+      const point: Record<string, any> = {
+        pos,
+        metric: g.metric,
+        seriesId: g.seriesId,
+        seriesColor: g.seriesColor,
+        seriesLabel: g.seriesLabel,
+        game: `${g.mandante} × ${g.visitante}`,
+        rodada: g.rodada,
+        ano: g.ano,
+        detentor: g.detentor,
+      };
+      // Per-series keys for line mode (null when position belongs to another series)
       seriesList.forEach((s) => {
-        const g = s.sortedGames[pos];
-        point[s.id] = g?.metric ?? null;
-        point[s.id + "_game"] = g ? `${g.mandante} × ${g.visitante}` : null;
-        point[s.id + "_rod"] = g?.rodada ?? null;
-        point[s.id + "_ano"] = g?.ano ?? null;
+        point[s.id] = g.seriesId === s.id ? g.metric : null;
       });
       return point;
     });
-  }, [seriesList, maxLen]);
+  }, [unifiedGames, seriesList]);
 
   const seriesAvgs = useMemo(() => {
     return seriesList.map((s) => ({
@@ -259,10 +253,36 @@ export default function GraficosPage() {
     } else {
       setSeriesList((prev) => [...prev, newSeries]);
     }
+    setLockedPos(null);
     setModalState({ open: false, editId: null, filters: EMPTY_FILTERS });
   }, [modalState, seriesList]);
 
-  const ticks = Array.from({ length: maxLen }, (_, i) => i);
+  const displayPos = lockedPos ?? hoveredPos;
+  const displayGame = displayPos !== null ? unifiedGames[displayPos] : null;
+
+  const handleMouseMove = useCallback((state: any) => {
+    if (state?.activePayload?.length) {
+      const pos = state.activePayload[0]?.payload?.pos;
+      setHoveredPos(typeof pos === "number" ? pos : null);
+    }
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    setHoveredPos(null);
+  }, []);
+
+  const handleClick = useCallback((state: any) => {
+    if (state?.activePayload?.length) {
+      const pos = state.activePayload[0]?.payload?.pos;
+      if (typeof pos === "number") {
+        setLockedPos((prev) => (prev === pos ? null : pos));
+      }
+    }
+  }, []);
+
+  const maxLen = unifiedGames.length;
+  const ticks = useMemo(() => Array.from({ length: maxLen }, (_, i) => i), [maxLen]);
+  const tickInterval = maxLen > 40 ? Math.ceil(maxLen / 30) - 1 : 0;
 
   return (
     <div className="py-6">
@@ -276,7 +296,6 @@ export default function GraficosPage() {
       <div className="flex gap-6 items-start">
         {/* Sidebar */}
         <aside className="w-64 flex-shrink-0 flex flex-col gap-4">
-          {/* Series list */}
           <div className="glass rounded-2xl p-4">
             <p className="text-[10px] font-semibold text-white/35 uppercase tracking-widest mb-3">Séries</p>
             {seriesList.length === 0 ? (
@@ -284,27 +303,21 @@ export default function GraficosPage() {
             ) : (
               <div className="flex flex-col gap-2">
                 {seriesList.map((s) => (
-                  <div
-                    key={s.id}
+                  <div key={s.id}
                     className="flex items-center gap-2 p-2 rounded-xl border"
-                    style={{ borderColor: s.color + "33", background: s.color + "10" }}
-                  >
+                    style={{ borderColor: s.color + "33", background: s.color + "10" }}>
                     <div className="w-2 h-2 rounded-full shrink-0" style={{ background: s.color }} />
-                    <span className="text-xs flex-1 min-w-0 truncate" style={{ color: s.color }}>
-                      {s.label}
-                    </span>
+                    <span className="text-xs flex-1 min-w-0 truncate" style={{ color: s.color }}>{s.label}</span>
                     <button
                       onClick={() => setModalState({ open: true, editId: s.id, filters: s.filters })}
                       className="text-white/30 hover:text-white/60 transition-colors text-sm leading-none shrink-0"
-                      title="Editar"
-                    >
+                      title="Editar">
                       ✎
                     </button>
                     <button
-                      onClick={() => setSeriesList((prev) => prev.filter((x) => x.id !== s.id))}
+                      onClick={() => { setSeriesList((prev) => prev.filter((x) => x.id !== s.id)); setLockedPos(null); }}
                       className="text-white/25 hover:text-red-400 transition-colors text-sm leading-none shrink-0"
-                      title="Remover"
-                    >
+                      title="Remover">
                       ✕
                     </button>
                   </div>
@@ -313,24 +326,17 @@ export default function GraficosPage() {
             )}
           </div>
 
-          {/* Add series button */}
           <button
             onClick={() => setModalState({ open: true, editId: null, filters: EMPTY_FILTERS })}
-            className="w-full py-2.5 rounded-2xl text-xs font-semibold bg-blue-600/20 text-blue-300 border border-blue-500/35 hover:bg-blue-600/30 transition-colors"
-          >
+            className="w-full py-2.5 rounded-2xl text-xs font-semibold bg-blue-600/20 text-blue-300 border border-blue-500/35 hover:bg-blue-600/30 transition-colors">
             + Adicionar série
           </button>
 
-          {/* Options */}
           <div className="glass rounded-2xl p-4">
             <p className="text-[10px] font-semibold text-white/35 uppercase tracking-widest mb-3">Opções</p>
             <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={showAvgs}
-                onChange={(e) => setShowAvgs(e.target.checked)}
-                className="rounded accent-blue-500"
-              />
+              <input type="checkbox" checked={showAvgs} onChange={(e) => setShowAvgs(e.target.checked)}
+                className="rounded accent-blue-500" />
               <span className="text-xs text-white/50">Mostrar médias</span>
             </label>
           </div>
@@ -342,7 +348,8 @@ export default function GraficosPage() {
             <div className="glass rounded-2xl p-6">
               <div className="h-80 flex flex-col items-center justify-center text-white/20 gap-3">
                 <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1}
+                    d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
                 </svg>
                 <p className="text-sm">Adicione pelo menos uma série para ver o gráfico</p>
               </div>
@@ -350,7 +357,7 @@ export default function GraficosPage() {
           ) : (
             <div className="glass rounded-2xl p-6">
               {/* Toolbar */}
-              <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center justify-between mb-3">
                 <div className="flex flex-wrap gap-4">
                   {seriesList.map((s) => {
                     const sa = seriesAvgs.find((x) => x.id === s.id);
@@ -367,39 +374,73 @@ export default function GraficosPage() {
                 </div>
                 <button
                   onClick={() => setChartMode((m) => m === "line" ? "bar" : "line")}
-                  className="px-3 py-1.5 rounded-lg text-xs font-medium border border-white/10 text-white/50 hover:text-white/70 transition-all ml-4 shrink-0"
-                >
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium border border-white/10 text-white/50 hover:text-white/70 transition-all ml-4 shrink-0">
                   {chartMode === "line" ? "▐▌ Barras" : "━━ Linha"}
                 </button>
               </div>
 
+              {/* Hover / lock card */}
+              <div style={{ height: 36, marginBottom: 10, display: "flex", alignItems: "center" }}>
+                {displayGame ? (
+                  <div
+                    className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl border w-fit"
+                    style={{ borderColor: displayGame.seriesColor + "44", background: displayGame.seriesColor + "0f" }}
+                  >
+                    {lockedPos !== null && (
+                      <svg className="w-3 h-3 shrink-0" style={{ color: displayGame.seriesColor }}
+                        viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 1a5 5 0 00-5 5v3H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2v-9a2 2 0 00-2-2h-2V6a5 5 0 00-5-5zm0 2a3 3 0 013 3v3H9V6a3 3 0 013-3zm0 9a2 2 0 110 4 2 2 0 010-4z" />
+                      </svg>
+                    )}
+                    <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: displayGame.seriesColor }} />
+                    <span className="text-[10px] text-white/35 tabular-nums">#{displayPos! + 1}</span>
+                    <span className="text-xs text-white/40 tabular-nums">Rod.{displayGame.rodada}</span>
+                    <span className="text-xs text-white/75 font-medium">{displayGame.game}</span>
+                    <span className="text-xs font-bold tabular-nums" style={{ color: displayGame.seriesColor }}>
+                      {formatMetric(displayGame.detentor, displayGame.metric)}
+                    </span>
+                    {lockedPos !== null && (
+                      <button onClick={() => setLockedPos(null)}
+                        className="text-white/25 hover:text-white/60 transition-colors ml-1 text-sm leading-none">
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+
               {/* Chart */}
-              <ResponsiveContainer width="100%" height={380}>
+              <ResponsiveContainer width="100%" height={330}>
                 <ComposedChart
                   data={chartData}
-                  margin={{ top: 20, right: 16, left: 0, bottom: 16 }}
-                  onMouseMove={(s: any) => {
-                    if (s?.activePayload) setActivePos(s.activePayload[0]?.payload?.pos ?? null);
-                  }}
-                  onMouseLeave={() => setActivePos(null)}
+                  margin={{ top: 8, right: 16, left: 0, bottom: 4 }}
+                  onMouseMove={handleMouseMove}
+                  onMouseLeave={handleMouseLeave}
+                  onClick={handleClick}
+                  style={{ cursor: "pointer" }}
                 >
                   <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.04)" vertical={false} />
 
-                  {activePos !== null && (
-                    <ReferenceArea x1={activePos - 0.4} x2={activePos + 0.4} fill="rgba(255,255,255,0.05)" stroke="none" />
+                  {/* Column highlights */}
+                  {hoveredPos !== null && (
+                    <ReferenceArea x1={hoveredPos - 0.45} x2={hoveredPos + 0.45}
+                      fill="rgba(255,255,255,0.05)" stroke="none" />
+                  )}
+                  {lockedPos !== null && lockedPos !== hoveredPos && (
+                    <ReferenceArea x1={lockedPos - 0.45} x2={lockedPos + 0.45}
+                      fill="rgba(255,255,255,0.07)" stroke="none" />
                   )}
 
                   <XAxis
                     dataKey="pos"
                     type="number"
-                    domain={[0, Math.max(0, maxLen - 1)]}
+                    domain={[-0.5, Math.max(0, maxLen - 0.5)]}
                     ticks={ticks}
-                    interval={0}
+                    interval={tickInterval}
                     tickFormatter={(v) => String(v + 1)}
-                    tick={{ fill: "rgba(255,255,255,0.30)", fontSize: 11 }}
+                    tick={{ fill: "rgba(255,255,255,0.22)", fontSize: 10 }}
                     axisLine={false}
                     tickLine={false}
-                    label={{ value: "Rank", position: "insideBottom", offset: -8, fill: "rgba(255,255,255,0.18)", fontSize: 11 }}
                   />
                   <YAxis
                     tickFormatter={fmtY}
@@ -407,63 +448,56 @@ export default function GraficosPage() {
                     axisLine={false}
                     tickLine={false}
                     width={52}
+                    domain={[(d: number) => Math.max(0, d * 0.92), (d: number) => d * 1.08]}
                   />
 
-                  <Tooltip
-                    contentStyle={{
-                      background: "rgba(8,9,15,0.97)",
-                      border: "1px solid rgba(255,255,255,0.10)",
-                      borderRadius: 12,
-                      fontSize: 12,
-                      padding: "10px 14px",
-                    }}
-                    labelStyle={{ color: "rgba(255,255,255,0.40)", marginBottom: 6, fontSize: 11 }}
-                    labelFormatter={(v) => `#${Number(v) + 1}`}
-                    formatter={(value: any, name: string) => {
-                      const s = seriesList.find((s) => s.id === name);
-                      return [fmtY(value as number), s?.label ?? name];
-                    }}
-                    itemStyle={{ padding: "2px 0" }}
-                  />
-
-                  {/* Average reference lines */}
-                  {showAvgs && seriesAvgs.map((sa) => {
-                    if (sa.avg === null) return null;
-                    return (
+                  {/* Series average reference lines */}
+                  {showAvgs && seriesAvgs.map((sa) =>
+                    sa.avg !== null ? (
                       <ReferenceLine key={`avg-${sa.id}`} y={sa.avg}
                         stroke={sa.color} strokeOpacity={0.3}
                         strokeDasharray="4 4" strokeWidth={1} />
-                    );
-                  })}
+                    ) : null
+                  )}
 
-                  {chartMode === "line"
-                    ? seriesList.map((s) => (
-                        <Line
-                          key={s.id}
-                          dataKey={s.id}
-                          stroke={s.color}
-                          strokeWidth={2}
-                          type="monotone"
-                          dot={{ fill: s.color, r: 3, strokeWidth: 0 }}
-                          activeDot={{ r: 5, strokeWidth: 0 }}
-                          connectNulls={false}
-                          name={s.id}
-                          isAnimationActive={false}
+                  {chartMode === "bar" ? (
+                    <Bar dataKey="metric" isAnimationActive={false} maxBarSize={30} radius={[3, 3, 0, 0]}>
+                      {chartData.map((entry, i) => (
+                        <Cell
+                          key={i}
+                          fill={entry.seriesColor}
+                          fillOpacity={lockedPos === i ? 1 : hoveredPos === i ? 0.95 : 0.78}
                         />
-                      ))
-                    : seriesList.map((s) => (
-                        <Bar
-                          key={s.id}
-                          dataKey={s.id}
-                          fill={s.color}
-                          name={s.id}
-                          maxBarSize={20}
-                          radius={[3, 3, 0, 0]}
-                          fillOpacity={0.85}
-                          isAnimationActive={false}
-                        />
-                      ))
-                  }
+                      ))}
+                    </Bar>
+                  ) : (
+                    seriesList.map((s) => (
+                      <Line
+                        key={s.id}
+                        dataKey={s.id}
+                        stroke={s.color}
+                        strokeWidth={1.5}
+                        type="monotone"
+                        dot={(dotProps: any) => {
+                          const { cx, cy, payload, key } = dotProps;
+                          if (payload?.[s.id] == null) return <g key={key} />;
+                          const pos = payload?.pos;
+                          const isActive = pos === hoveredPos || pos === lockedPos;
+                          return (
+                            <circle key={key} cx={cx} cy={cy}
+                              r={isActive ? 5 : 3.5}
+                              fill={isActive ? s.color : "#08090f"}
+                              stroke={s.color}
+                              strokeWidth={isActive ? 2.5 : 2}
+                            />
+                          );
+                        }}
+                        activeDot={false}
+                        connectNulls={false}
+                        isAnimationActive={false}
+                      />
+                    ))
+                  )}
                 </ComposedChart>
               </ResponsiveContainer>
             </div>

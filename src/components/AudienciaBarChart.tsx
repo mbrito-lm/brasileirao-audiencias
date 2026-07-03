@@ -264,6 +264,25 @@ export default function AudienciaBarChart({ data, isPnt, onDotHover, onDotClick,
   );
 
   if (chartMode === "bar") {
+    const activeRodada = activeIdx !== null ? allRods[activeIdx] : null;
+
+    function BarShape(props: any) {
+      const { x, y, width, height, fill, value, avgVal } = props;
+      if (!width || !height || height < 0) return null;
+      const isOut = isOutlier(value as number, avgVal);
+      const active = props.rodada === activeRodada;
+      return (
+        <g>
+          <rect x={x} y={y} width={width} height={Math.max(1, height)}
+            fill={fill} fillOpacity={active ? 1 : 0.82} rx={2} ry={2} />
+          {isOut && (
+            <text x={x + width / 2} y={y - 5} textAnchor="middle"
+              fill="rgba(255,255,255,0.55)" fontSize={9} fontWeight="bold">!</text>
+          )}
+        </g>
+      );
+    }
+
     return (
       <div>
         {toolbar}
@@ -273,6 +292,7 @@ export default function AudienciaBarChart({ data, isPnt, onDotHover, onDotClick,
             margin={{ top: 28, right: 16, left: 0, bottom: 4 }}
             onMouseMove={handleBarMouseMove}
             onMouseLeave={handleMouseLeave}
+            style={{ cursor: "pointer" }}
           >
             <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.04)" vertical={false} />
 
@@ -291,20 +311,6 @@ export default function AudienciaBarChart({ data, isPnt, onDotHover, onDotClick,
               domain={[(d: number) => Math.max(0, d * 0.92), (d: number) => d * 1.14]}
             />
 
-            <Tooltip
-              contentStyle={{
-                background: "rgba(8,9,15,0.97)",
-                border: "1px solid rgba(255,255,255,0.10)",
-                borderRadius: 12,
-                fontSize: 12,
-                padding: "10px 14px",
-              }}
-              labelStyle={{ color: "rgba(255,255,255,0.40)", marginBottom: 6, fontSize: 11 }}
-              labelFormatter={(v) => `Rodada ${v}`}
-              formatter={(value: any, name: string) => [fmtVal(value as number, isPnt), name]}
-              itemStyle={{ padding: "2px 0" }}
-            />
-
             {/* Average reference lines */}
             {show25 && avg25 > 0 && (
               <ReferenceLine y={avg25} stroke={SEASON_COLORS[2025]}
@@ -319,11 +325,29 @@ export default function AudienciaBarChart({ data, isPnt, onDotHover, onDotClick,
 
             {show25 && (
               <Bar dataKey="2025" fill={SEASON_COLORS[2025]} name="2025"
-                maxBarSize={20} radius={[3, 3, 0, 0]} fillOpacity={0.85} />
+                maxBarSize={20} isAnimationActive={false}
+                shape={(props: any) => <BarShape {...props} avgVal={avg25} />}
+                onClick={(barData: any) => {
+                  const val = barData?.["2025"];
+                  if (!val) return;
+                  const pt = data.find((d) => d.rodada === barData.rodada);
+                  if (!pt) return;
+                  onDotClick?.({ rodada: barData.rodada, season: 2025, val, teams: pt.teams25, isOutlier: isOutlier(val, avg25) });
+                }}
+              />
             )}
             {show26 && (
               <Bar dataKey="2026" fill={SEASON_COLORS[2026]} name="2026"
-                maxBarSize={20} radius={[3, 3, 0, 0]} fillOpacity={0.85} />
+                maxBarSize={20} isAnimationActive={false}
+                shape={(props: any) => <BarShape {...props} avgVal={avg26} />}
+                onClick={(barData: any) => {
+                  const val = barData?.["2026"];
+                  if (!val) return;
+                  const pt = data.find((d) => d.rodada === barData.rodada);
+                  if (!pt) return;
+                  onDotClick?.({ rodada: barData.rodada, season: 2026, val, teams: pt.teams26, isOutlier: isOutlier(val, avg26) });
+                }}
+              />
             )}
           </BarChart>
         </ResponsiveContainer>
