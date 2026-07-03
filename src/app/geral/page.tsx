@@ -32,6 +32,26 @@ function detentorBoxStyle(color: string) {
     justifyContent: "center",
   } as React.CSSProperties;
 }
+function BrandedLogo({ detentor, src, className, imgStyle }: {
+  detentor: string; src: string; className?: string; imgStyle?: React.CSSProperties;
+}) {
+  if (detentor === "SporTV") {
+    return (
+      <div style={{ position: "relative", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+        <img src={src} alt={detentor} className={className} style={imgStyle} />
+        <div style={{
+          position: "absolute", bottom: "4%", left: "14%",
+          width: "36%", height: "18%",
+          background: "#E8002D",
+          transform: "skewX(-18deg)",
+          borderRadius: 2,
+        }} />
+      </div>
+    );
+  }
+  return <img src={src} alt={detentor} className={className} style={imgStyle} />;
+}
+
 const DIA_LABELS: Record<string, string> = {
   "seg.": "Segunda", "ter.": "Terça", "qua.": "Quarta",
   "qui.": "Quinta", "sex.": "Sexta", "sáb.": "Sábado", "dom.": "Domingo",
@@ -106,8 +126,8 @@ function DetentorAvgBar({ season, onSeasonChange }: { season: number | null; onS
           <div key={d} className="glass rounded-xl border border-white/[0.07] flex items-center gap-3 flex-1 px-3 py-3">
             <div style={detentorBoxStyle(DETENTOR_COLORS[d] || "#666")} className="shrink-0">
               {LOGOS[d] ? (
-                <img src={LOGOS[d]} alt={d} className="h-7 w-auto object-contain"
-                  style={{ filter: "brightness(0) invert(1)", opacity: 0.9, maxWidth: 80 }} />
+                <BrandedLogo detentor={d} src={LOGOS[d]} className="h-7 w-auto object-contain"
+                  imgStyle={{ filter: "brightness(0) invert(1)", opacity: 0.9, maxWidth: 80 }} />
               ) : (
                 <span className="text-sm font-semibold" style={{ color: DETENTOR_COLORS[d] || "#9ca3af" }}>{d}</span>
               )}
@@ -430,8 +450,11 @@ function DetentorTabs({ available, selected, onSelect }: {
               ? { ...detentorBoxStyle(DETENTOR_COLORS[d] || "#3b82f6"), boxShadow: `0 0 18px ${hexToRgba(DETENTOR_COLORS[d] || "#3b82f6", 0.40)}` }
               : { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: "5px 10px" }}>
             {logo ? (
-              <img src={logo} alt={d} className="h-6 w-auto object-contain"
-                style={{ filter: isActive ? "brightness(0) invert(1)" : "grayscale(1) opacity(0.4)", maxWidth: 64 }} />
+              isActive
+                ? <BrandedLogo detentor={d} src={logo} className="h-6 w-auto object-contain"
+                    imgStyle={{ filter: "brightness(0) invert(1)", maxWidth: 64 }} />
+                : <img src={logo} alt={d} className="h-6 w-auto object-contain"
+                    style={{ filter: "grayscale(1) opacity(0.4)", maxWidth: 64 }} />
             ) : (
               <span className="text-xs font-semibold" style={{ color: isActive ? "white" : (DETENTOR_COLORS[d] || "#9ca3af") + "99" }}>{d}</span>
             )}
