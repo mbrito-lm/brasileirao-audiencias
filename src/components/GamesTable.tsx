@@ -325,7 +325,13 @@ export default function GamesTable({ games, allGames, detentor, showDeltas = tru
                       <th key={praca}
                         className="px-3 py-3 text-right font-medium cursor-pointer select-none transition-colors whitespace-nowrap"
                         style={{ color: isActive ? "#8fa3cc" : "rgba(143,163,204,0.50)" }}
-                        onClick={() => { setSortRecordPraca(praca); setSortKey("recordPraca"); setSortDir("desc"); }}>
+                        onClick={() => {
+                          if (sortKey === "recordPraca" && sortRecordPraca === praca) {
+                            setSortDir(d => d === "desc" ? "asc" : "desc");
+                          } else {
+                            setSortRecordPraca(praca); setSortKey("recordPraca"); setSortDir("desc");
+                          }
+                        }}>
                         {praca}
                         {isActive
                           ? <span className="ml-1" style={{ color: "#8fa3cc" }}>{sortDir === "desc" ? "↓" : "↑"}</span>
