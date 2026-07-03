@@ -25,6 +25,18 @@ export interface LockedDot {
   val: number;
   teams: ChartTeam[];
   isOutlier: boolean;
+  dia?: string;
+  horario?: string;
+}
+
+export interface RodadaHoverData {
+  rodada: number;
+  v25: number | null;
+  v26: number | null;
+  teams25: ChartTeam[];
+  teams26: ChartTeam[];
+  avg2025: number;
+  avg2026: number;
 }
 
 interface Props {
@@ -32,6 +44,7 @@ interface Props {
   isPnt?: boolean;
   onDotHover?: (d: LockedDot | null) => void;
   onDotClick?: (d: LockedDot) => void;
+  onRodadaHover?: (d: RodadaHoverData | null) => void;
   lockedDots?: LockedDot[];
 }
 
@@ -118,7 +131,7 @@ function CustomTick({ x, y, payload, allRods, missingSet, activeIdx, lockedIdxSe
   );
 }
 
-export default function AudienciaBarChart({ data, isPnt, onDotHover, onDotClick, lockedDots = [] }: Props) {
+export default function AudienciaBarChart({ data, isPnt, onDotHover, onDotClick, onRodadaHover, lockedDots = [] }: Props) {
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [activeIdx, setActiveIdx] = useState<number | null>(null);
   const [hoverDot, setHoverDot] = useState<{ val: number; color: string } | null>(null);
@@ -173,19 +186,31 @@ export default function AudienciaBarChart({ data, isPnt, onDotHover, onDotClick,
     if (!chartState?.activeLabel) return;
     const idx = Math.round((chartState.activeLabel as number) - OFFSET / 2);
     if (idx < 0 || idx >= allRods.length) return;
-    // Clear dot hover immediately when switching columns
     if (idx !== activeIdx) {
       setHoverDot(null);
       onDotHover?.(null);
     }
     setActiveIdx(idx);
-  }, [allRods, activeIdx, onDotHover]);
+    const pt = data[idx];
+    if (pt) {
+      onRodadaHover?.({
+        rodada: pt.rodada,
+        v25: pt["2025"],
+        v26: pt["2026"],
+        teams25: pt.teams25,
+        teams26: pt.teams26,
+        avg2025: pt.avg2025,
+        avg2026: pt.avg2026,
+      });
+    }
+  }, [allRods, activeIdx, onDotHover, onRodadaHover, data]);
 
   const handleMouseLeave = useCallback(() => {
     setActiveIdx(null);
     setHoverDot(null);
     onDotHover?.(null);
-  }, [onDotHover]);
+    onRodadaHover?.(null);
+  }, [onDotHover, onRodadaHover]);
 
   return (
     <div>

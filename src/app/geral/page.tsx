@@ -3,17 +3,24 @@ import { useState } from "react";
 import { games, DETENTORES, DETENTOR_COLORS, SEASON_COLORS } from "@/data/games";
 import { LOGOS } from "@/data/logos";
 import { getChartData, mediaDetentor, formatMetric, metricLabel, getMetric, PNT_DETENTORES, normalizeHorario } from "@/lib/stats";
-import AudienciaBarChart, { LockedDot } from "@/components/AudienciaBarChart";
+import AudienciaBarChart, { LockedDot, RodadaHoverData } from "@/components/AudienciaBarChart";
 import BreakdownTables from "@/components/BreakdownTables";
 import GamesTable from "@/components/GamesTable";
 import TeamLogo from "@/components/TeamLogo";
 
 const TABS = ["Geral", ...DETENTORES] as const;
+const OUTLIER_THRESHOLD = 0.65;
+
+function isOutlierVal(val: number, avg: number) {
+  return avg > 0 && Math.abs((val - avg) / avg) > OUTLIER_THRESHOLD;
+}
 
 export default function GeralPage() {
   const [activeTab, setActiveTab] = useState<string>("Geral");
   const [hoveredDot, setHoveredDot] = useState<LockedDot | null>(null);
   const [lockedDots, setLockedDots] = useState<LockedDot[]>([]);
+  const [rodadaHover, setRodadaHover] = useState<RodadaHoverData | null>(null);
+
   const detentor = activeTab === "Geral" ? null : activeTab;
   const filteredGames = detentor ? games.filter((g) => g.detentor === detentor) : games;
   const chartData = getChartData(games, detentor);
@@ -26,20 +33,77 @@ export default function GeralPage() {
     null as typeof gamesWithMetric[0] | null
   );
 
+  function getGameInfo(rodada: number, season: number, teams?: { mandante: string; visitante: string }[]) {
+    const candidates = filteredGames.filter((g) => g.rodada === rodada && g.ano === season);
+    const game = teams?.[0]
+      ? candidates.find((g) => g.mandante === teams[0].mandante && g.visitante === teams[0].visitante) ?? candidates[0]
+      : candidates[0];
+    if (!game) return {};
+    return {
+      dia: game.dia,
+      horario: normalizeHorario(game.horario.substring(0, 5)),
+    };
+  }
+
+  const handleDotHover = (d: LockedDot | null) => {
+    if (!d) { setHoveredDot(null); return; }
+    const info = getGameInfo(d.rodada, d.season, d.teams);
+    setHoveredDot({ ...d, ...info });
+  };
+
   const handleDotClick = (d: LockedDot) => {
+    const info = getGameInfo(d.rodada, d.season, d.teams);
+    const enriched: LockedDot = { ...d, ...info };
     setLockedDots((prev) => {
       const alreadyIdx = prev.findIndex((ld) => ld.rodada === d.rodada && ld.season === d.season);
       if (alreadyIdx >= 0) return prev.filter((_, i) => i !== alreadyIdx);
-      if (prev.length >= 2) return [prev[1], d];
-      return [...prev, d];
+      if (prev.length >= 2) return [prev[1], enriched];
+      return [...prev, enriched];
     });
   };
 
-  // Hovered dot card only shows if it's not already locked
+  // Build rodada-hover card for a given season from rodadaHover data
+  function mkRodadaCard(rh: RodadaHoverData, season: 2025 | 2026): LockedDot | null {
+    const val = season === 2025 ? rh.v25 : rh.v26;
+    const teams = season === 2025 ? rh.teams25 : rh.teams26;
+    const avg = season === 2025 ? rh.avg2025 : rh.avg2026;
+    if (val === null) return null;
+    const info = getGameInfo(rh.rodada, season, teams);
+    return {
+      rodada: rh.rodada,
+      season,
+      val,
+      teams,
+      isOutlier: isOutlierVal(val, avg),
+      ...info,
+    };
+  }
+
   const isHoveredLocked = hoveredDot
     ? lockedDots.some((ld) => ld.rodada === hoveredDot.rodada && ld.season === hoveredDot.season)
     : false;
   const displayHovered = hoveredDot && !isHoveredLocked ? hoveredDot : null;
+
+  // Determine what to show in each card slot
+  let slot1: LockedDot | null = null;
+  let slot2: LockedDot | null = null;
+
+  if (lockedDots.length === 0) {
+    if (hoveredDot) {
+      if (hoveredDot.season === 2025) slot1 = hoveredDot;
+      else slot2 = hoveredDot;
+    } else if (rodadaHover) {
+      slot1 = mkRodadaCard(rodadaHover, 2025);
+      slot2 = mkRodadaCard(rodadaHover, 2026);
+    }
+  } else {
+    slot1 = lockedDots[0] ?? null;
+    slot2 = lockedDots[1] ?? null;
+    if (displayHovered) {
+      if (!slot1) slot1 = displayHovered;
+      else if (!slot2) slot2 = displayHovered;
+    }
+  }
 
   return (
     <div className="py-6">
@@ -57,7 +121,7 @@ export default function GeralPage() {
           const isActive = activeTab === tab;
           const logo = tab !== "Geral" ? LOGOS[tab] : undefined;
           return (
-            <button key={tab} onClick={() => { setActiveTab(tab); setLockedDots([]); setHoveredDot(null); }}
+            <button key={tab} onClick={() => { setActiveTab(tab); setLockedDots([]); setHoveredDot(null); setRodadaHover(null); }}
               title={tab}
               className="flex items-center justify-center px-3 py-2.5 rounded-xl transition-all duration-200"
               style={isActive ? {
@@ -107,26 +171,24 @@ export default function GeralPage() {
             </div>
             {/* Cards area — always 2 rows tall (one per season) */}
             <div className="h-[56px] flex flex-col gap-1 justify-start mt-1.5">
-              {lockedDots[0] ? (
-                <GameCard dot={lockedDots[0]} detentor={detentor} locked
-                  onUnlock={() => setLockedDots((prev) =>
-                    prev.filter((_, i) => i !== 0)
-                  )} />
-              ) : displayHovered ? (
-                <GameCard dot={displayHovered} detentor={detentor} />
-              ) : (
-                <div className="h-[26px]" />
-              )}
-              {lockedDots[1] ? (
-                <GameCard dot={lockedDots[1]} detentor={detentor} locked
-                  onUnlock={() => setLockedDots((prev) =>
-                    prev.filter((_, i) => i !== 1)
-                  )} />
-              ) : (lockedDots[0] && displayHovered) ? (
-                <GameCard dot={displayHovered} detentor={detentor} />
-              ) : (
-                <div className="h-[26px]" />
-              )}
+              {slot1
+                ? <GameCard dot={slot1} detentor={detentor}
+                    locked={lockedDots.some((ld) => ld.rodada === slot1!.rodada && ld.season === slot1!.season)}
+                    onUnlock={lockedDots.some((ld) => ld.rodada === slot1!.rodada && ld.season === slot1!.season)
+                      ? () => setLockedDots((prev) => prev.filter((ld) => !(ld.rodada === slot1!.rodada && ld.season === slot1!.season)))
+                      : undefined}
+                  />
+                : <div className="h-[26px]" />
+              }
+              {slot2
+                ? <GameCard dot={slot2} detentor={detentor}
+                    locked={lockedDots.some((ld) => ld.rodada === slot2!.rodada && ld.season === slot2!.season)}
+                    onUnlock={lockedDots.some((ld) => ld.rodada === slot2!.rodada && ld.season === slot2!.season)
+                      ? () => setLockedDots((prev) => prev.filter((ld) => !(ld.rodada === slot2!.rodada && ld.season === slot2!.season)))
+                      : undefined}
+                  />
+                : <div className="h-[26px]" />
+              }
             </div>
             <p className="text-white/30 text-xs mt-0.5">
               {detentor
@@ -143,8 +205,9 @@ export default function GeralPage() {
         <AudienciaBarChart
           data={chartData}
           isPnt={isPnt}
-          onDotHover={setHoveredDot}
+          onDotHover={handleDotHover}
           onDotClick={handleDotClick}
+          onRodadaHover={setRodadaHover}
           lockedDots={lockedDots}
         />
       </div>
@@ -170,57 +233,66 @@ export default function GeralPage() {
   );
 }
 
-// Vertical separator with inset (doesn't touch top/bottom border of card)
 function Sep() {
   return <div className="w-px self-stretch bg-white/[0.08] my-[5px] shrink-0" />;
 }
 
-// Fixed-width columns so all cards align perfectly when stacked
-// Widths: lock(28) | rod(72) | season(44) | game(86) | audiencia(60) | outlier(56) | close(28)
 function GameCard({ dot, detentor, locked, onUnlock }: {
   dot: LockedDot; detentor: string | null; locked?: boolean; onUnlock?: () => void;
 }) {
   const color = SEASON_COLORS[dot.season];
   const team = dot.teams[0];
+  const dayStr = dot.dia ? dot.dia.slice(0, 3) : null;
+  const timeStr = dot.horario ?? null;
+  const dayTime = dayStr && timeStr ? `${dayStr} · ${timeStr}` : (timeStr ?? dayStr ?? null);
+
   return (
-    <div className="flex items-center text-xs border border-white/[0.10] rounded-lg bg-white/[0.04] overflow-hidden">
-      {/* Lock icon — always same width */}
-      <div className="w-7 flex items-center justify-center shrink-0 text-white/25 py-1.5">
-        {locked
-          ? <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 1a5 5 0 0 0-5 5v3H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V11a2 2 0 0 0-2-2h-2V6a5 5 0 0 0-5-5zm0 2a3 3 0 0 1 3 3v3H9V6a3 3 0 0 1 3-3zm0 10a2 2 0 1 1 0 4 2 2 0 0 1 0-4z"/>
-            </svg>
-          : null
-        }
+    <div className="flex items-center w-fit text-xs border border-white/[0.10] rounded-lg bg-white/[0.04] overflow-hidden">
+      {/* Lock icon */}
+      <div className="w-6 flex items-center justify-center shrink-0 text-white/25 py-1.5">
+        {locked && (
+          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 1a5 5 0 0 0-5 5v3H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V11a2 2 0 0 0-2-2h-2V6a5 5 0 0 0-5-5zm0 2a3 3 0 0 1 3 3v3H9V6a3 3 0 0 1 3-3zm0 10a2 2 0 1 1 0 4 2 2 0 0 1 0-4z"/>
+          </svg>
+        )}
       </div>
       <Sep />
       {/* Rodada */}
-      <div className="w-[72px] px-2.5 py-1.5 text-white/35 shrink-0">Rod. {dot.rodada}</div>
+      <div className="w-[52px] flex items-center justify-center shrink-0 text-white/35 py-1.5 tabular-nums">
+        Rod. {dot.rodada}
+      </div>
       <Sep />
       {/* Season */}
-      <div className="w-11 px-2.5 py-1.5 font-bold shrink-0" style={{ color }}>{dot.season}</div>
+      <div className="w-9 flex items-center justify-center shrink-0 font-bold py-1.5" style={{ color }}>
+        {dot.season}
+      </div>
+      <Sep />
+      {/* Dia + Horário */}
+      <div className="w-[70px] flex items-center justify-center shrink-0 text-white/40 py-1.5 tabular-nums">
+        {dayTime ?? <span className="text-white/15">—</span>}
+      </div>
       <Sep />
       {/* Game shields */}
-      <div className="w-[86px] flex items-center gap-1 px-2.5 py-1 shrink-0">
+      <div className="flex items-center gap-1 px-2 py-1 shrink-0">
         {team
-          ? <><TeamLogo team={team.mandante} size={14} /><span className="text-white/20">vs</span><TeamLogo team={team.visitante} size={14} /></>
+          ? <><TeamLogo team={team.mandante} size={14} /><span className="text-white/20 text-[10px]">vs</span><TeamLogo team={team.visitante} size={14} /></>
           : <span className="text-white/20">—</span>
         }
       </div>
       <Sep />
-      {/* Audiencia — always white */}
-      <div className="w-[60px] px-2.5 py-1.5 font-bold text-white shrink-0">
+      {/* Audiencia — right-aligned, always white */}
+      <div className="w-[52px] flex items-center justify-end shrink-0 font-bold text-white py-1.5 pr-2">
         {formatMetric(detentor || "CazéTV", dot.val)}
       </div>
       <Sep />
-      {/* Outlier — season color or blank (always same width) */}
-      <div className="w-[56px] px-2.5 py-1.5 font-semibold uppercase tracking-wide shrink-0"
+      {/* Outlier */}
+      <div className="w-[46px] flex items-center justify-center shrink-0 font-semibold uppercase tracking-wide py-1.5"
         style={{ color, fontSize: 9 }}>
         {dot.isOutlier ? "outlier" : ""}
       </div>
       <Sep />
-      {/* Close — always same width */}
-      <div className="w-7 flex items-center justify-center shrink-0 py-1.5">
+      {/* Close */}
+      <div className="w-6 flex items-center justify-center shrink-0 py-1.5">
         {onUnlock
           ? <button onClick={onUnlock} className="text-white/25 hover:text-white/60 transition-colors leading-none">✕</button>
           : null
