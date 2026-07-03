@@ -5,14 +5,14 @@ import {
   mediaDetentor, mediaDiaHorario, mediaTimes,
   getMetric, formatMetric, deltaPercent, formatDelta, deltaClass, parseDate, avg, normalizeHorario,
 } from "@/lib/stats";
-import { SEASON_COLORS, AMAZON_EXTRA_METRICS, YOUTUBE_EXTRA_METRICS } from "@/data/games";
+import { SEASON_COLORS, AMAZON_EXTRA_METRICS, YOUTUBE_EXTRA_METRICS, RECORD_EXTRA_METRICS, RECORD_PRACAS, RecordPraca } from "@/data/games";
 import FilterDialog, { FilterState, filterSummaryText } from "./FilterDialog";
 import TeamLogo from "./TeamLogo";
 import { ALL_SCHEDULE, ScheduleGameTagged, getConcurrentCount } from "@/data/schedule";
 import { LOGOS, } from "@/data/logos";
 import { DETENTOR_COLORS } from "@/data/games";
 
-type SortKey = "data" | "rodada" | "metric" | "deltaDet" | "deltaSlot" | "deltaTimes" | "peak" | "streams" | "liveMinutes" | "totalViewers" | "ytPeak" | "ytAlcance";
+type SortKey = "data" | "rodada" | "metric" | "deltaDet" | "deltaSlot" | "deltaTimes" | "peak" | "streams" | "liveMinutes" | "totalViewers" | "ytPeak" | "ytAlcance" | "recordPraca";
 
 function timeToMin(h: string): number {
   const [hh, mm] = h.split(":").map(Number);
@@ -51,8 +51,11 @@ export default function GamesTable({ games, allGames, detentor, showDeltas = tru
   const [concPopup, setConcPopup] = useState<{ games: ScheduleGameTagged[]; x: number; y: number } | null>(null);
   const [showAmazonExtras, setShowAmazonExtras] = useState(false);
   const [showYoutubeExtras, setShowYoutubeExtras] = useState(false);
+  const [showRecordExtras, setShowRecordExtras] = useState(false);
+  const [sortRecordPraca, setSortRecordPraca] = useState<RecordPraca>("GSP");
   const isAmazon = detentor === "Amazon";
   const isYoutube = detentor === "YouTube";
+  const isRecord = detentor === "Record";
 
   const filterOptions = useMemo(() => {
     function cross(exclude: keyof FilterState) {
@@ -141,6 +144,10 @@ export default function GamesTable({ games, allGames, detentor, showDeltas = tru
       else if (sortKey === "ytAlcance") {
         va = YOUTUBE_EXTRA_METRICS[a.data]?.alcance ?? null;
         vb = YOUTUBE_EXTRA_METRICS[b.data]?.alcance ?? null;
+      }
+      else if (sortKey === "recordPraca") {
+        va = RECORD_EXTRA_METRICS[a.data]?.[sortRecordPraca] ?? null;
+        vb = RECORD_EXTRA_METRICS[b.data]?.[sortRecordPraca] ?? null;
       }
       else { va = a[sortKey]; vb = b[sortKey]; }
       if (va === null && vb === null) return 0;
@@ -299,6 +306,30 @@ export default function GamesTable({ games, allGames, detentor, showDeltas = tru
                     <SortTh label="Pico" sortKey="ytPeak" current={sortKey} dir={sortDir} onSort={handleSort} right accent="#f87171" />
                     <SortTh label="Alcance" sortKey="ytAlcance" current={sortKey} dir={sortDir} onSort={handleSort} right accent="#f87171" />
                   </>}
+                  {isRecord && (
+                    <th className="pl-4 pr-1 py-3 text-center" style={{ width: 28, minWidth: 28 }}>
+                      <button
+                        onClick={() => setShowRecordExtras((v) => !v)}
+                        title={showRecordExtras ? "Ocultar praças" : "Ver por praça"}
+                        className="w-5 h-5 flex items-center justify-center mx-auto transition-colors"
+                        style={{ color: "rgba(255,255,255,0.70)" }}>
+                        <svg viewBox="0 0 10 14" width="8" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          {showRecordExtras ? <polyline points="8,2 2,7 8,12" /> : <polyline points="2,2 8,7 2,12" />}
+                        </svg>
+                      </button>
+                    </th>
+                  )}
+                  {isRecord && showRecordExtras && RECORD_PRACAS.map(praca => (
+                    <th key={praca}
+                      className="px-3 py-3 text-right font-medium cursor-pointer select-none transition-colors whitespace-nowrap"
+                      style={{ color: sortKey === "recordPraca" && sortRecordPraca === praca ? "#a78bfa" : "rgba(167,139,250,0.55)" }}
+                      onClick={() => { setSortRecordPraca(praca); setSortKey("recordPraca"); setSortDir("desc"); }}>
+                      {praca}
+                      {sortKey === "recordPraca" && sortRecordPraca === praca
+                        ? <span className="ml-1" style={{ color: "#a78bfa" }}>{sortDir === "desc" ? "↓" : "↑"}</span>
+                        : <span className="ml-1 text-white/15">↕</span>}
+                    </th>
+                  ))}
                   {showDeltas && <DeltaTh label="Δ Detentor" tipKey="deltaDet" sortKey="deltaDet" current={sortKey} dir={sortDir} onSort={handleSort} onTip={setTooltip} />}
                   {showDeltas && <DeltaTh label="Δ Slot" tipKey="deltaSlot" sortKey="deltaSlot" current={sortKey} dir={sortDir} onSort={handleSort} onTip={setTooltip} />}
                   {showDeltas && <DeltaTh label="Δ Times" tipKey="deltaTimes" sortKey="deltaTimes" current={sortKey} dir={sortDir} onSort={handleSort} onTip={setTooltip} />}
@@ -367,6 +398,20 @@ export default function GamesTable({ games, allGames, detentor, showDeltas = tru
                           <td className="px-4 py-3 text-right text-xs text-white/15">—</td>
                           <td className="px-4 py-3 text-right text-xs text-white/15">—</td>
                         </>;
+                      })()}
+                      {isRecord && <td style={{ width: 24, minWidth: 24 }} />}
+                      {isRecord && showRecordExtras && (() => {
+                        const ex = RECORD_EXTRA_METRICS[g.data];
+                        return RECORD_PRACAS.map(praca => {
+                          const val = ex?.[praca];
+                          const isActive = sortKey === "recordPraca" && sortRecordPraca === praca;
+                          return val != null
+                            ? <td key={praca} className="px-3 py-3 text-right tabular-nums text-xs"
+                                style={{ color: isActive ? "#c4b5fd" : "#a78bfa99" }}>
+                                {val.toFixed(1).replace(".", ",")}
+                              </td>
+                            : <td key={praca} className="px-3 py-3 text-right text-xs text-white/15">—</td>;
+                        });
                       })()}
                       {showDeltas && <DeltaCell value={g.deltaDet} />}
                       {showDeltas && <DeltaCell value={g.deltaSlot} />}

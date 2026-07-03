@@ -690,3 +690,28 @@ export const YOUTUBE_EXTRA_METRICS: Record<string, YoutubeExtra> = {
   "24/05/2026": { peak: 2562695 },
   "31/05/2026": { peak: 941187 },
 };
+
+export const RECORD_PRACAS = ["GSP", "RJ", "BH", "POA", "REC", "SSA", "CUR", "DF", "GOI", "CAM", "BEL", "VIT", "MAN"] as const;
+export type RecordPraca = typeof RECORD_PRACAS[number];
+
+export type RecordExtra = Partial<Record<RecordPraca, number>>;
+
+export const RECORD_EXTRA_METRICS: Record<string, RecordExtra> = {
+  "28/01/2026": { GSP:5.3,  RJ:7.7,  BH:4.7,  POA:5.6, REC:4.9, SSA:4.5, CUR:4.6, DF:3.7,  GOI:8.0,  CAM:3.0,                   VIT:3.2, MAN:2.7 },
+  "19/02/2026": { GSP:11.3, RJ:4.9,  BH:6.7,  POA:3.1, REC:7.3, SSA:6.0, CUR:7.3, DF:5.9,  GOI:11.4, CAM:6.1,                   VIT:4.7, MAN:3.1 },
+  "12/02/2026": { GSP:5.9,  RJ:8.0,  BH:7.6,  POA:2.9, REC:5.0, SSA:6.4, CUR:4.7, DF:4.2,  GOI:9.6,  CAM:2.9,                   VIT:5.8, MAN:3.6 },
+  "12/03/2026": { GSP:8.1,  RJ:8.6,  BH:4.5,  POA:3.2, REC:6.5, SSA:6.8, CUR:6.7, DF:7.3,  GOI:11.4, CAM:5.7,                   VIT:4.8, MAN:5.4 },
+  "15/03/2026": { GSP:5.1,  RJ:7.0,  BH:12.1, POA:2.4, REC:6.0, SSA:7.3, CUR:3.3, DF:6.4,  GOI:7.5,  CAM:3.5,                   VIT:10.6,MAN:6.4 },
+  "18/03/2026": { GSP:5.4,  RJ:4.7,  BH:11.9, POA:2.8, REC:6.4, SSA:5.5, CUR:7.3, DF:4.4,  GOI:8.0,  CAM:3.4,                   VIT:4.3, MAN:4.2 },
+  "22/03/2026": { GSP:12.9, RJ:10.6, BH:5.7,  POA:2.0, REC:7.2, SSA:8.5, CUR:6.1, DF:14.0, GOI:11.0, CAM:10.5,                  VIT:11.9,MAN:9.7 },
+  "01/04/2026": { GSP:7.1,  RJ:5.5,  BH:5.2,  POA:8.2, REC:5.7, SSA:4.7, CUR:4.9, DF:4.5,  GOI:5.7,  CAM:6.1,                   VIT:3.7, MAN:2.4 },
+  "04/04/2026": { GSP:3.6,  RJ:4.7,  BH:4.1,  POA:1.7, REC:3.4, SSA:5.7, CUR:4.9, DF:2.9,  GOI:5.0,  CAM:3.1,  BEL:2.6, VIT:2.7, MAN:2.6 },
+  "12/04/2026": { GSP:15.0, RJ:5.7,  BH:7.3,  POA:3.3, REC:7.8, SSA:8.3, CUR:8.6, DF:7.7,  GOI:11.1, CAM:11.4, BEL:8.3, VIT:5.5, MAN:6.2 },
+  "18/04/2026": { GSP:4.3,  RJ:3.6,  BH:10.5, POA:7.0, REC:5.9, SSA:4.2, CUR:3.1, DF:4.7,  GOI:5.4,  CAM:1.4,  BEL:3.0, VIT:4.2, MAN:2.9 },
+  "26/04/2026": { GSP:3.7,  RJ:4.2,  BH:3.9,  POA:1.7, REC:2.5, SSA:4.0, CUR:2.2, DF:3.9,  GOI:6.3,  CAM:2.1,  BEL:4.4, VIT:4.1, MAN:3.1 },
+  "03/05/2026": { GSP:9.0,  RJ:3.5,  BH:4.2,  POA:2.3, REC:4.4, SSA:4.9, CUR:3.9, DF:5.4,  GOI:7.8,  CAM:6.8,  BEL:1.6, VIT:4.0, MAN:3.8 },
+  "10/05/2026": { GSP:3.9,  RJ:6.8,  BH:3.6,  POA:1.0, REC:4.9, SSA:6.2, CUR:4.6, DF:5.3,  GOI:5.8,  CAM:3.1,  BEL:4.2, VIT:7.2, MAN:4.2 },
+  "16/05/2026": { GSP:5.9,  RJ:5.2,  BH:5.8,  POA:1.9, REC:5.6, SSA:5.8, CUR:4.7, DF:3.5,  GOI:6.1,  CAM:3.9,  BEL:4.1, VIT:5.9, MAN:3.8 },
+  "24/05/2026": { GSP:10.9, RJ:5.0,  BH:11.1, POA:2.8, REC:6.7, SSA:6.8, CUR:5.1, DF:7.3,  GOI:6.3,  CAM:6.2,  BEL:5.5, VIT:6.2, MAN:4.4 },
+  "31/05/2026": { GSP:4.1,  RJ:3.7,  BH:9.8,  POA:1.8, REC:2.2, SSA:3.2, CUR:3.0, DF:3.9,  GOI:3.3,  CAM:1.9,  BEL:2.7, VIT:5.9, MAN:2.7 },
+};
