@@ -319,17 +319,20 @@ export default function GamesTable({ games, allGames, detentor, showDeltas = tru
                       </button>
                     </th>
                   )}
-                  {isRecord && showRecordExtras && RECORD_PRACAS.map(praca => (
-                    <th key={praca}
-                      className="px-3 py-3 text-right font-medium cursor-pointer select-none transition-colors whitespace-nowrap"
-                      style={{ color: sortKey === "recordPraca" && sortRecordPraca === praca ? "#a78bfa" : "rgba(167,139,250,0.55)" }}
-                      onClick={() => { setSortRecordPraca(praca); setSortKey("recordPraca"); setSortDir("desc"); }}>
-                      {praca}
-                      {sortKey === "recordPraca" && sortRecordPraca === praca
-                        ? <span className="ml-1" style={{ color: "#a78bfa" }}>{sortDir === "desc" ? "↓" : "↑"}</span>
-                        : <span className="ml-1 text-white/15">↕</span>}
-                    </th>
-                  ))}
+                  {isRecord && showRecordExtras && RECORD_PRACAS.map(praca => {
+                    const isActive = sortKey === "recordPraca" && sortRecordPraca === praca;
+                    return (
+                      <th key={praca}
+                        className="px-3 py-3 text-right font-medium cursor-pointer select-none transition-colors whitespace-nowrap"
+                        style={{ color: isActive ? "#8fa3cc" : "rgba(143,163,204,0.50)" }}
+                        onClick={() => { setSortRecordPraca(praca); setSortKey("recordPraca"); setSortDir("desc"); }}>
+                        {praca}
+                        {isActive
+                          ? <span className="ml-1" style={{ color: "#8fa3cc" }}>{sortDir === "desc" ? "↓" : "↑"}</span>
+                          : <span className="ml-1 text-white/15">↕</span>}
+                      </th>
+                    );
+                  })}
                   {showDeltas && <DeltaTh label="Δ Detentor" tipKey="deltaDet" sortKey="deltaDet" current={sortKey} dir={sortDir} onSort={handleSort} onTip={setTooltip} />}
                   {showDeltas && <DeltaTh label="Δ Slot" tipKey="deltaSlot" sortKey="deltaSlot" current={sortKey} dir={sortDir} onSort={handleSort} onTip={setTooltip} />}
                   {showDeltas && <DeltaTh label="Δ Times" tipKey="deltaTimes" sortKey="deltaTimes" current={sortKey} dir={sortDir} onSort={handleSort} onTip={setTooltip} />}
@@ -354,17 +357,11 @@ export default function GamesTable({ games, allGames, detentor, showDeltas = tru
                       <td className="px-4 py-3 text-white/40 text-xs capitalize">{g.dia}</td>
                       <td className="px-4 py-3 text-white/40 text-xs tabular-nums">{normalizeHorario(g.horario.substring(0, 5))}</td>
                       {/* Jogo cell — centered by "vs" */}
-                      <td className="px-4 py-3">
-                        <div className="grid items-center gap-2" style={{ gridTemplateColumns: "1fr auto 1fr" }}>
-                          <div className="flex items-center gap-1.5 justify-end min-w-0">
-                            <span className="text-white/90 font-medium truncate text-right text-xs">{g.mandante}</span>
-                            <TeamLogo team={g.mandante} size={18} />
-                          </div>
-                          <span className="text-white/20 text-xs font-normal px-1 flex-shrink-0">vs</span>
-                          <div className="flex items-center gap-1.5 justify-start min-w-0">
-                            <TeamLogo team={g.visitante} size={18} />
-                            <span className="text-white/90 font-medium truncate text-xs">{g.visitante}</span>
-                          </div>
+                      <td className="px-4 py-3" style={{ minWidth: 160 }}>
+                        <div className="flex items-center justify-center gap-1.5">
+                          <TeamLogo team={g.mandante} size={18} />
+                          <span className="text-white/20 text-xs font-normal flex-shrink-0">vs</span>
+                          <TeamLogo team={g.visitante} size={18} />
                         </div>
                       </td>
                       <td className="px-4 py-3 text-right font-bold text-white tabular-nums text-base">
@@ -407,7 +404,7 @@ export default function GamesTable({ games, allGames, detentor, showDeltas = tru
                           const isActive = sortKey === "recordPraca" && sortRecordPraca === praca;
                           return val != null
                             ? <td key={praca} className="px-3 py-3 text-right tabular-nums text-xs"
-                                style={{ color: isActive ? "#c4b5fd" : "#a78bfa99" }}>
+                                style={{ color: isActive ? "#8fa3cc" : "rgba(143,163,204,0.55)" }}>
                                 {val.toFixed(1).replace(".", ",")}
                               </td>
                             : <td key={praca} className="px-3 py-3 text-right text-xs text-white/15">—</td>;
