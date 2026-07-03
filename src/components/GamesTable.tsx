@@ -38,9 +38,9 @@ const DELTA_TIPS: Record<string, string> = {
 
 const DIA_ORDER = ["seg.", "ter.", "qua.", "qui.", "sex.", "sáb.", "dom."];
 
-interface Props { games: Game[]; allGames: Game[]; detentor: string | null }
+interface Props { games: Game[]; allGames: Game[]; detentor: string | null; showDeltas?: boolean }
 
-export default function GamesTable({ games, allGames, detentor }: Props) {
+export default function GamesTable({ games, allGames, detentor, showDeltas = true }: Props) {
   const [filters, setFilters] = useState<FilterState>({
     anos: [], dias: [], horarios: [], rodadas: [], times: [], concorrencia: [],
   });
@@ -243,15 +243,15 @@ export default function GamesTable({ games, allGames, detentor }: Props) {
                   <th className="px-4 py-3 text-left font-medium">Horário</th>
                   <th className="px-4 py-3 text-center font-medium">Concorrentes</th>
                   <SortTh label="Audiência" sortKey="metric" current={sortKey} dir={sortDir} onSort={handleSort} right />
-                  <DeltaTh label="Δ Detentor" tipKey="deltaDet" sortKey="deltaDet" current={sortKey} dir={sortDir} onSort={handleSort} onTip={setTooltip} />
-                  <DeltaTh label="Δ Slot" tipKey="deltaSlot" sortKey="deltaSlot" current={sortKey} dir={sortDir} onSort={handleSort} onTip={setTooltip} />
-                  <DeltaTh label="Δ Times" tipKey="deltaTimes" sortKey="deltaTimes" current={sortKey} dir={sortDir} onSort={handleSort} onTip={setTooltip} />
+                  {showDeltas && <DeltaTh label="Δ Detentor" tipKey="deltaDet" sortKey="deltaDet" current={sortKey} dir={sortDir} onSort={handleSort} onTip={setTooltip} />}
+                  {showDeltas && <DeltaTh label="Δ Slot" tipKey="deltaSlot" sortKey="deltaSlot" current={sortKey} dir={sortDir} onSort={handleSort} onTip={setTooltip} />}
+                  {showDeltas && <DeltaTh label="Δ Times" tipKey="deltaTimes" sortKey="deltaTimes" current={sortKey} dir={sortDir} onSort={handleSort} onTip={setTooltip} />}
                 </tr>
               </thead>
               <tbody>
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={detentor ? 10 : 11} className="px-4 py-12 text-center text-white/20">
+                    <td colSpan={(!detentor ? 1 : 0) + 9 + (showDeltas ? 3 : 0)} className="px-4 py-12 text-center text-white/20">
                       Nenhum jogo encontrado
                     </td>
                   </tr>
@@ -284,9 +284,9 @@ export default function GamesTable({ games, allGames, detentor }: Props) {
                       <td className="px-4 py-3 text-right font-bold text-white tabular-nums">
                         {formatMetric(g.detentor, g._metric)}
                       </td>
-                      <DeltaCell value={g.deltaDet} />
-                      <DeltaCell value={g.deltaSlot} />
-                      <DeltaCell value={g.deltaTimes} />
+                      {showDeltas && <DeltaCell value={g.deltaDet} />}
+                      {showDeltas && <DeltaCell value={g.deltaSlot} />}
+                      {showDeltas && <DeltaCell value={g.deltaTimes} />}
                     </tr>
                   ))
                 )}

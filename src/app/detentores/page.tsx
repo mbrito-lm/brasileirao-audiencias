@@ -14,19 +14,22 @@ function isOutlierVal(val: number, avg: number) {
   return avg > 0 && Math.abs((val - avg) / avg) > OUTLIER_THRESHOLD;
 }
 
+const LISTA_COMPLETA = "__lista__";
+
 export default function DetentoresPage() {
   const [activeTab, setActiveTab] = useState<string>(DETENTORES[0]);
   const [hoveredDot, setHoveredDot] = useState<LockedDot | null>(null);
   const [lockedDots, setLockedDots] = useState<LockedDot[]>([]);
   const [rodadaHover, setRodadaHover] = useState<RodadaHoverData | null>(null);
 
-  const detentor = activeTab;
-  const filteredGames = games.filter((g) => g.detentor === detentor);
-  const chartData = getChartData(games, detentor);
-  const isPnt = PNT_DETENTORES.has(detentor);
+  const isListaCompleta = activeTab === LISTA_COMPLETA;
+  const detentor = isListaCompleta ? null : activeTab;
+  const filteredGames = detentor ? games.filter((g) => g.detentor === detentor) : games;
+  const chartData = detentor ? getChartData(games, detentor) : [];
+  const isPnt = detentor ? PNT_DETENTORES.has(detentor) : false;
 
   const gamesWithMetric = filteredGames.filter((g) => getMetric(g) !== null);
-  const globalAvg = mediaDetentor(games, detentor);
+  const globalAvg = detentor ? mediaDetentor(games, detentor) : null;
   const maxGame = gamesWithMetric.reduce(
     (best, g) => (!best || (getMetric(g) ?? 0) > (getMetric(best) ?? 0) ? g : best),
     null as typeof gamesWithMetric[0] | null
@@ -124,10 +127,33 @@ export default function DetentoresPage() {
             </button>
           );
         })}
+        <div className="w-px self-stretch bg-white/[0.08] mx-1 my-1" />
+        <button onClick={() => { setActiveTab(LISTA_COMPLETA); setLockedDots([]); setHoveredDot(null); setRodadaHover(null); }}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all duration-200 text-sm font-semibold"
+          style={isListaCompleta ? {
+            background: "rgba(18, 55, 215, 0.70)",
+            border: "1px solid rgba(60, 100, 255, 0.55)",
+            color: "white",
+          } : { border: "1px solid transparent", color: "rgba(255,255,255,0.35)" }}>
+          Lista Completa
+        </button>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-8">
+      {/* Lista Completa mode */}
+      {isListaCompleta && (
+        <div className="glass rounded-2xl p-6 mt-4">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-sm font-semibold text-white uppercase tracking-widest">Lista Completa</h2>
+              <p className="text-white/30 text-xs mt-0.5">Todos os jogos · todas as temporadas · todos os detentores</p>
+            </div>
+          </div>
+          <GamesTable games={games} allGames={games} detentor={null} showDeltas={false} />
+        </div>
+      )}
+
+      {/* KPI Cards + Chart + Breakdown + Games */}
+      {!isListaCompleta && (<><div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-8">
         <KpiCard label="Total de jogos" value={filteredGames.length.toString()}
           sub={`${gamesWithMetric.length} com dados`} accent="#3b82f6" />
         <KpiCard
@@ -217,8 +243,9 @@ export default function DetentoresPage() {
             </p>
           </div>
         </div>
-        <GamesTable games={filteredGames} allGames={games} detentor={detentor} />
+        <GamesTable games={filteredGames} allGames={games} detentor={detentor} showDeltas={false} />
       </div>
+      </>)}
     </div>
   );
 }
