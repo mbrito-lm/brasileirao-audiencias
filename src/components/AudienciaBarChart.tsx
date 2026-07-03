@@ -173,12 +173,19 @@ export default function AudienciaBarChart({ data, isPnt, onDotHover, onDotClick,
     if (!chartState?.activeLabel) return;
     const idx = Math.round((chartState.activeLabel as number) - OFFSET / 2);
     if (idx < 0 || idx >= allRods.length) return;
+    // Clear dot hover immediately when switching columns
+    if (idx !== activeIdx) {
+      setHoverDot(null);
+      onDotHover?.(null);
+    }
     setActiveIdx(idx);
-  }, [allRods]);
+  }, [allRods, activeIdx, onDotHover]);
 
   const handleMouseLeave = useCallback(() => {
     setActiveIdx(null);
-  }, []);
+    setHoverDot(null);
+    onDotHover?.(null);
+  }, [onDotHover]);
 
   return (
     <div>

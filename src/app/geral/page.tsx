@@ -105,18 +105,27 @@ export default function GeralPage() {
                 {detentor || "Visão Geral"} — por Rodada
               </h2>
             </div>
-            {/* Cards row — reserved height for 2 game cards to prevent layout shift */}
-            <div className="min-h-[52px] flex flex-col gap-1 justify-center">
-              {lockedDots.map((dot) => (
-                <GameCard key={`${dot.rodada}-${dot.season}`}
-                  dot={dot} detentor={detentor} locked
+            {/* Cards area — always 2 rows tall (one per season) */}
+            <div className="h-[56px] flex flex-col gap-1 justify-start mt-1.5">
+              {lockedDots[0] ? (
+                <GameCard dot={lockedDots[0]} detentor={detentor} locked
                   onUnlock={() => setLockedDots((prev) =>
-                    prev.filter((ld) => !(ld.rodada === dot.rodada && ld.season === dot.season))
-                  )}
-                />
-              ))}
-              {displayHovered && (
+                    prev.filter((_, i) => i !== 0)
+                  )} />
+              ) : displayHovered ? (
                 <GameCard dot={displayHovered} detentor={detentor} />
+              ) : (
+                <div className="h-[26px]" />
+              )}
+              {lockedDots[1] ? (
+                <GameCard dot={lockedDots[1]} detentor={detentor} locked
+                  onUnlock={() => setLockedDots((prev) =>
+                    prev.filter((_, i) => i !== 1)
+                  )} />
+              ) : (lockedDots[0] && displayHovered) ? (
+                <GameCard dot={displayHovered} detentor={detentor} />
+              ) : (
+                <div className="h-[26px]" />
               )}
             </div>
             <p className="text-white/30 text-xs mt-0.5">
@@ -161,49 +170,62 @@ export default function GeralPage() {
   );
 }
 
-// Single unified card for both locked and hovered games
-// Columns: [lock?] | rodada | ano | jogo | audiencia | outlier? | [✕?]
+// Vertical separator with inset (doesn't touch top/bottom border of card)
+function Sep() {
+  return <div className="w-px self-stretch bg-white/[0.08] my-[5px] shrink-0" />;
+}
+
+// Fixed-width columns so all cards align perfectly when stacked
+// Widths: lock(28) | rod(72) | season(44) | game(86) | audiencia(60) | outlier(56) | close(28)
 function GameCard({ dot, detentor, locked, onUnlock }: {
   dot: LockedDot; detentor: string | null; locked?: boolean; onUnlock?: () => void;
 }) {
   const color = SEASON_COLORS[dot.season];
   const team = dot.teams[0];
-  const sep = "border-r border-white/[0.08]";
   return (
-    <div className="inline-flex items-center text-xs border border-white/[0.10] rounded-lg bg-white/[0.04] overflow-hidden self-start">
-      {locked && (
-        <div className={`px-2 py-1.5 ${sep} text-white/25`}>
-          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 1a5 5 0 0 0-5 5v3H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V11a2 2 0 0 0-2-2h-2V6a5 5 0 0 0-5-5zm0 2a3 3 0 0 1 3 3v3H9V6a3 3 0 0 1 3-3zm0 10a2 2 0 1 1 0 4 2 2 0 0 1 0-4z"/>
-          </svg>
-        </div>
-      )}
-      <span className={`px-2.5 py-1.5 text-white/35 ${sep}`}>Rod. {dot.rodada}</span>
-      <span className={`px-2.5 py-1.5 font-bold ${sep}`} style={{ color }}>{dot.season}</span>
-      {team ? (
-        <div className={`flex items-center gap-1 px-2.5 py-1 ${sep}`}>
-          <TeamLogo team={team.mandante} size={14} />
-          <span className="text-white/20">vs</span>
-          <TeamLogo team={team.visitante} size={14} />
-        </div>
-      ) : (
-        <span className={`px-2.5 py-1.5 text-white/20 ${sep}`}>—</span>
-      )}
-      <span className={`px-2.5 py-1.5 font-bold text-white ${dot.isOutlier ? sep : ""}`}>
+    <div className="flex items-center text-xs border border-white/[0.10] rounded-lg bg-white/[0.04] overflow-hidden">
+      {/* Lock icon — always same width */}
+      <div className="w-7 flex items-center justify-center shrink-0 text-white/25 py-1.5">
+        {locked
+          ? <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 1a5 5 0 0 0-5 5v3H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V11a2 2 0 0 0-2-2h-2V6a5 5 0 0 0-5-5zm0 2a3 3 0 0 1 3 3v3H9V6a3 3 0 0 1 3-3zm0 10a2 2 0 1 1 0 4 2 2 0 0 1 0-4z"/>
+            </svg>
+          : null
+        }
+      </div>
+      <Sep />
+      {/* Rodada */}
+      <div className="w-[72px] px-2.5 py-1.5 text-white/35 shrink-0">Rod. {dot.rodada}</div>
+      <Sep />
+      {/* Season */}
+      <div className="w-11 px-2.5 py-1.5 font-bold shrink-0" style={{ color }}>{dot.season}</div>
+      <Sep />
+      {/* Game shields */}
+      <div className="w-[86px] flex items-center gap-1 px-2.5 py-1 shrink-0">
+        {team
+          ? <><TeamLogo team={team.mandante} size={14} /><span className="text-white/20">vs</span><TeamLogo team={team.visitante} size={14} /></>
+          : <span className="text-white/20">—</span>
+        }
+      </div>
+      <Sep />
+      {/* Audiencia — always white */}
+      <div className="w-[60px] px-2.5 py-1.5 font-bold text-white shrink-0">
         {formatMetric(detentor || "CazéTV", dot.val)}
-      </span>
-      {dot.isOutlier && (
-        <span className={`px-2.5 py-1.5 font-semibold uppercase tracking-wide ${locked || onUnlock ? sep : ""}`}
-          style={{ color, fontSize: 9 }}>
-          outlier
-        </span>
-      )}
-      {locked && onUnlock && (
-        <button onClick={onUnlock}
-          className="px-2.5 py-1.5 text-white/25 hover:text-white/60 transition-colors leading-none">
-          ✕
-        </button>
-      )}
+      </div>
+      <Sep />
+      {/* Outlier — season color or blank (always same width) */}
+      <div className="w-[56px] px-2.5 py-1.5 font-semibold uppercase tracking-wide shrink-0"
+        style={{ color, fontSize: 9 }}>
+        {dot.isOutlier ? "outlier" : ""}
+      </div>
+      <Sep />
+      {/* Close — always same width */}
+      <div className="w-7 flex items-center justify-center shrink-0 py-1.5">
+        {onUnlock
+          ? <button onClick={onUnlock} className="text-white/25 hover:text-white/60 transition-colors leading-none">✕</button>
+          : null
+        }
+      </div>
     </div>
   );
 }
