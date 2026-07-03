@@ -20,7 +20,7 @@ export const DETENTOR_COLORS: Record<string, string> = {
   Amazon: "#006FFF",
   YouTube: "#FF0000",
   Globo: "#00ADEF",
-  Premiere: "#8B2FC9",
+  Premiere: "#27AE60",
   Record: "#5C70A8",
   SporTV: "#060927",
 };
