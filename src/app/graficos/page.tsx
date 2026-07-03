@@ -395,7 +395,7 @@ export default function GraficosPage() {
                     <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: displayGame.seriesColor }} />
                     <span className="text-[10px] text-white/35 tabular-nums">#{displayPos! + 1}</span>
                     <span className="text-xs text-white/40 tabular-nums">Rod.{displayGame.rodada}</span>
-                    <span className="text-xs text-white/75 font-medium">{displayGame.game}</span>
+                    <span className="text-xs text-white/75 font-medium">{displayGame.mandante} × {displayGame.visitante}</span>
                     <span className="text-xs font-bold tabular-nums" style={{ color: displayGame.seriesColor }}>
                       {formatMetric(displayGame.detentor, displayGame.metric)}
                     </span>
