@@ -6,6 +6,26 @@ import { getMetric, formatMetric, avg, normalizeHorario, parseDate } from "@/lib
 import TeamLogo from "@/components/TeamLogo";
 
 const WEEK_DAYS = ["dom.", "seg.", "ter.", "qua.", "qui.", "sex.", "sáb."];
+
+function hexToRgba(hex: string, alpha: number) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+function detentorBoxStyle(color: string) {
+  return {
+    background: hexToRgba(color, 0.18),
+    border: `1px solid ${hexToRgba(color, 0.55)}`,
+    boxShadow: `0 0 14px ${hexToRgba(color, 0.25)}`,
+    borderRadius: 10,
+    padding: "5px 10px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  } as React.CSSProperties;
+}
 const DIA_LABELS: Record<string, string> = {
   "seg.": "Segunda", "ter.": "Terça", "qua.": "Quarta",
   "qui.": "Quinta", "sex.": "Sexta", "sáb.": "Sábado", "dom.": "Domingo",
@@ -77,13 +97,15 @@ function DetentorAvgBar({ season, onSeasonChange }: { season: number | null; onS
       </div>
       <div style={{ display: "flex", gap: 8 }}>
         {stats.map(({ detentor: d, avgVal }) => (
-          <div key={d} className="glass rounded-xl border border-white/[0.07] flex items-center gap-3 flex-1 px-4 py-3">
-            {LOGOS[d] ? (
-              <img src={LOGOS[d]} alt={d} className="h-8 w-auto object-contain shrink-0"
-                style={{ filter: "brightness(0) invert(1)", opacity: 0.8, maxWidth: 88 }} />
-            ) : (
-              <span className="text-sm font-semibold shrink-0" style={{ color: DETENTOR_COLORS[d] || "#9ca3af" }}>{d}</span>
-            )}
+          <div key={d} className="glass rounded-xl border border-white/[0.07] flex items-center gap-3 flex-1 px-3 py-3">
+            <div style={detentorBoxStyle(DETENTOR_COLORS[d] || "#666")} className="shrink-0">
+              {LOGOS[d] ? (
+                <img src={LOGOS[d]} alt={d} className="h-7 w-auto object-contain"
+                  style={{ filter: "brightness(0) invert(1)", opacity: 0.9, maxWidth: 80 }} />
+              ) : (
+                <span className="text-sm font-semibold" style={{ color: DETENTOR_COLORS[d] || "#9ca3af" }}>{d}</span>
+              )}
+            </div>
             <div className="w-px h-5 bg-white/[0.10] shrink-0" />
             <span className="text-base font-bold text-white tabular-nums">{formatMetric(d, avgVal)}</span>
           </div>
@@ -397,12 +419,10 @@ function DetentorTabs({ available, selected, onSelect }: {
         const isActive = d === selected;
         return (
           <button key={d} onClick={() => onSelect(d)} title={d}
-            className="flex items-center justify-center px-3 py-2 rounded-xl transition-all duration-200"
-            style={isActive ? {
-              background: "rgba(18, 55, 215, 0.70)",
-              border: "1px solid rgba(60, 100, 255, 0.55)",
-              boxShadow: "0 0 16px rgba(30, 70, 255, 0.35)",
-            } : { border: "1px solid rgba(255,255,255,0.06)" }}>
+            className="flex items-center justify-center rounded-xl transition-all duration-200"
+            style={isActive
+              ? { ...detentorBoxStyle(DETENTOR_COLORS[d] || "#3b82f6"), boxShadow: `0 0 18px ${hexToRgba(DETENTOR_COLORS[d] || "#3b82f6", 0.40)}` }
+              : { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: "5px 10px" }}>
             {logo ? (
               <img src={logo} alt={d} className="h-6 w-auto object-contain"
                 style={{ filter: isActive ? "brightness(0) invert(1)" : "grayscale(1) opacity(0.4)", maxWidth: 64 }} />
@@ -486,8 +506,9 @@ function RankingCard({ title, type }: { title: string; type: "top10" | "clubs" |
                   </div>
                   <div className="text-xs text-white/35 mt-0.5 pl-0.5">{c.count} jogos</div>
                 </div>
-                <div className="flex-1 h-2 rounded-full bg-white/[0.06] overflow-hidden">
-                  <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: accent }} />
+                <div className="flex-1 h-2 rounded-full overflow-hidden"
+                  style={{ background: hexToRgba(accent, 0.10), border: `1px solid ${hexToRgba(accent, 0.25)}`, boxShadow: `0 0 8px ${hexToRgba(accent, 0.20)}` }}>
+                  <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: accent, boxShadow: `0 0 6px ${hexToRgba(accent, 0.60)}` }} />
                 </div>
                 <span className="text-base font-bold text-white tabular-nums whitespace-nowrap shrink-0">
                   {formatMetric(data.detentor, c.avg)}

@@ -175,11 +175,23 @@ export default function DetentoresPage() {
               {isPnt ? "Pontos PNT por rodada" : "Média de espectadores individuais"}
             </p>
           </div>
-          {LOGOS[detentor] && (
-            <img src={LOGOS[detentor]} alt={detentor}
-              className="h-14 w-auto object-contain flex-shrink-0 ml-4"
-              style={{ filter: "brightness(0) invert(1)", opacity: 0.85 }} />
-          )}
+          {LOGOS[detentor] && (() => {
+            const color = DETENTOR_COLORS[detentor] || "#3b82f6";
+            const r = parseInt(color.slice(1,3),16), g = parseInt(color.slice(3,5),16), b = parseInt(color.slice(5,7),16);
+            return (
+              <div className="flex-shrink-0 ml-4" style={{
+                background: `rgba(${r},${g},${b},0.18)`,
+                border: `1px solid rgba(${r},${g},${b},0.55)`,
+                boxShadow: `0 0 20px rgba(${r},${g},${b},0.30)`,
+                borderRadius: 14,
+                padding: "10px 16px",
+              }}>
+                <img src={LOGOS[detentor]} alt={detentor}
+                  className="h-14 w-auto object-contain"
+                  style={{ filter: "brightness(0) invert(1)", opacity: 0.90 }} />
+              </div>
+            );
+          })()}
         </div>
         <AudienciaBarChart
           data={chartData}
