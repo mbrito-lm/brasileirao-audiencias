@@ -87,8 +87,9 @@ export default function DetentoresPage() {
       if (!slot1) slot1 = displayHovered;
       else if (!slot2) slot2 = displayHovered;
     } else if (rodadaHover && lockedDots.length === 1 && rodadaHover.rodada !== lockedDots[0].rodada) {
-      // Bar mode: fill free slot with same-season card from hovered rodada
-      const freeCard = mkRodadaCard(rodadaHover, lockedDots[0].season);
+      const lockedSeason = lockedDots[0].season;
+      const otherSeason: 2025 | 2026 = lockedSeason === 2025 ? 2026 : 2025;
+      const freeCard = mkRodadaCard(rodadaHover, otherSeason) ?? mkRodadaCard(rodadaHover, lockedSeason);
       if (freeCard && !slot2) slot2 = freeCard;
     }
   }

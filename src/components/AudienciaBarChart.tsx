@@ -265,18 +265,34 @@ export default function AudienciaBarChart({ data, isPnt, onDotHover, onDotClick,
 
   if (chartMode === "bar") {
     const activeRodada = activeIdx !== null ? allRods[activeIdx] : null;
+    const lockedRodadas = new Set(lockedDots.map((ld) => ld.rodada));
 
     function BarShape(props: any) {
-      const { x, y, width, height, fill, value, avgVal } = props;
-      if (!width || !height || height < 0) return null;
+      const { x, y, width, height, fill, value, avgVal, season } = props;
+      const rodada = props.rodada as number;
+      if (!width) return null;
       const isOut = isOutlier(value as number, avgVal);
-      const active = props.rodada === activeRodada;
+      const active = rodada === activeRodada;
       return (
-        <g>
-          <rect x={x} y={y} width={width} height={Math.max(1, height)}
-            fill={fill} fillOpacity={active ? 1 : 0.82} rx={2} ry={2} />
+        <g
+          onMouseEnter={() => {
+            if (value == null) return;
+            const pt = data.find((d) => d.rodada === rodada);
+            if (!pt) return;
+            onDotHover?.({
+              rodada, season, val: value,
+              teams: season === 2025 ? pt.teams25 : pt.teams26,
+              isOutlier: isOut,
+            });
+          }}
+          onMouseLeave={() => onDotHover?.(null)}
+        >
+          {height > 0 && (
+            <rect x={x} y={y} width={width} height={Math.max(1, height)}
+              fill={fill} fillOpacity={active ? 1 : 0.82} rx={2} ry={2} />
+          )}
           {isOut && (
-            <text x={x + width / 2} y={y - 5} textAnchor="middle"
+            <text x={x + width / 2} y={(y ?? 0) - 5} textAnchor="middle"
               fill="rgba(255,255,255,0.55)" fontSize={9} fontWeight="bold">!</text>
           )}
         </g>
@@ -295,6 +311,29 @@ export default function AudienciaBarChart({ data, isPnt, onDotHover, onDotClick,
             style={{ cursor: "pointer" }}
           >
             <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.04)" vertical={false} />
+
+            {/* Column highlights */}
+            <Customized
+              component={(props: any) => {
+                const xAxis = Object.values(props.xAxisMap ?? {})[0] as any;
+                const yAxis = Object.values(props.yAxisMap ?? {})[0] as any;
+                if (!xAxis?.scale || !yAxis) return null;
+                const bw = typeof xAxis.scale.bandwidth === "function" ? xAxis.scale.bandwidth() : 0;
+                const rects: { rodada: number; color: string }[] = [];
+                lockedRodadas.forEach((r) => rects.push({ rodada: r, color: "rgba(255,255,255,0.07)" }));
+                if (activeRodada !== null && !lockedRodadas.has(activeRodada))
+                  rects.push({ rodada: activeRodada, color: "rgba(255,255,255,0.04)" });
+                return (
+                  <g>
+                    {rects.map(({ rodada, color }) => {
+                      const x = xAxis.scale(rodada);
+                      if (x == null) return null;
+                      return <rect key={rodada} x={x} y={yAxis.y} width={bw} height={yAxis.height} fill={color} />;
+                    })}
+                  </g>
+                );
+              }}
+            />
 
             <XAxis
               dataKey="rodada"
@@ -326,7 +365,7 @@ export default function AudienciaBarChart({ data, isPnt, onDotHover, onDotClick,
             {show25 && (
               <Bar dataKey="2025" fill={SEASON_COLORS[2025]} name="2025"
                 maxBarSize={20} isAnimationActive={false}
-                shape={(props: any) => <BarShape {...props} avgVal={avg25} />}
+                shape={(props: any) => <BarShape {...props} avgVal={avg25} season={2025} />}
                 onClick={(barData: any) => {
                   const val = barData?.["2025"];
                   if (!val) return;
@@ -339,7 +378,7 @@ export default function AudienciaBarChart({ data, isPnt, onDotHover, onDotClick,
             {show26 && (
               <Bar dataKey="2026" fill={SEASON_COLORS[2026]} name="2026"
                 maxBarSize={20} isAnimationActive={false}
-                shape={(props: any) => <BarShape {...props} avgVal={avg26} />}
+                shape={(props: any) => <BarShape {...props} avgVal={avg26} season={2026} />}
                 onClick={(barData: any) => {
                   const val = barData?.["2026"];
                   if (!val) return;
