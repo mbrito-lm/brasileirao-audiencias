@@ -35,9 +35,6 @@ function detentorBoxStyle(color: string) {
 function BrandedLogo({ detentor, src, className, imgStyle }: {
   detentor: string; src: string; className?: string; imgStyle?: React.CSSProperties;
 }) {
-  if (detentor === "SporTV") {
-    return <img src="/logos/sportv-red.png" alt={detentor} className={className} style={{ ...imgStyle, filter: "none", opacity: 0.95 }} />;
-  }
   return <img src={src} alt={detentor} className={className} style={imgStyle} />;
 }
 
