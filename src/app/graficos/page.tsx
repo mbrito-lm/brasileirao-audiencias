@@ -1,11 +1,12 @@
 "use client";
 import { useState, useMemo, useCallback } from "react";
 import { games, DETENTORES } from "@/data/games";
-import { getMetric, formatMetric, avg, normalizeHorario } from "@/lib/stats";
+import { getMetric, formatMetric, avg, normalizeHorario, PNT_DETENTORES } from "@/lib/stats";
 import FilterDialog, { FilterState, filterSummaryText } from "@/components/FilterDialog";
+import TeamLogo from "@/components/TeamLogo";
 import {
   ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid,
-  ResponsiveContainer, ReferenceLine, ReferenceArea, Cell,
+  ResponsiveContainer, ReferenceLine, ReferenceArea, Cell, LabelList,
 } from "recharts";
 
 const PALETTE = ["#3b82f6", "#a855f7", "#f59e0b", "#10b981", "#ef4444", "#06b6d4", "#f97316", "#ec4899"];
@@ -35,6 +36,10 @@ interface UnifiedGame extends EnrichedGame {
   seriesId: string;
   seriesColor: string;
   seriesLabel: string;
+}
+
+function Sep() {
+  return <div className="w-px self-stretch bg-white/[0.08] my-[5px] shrink-0" />;
 }
 
 function buildOptions(base: typeof games, filters: FilterState) {
@@ -79,13 +84,8 @@ function applyFilters(filters: FilterState): EnrichedGame[] {
   return r
     .filter((g) => getMetric(g) !== null)
     .map((g) => ({
-      mandante: g.mandante,
-      visitante: g.visitante,
-      rodada: g.rodada,
-      ano: g.ano,
-      detentor: g.detentor,
-      dia: g.dia,
-      horario: g.horario,
+      mandante: g.mandante, visitante: g.visitante, rodada: g.rodada,
+      ano: g.ano, detentor: g.detentor, dia: g.dia, horario: g.horario,
       metric: getMetric(g) as number,
     }))
     .sort((a, b) => b.metric - a.metric);
@@ -105,11 +105,8 @@ function autoLabel(filters: FilterState): string {
 
 const INITIAL_FILTERS: FilterState = { detentores: ["CazéTV"], anos: [2026], dias: [], horarios: [], rodadas: [], times: [] };
 const INITIAL_SERIES: SeriesDef = {
-  id: "s0",
-  color: PALETTE[0],
-  label: "CazéTV · 2026",
-  filters: INITIAL_FILTERS,
-  sortedGames: applyFilters(INITIAL_FILTERS),
+  id: "s0", color: PALETTE[0], label: "CazéTV · 2026",
+  filters: INITIAL_FILTERS, sortedGames: applyFilters(INITIAL_FILTERS),
 };
 
 function fmtY(v: number) {
@@ -118,13 +115,9 @@ function fmtY(v: number) {
   return v.toFixed(1).replace(".", ",");
 }
 
-function SeriesFilterModal({
-  editId, initialFilters, onConfirm, onCancel,
-}: {
-  editId: string | null;
-  initialFilters: FilterState;
-  onConfirm: (filters: FilterState) => void;
-  onCancel: () => void;
+function SeriesFilterModal({ editId, initialFilters, onConfirm, onCancel }: {
+  editId: string | null; initialFilters: FilterState;
+  onConfirm: (filters: FilterState) => void; onCancel: () => void;
 }) {
   const [filters, setFilters] = useState<FilterState>(initialFilters);
   const filterOptions = useMemo(() => buildOptions(games, filters), [filters]);
@@ -132,57 +125,75 @@ function SeriesFilterModal({
   const summary = filterSummaryText(filters);
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: "rgba(0,0,0,0.70)", backdropFilter: "blur(8px)" }}
-      onClick={onCancel}
-    >
-      <div
-        className="glass-strong rounded-3xl w-full max-w-xl shadow-2xl overflow-hidden flex flex-col gap-0"
-        onClick={(e) => e.stopPropagation()}
-      >
+      onClick={onCancel}>
+      <div className="glass-strong rounded-3xl w-full max-w-xl shadow-2xl overflow-hidden flex flex-col gap-0"
+        onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-5 border-b border-white/[0.07]">
-          <h2 className="text-base font-semibold text-white">
-            {editId ? "Editar Série" : "Configurar Série"}
-          </h2>
-          <button onClick={onCancel}
-            className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/[0.06] hover:bg-white/10 transition-colors text-white/50 hover:text-white">
-            ✕
-          </button>
+          <h2 className="text-base font-semibold text-white">{editId ? "Editar Série" : "Configurar Série"}</h2>
+          <button onClick={onCancel} className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/[0.06] hover:bg-white/10 transition-colors text-white/50 hover:text-white">✕</button>
         </div>
-
         <div className="px-6 py-5 flex flex-col gap-3 border-b border-white/[0.07]">
           <FilterDialog state={filters} onChange={setFilters} options={filterOptions} singleDetentor />
           {summary && <p className="text-xs text-white/40">{summary}</p>}
         </div>
-
         <div className="px-6 py-4 flex flex-col gap-2 border-b border-white/[0.07]">
-          <p className="text-xs font-semibold text-white/35 uppercase tracking-widest">
-            {previewGames.length} jogos selecionados
-          </p>
+          <p className="text-xs font-semibold text-white/35 uppercase tracking-widest">{previewGames.length} jogos selecionados</p>
           {previewGames.slice(0, 5).map((g, i) => (
             <div key={i} className="flex items-center justify-between gap-2">
               <span className="text-xs text-white/60 truncate">{g.mandante} × {g.visitante} · Rod.{g.rodada}</span>
               <span className="text-xs text-white/40 shrink-0">{formatMetric(g.detentor, g.metric)}</span>
             </div>
           ))}
-          {previewGames.length === 0 && (
-            <p className="text-xs text-white/25">Nenhum jogo com os filtros selecionados</p>
-          )}
+          {previewGames.length === 0 && <p className="text-xs text-white/25">Nenhum jogo com os filtros selecionados</p>}
         </div>
-
         <div className="flex items-center justify-end gap-3 px-6 py-4">
-          <button onClick={onCancel}
-            className="px-4 py-2 rounded-xl text-sm text-white/50 hover:text-white/70 transition-colors border border-white/10 hover:bg-white/5">
-            Cancelar
-          </button>
-          <button
-            onClick={() => onConfirm(filters)}
-            disabled={previewGames.length === 0}
+          <button onClick={onCancel} className="px-4 py-2 rounded-xl text-sm text-white/50 hover:text-white/70 transition-colors border border-white/10 hover:bg-white/5">Cancelar</button>
+          <button onClick={() => onConfirm(filters)} disabled={previewGames.length === 0}
             className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
             Confirmar
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function GraficosCard({ game, pos, locked, onUnlock }: {
+  game: UnifiedGame; pos: number; locked: boolean; onUnlock?: () => void;
+}) {
+  return (
+    <div className="h-[26px] flex items-center w-fit text-xs border border-white/[0.10] rounded-lg bg-white/[0.04] overflow-hidden">
+      <div className="w-6 flex items-center justify-center shrink-0 text-white/25">
+        {locked && (
+          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 1a5 5 0 0 0-5 5v3H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V11a2 2 0 0 0-2-2h-2V6a5 5 0 0 0-5-5zm0 2a3 3 0 0 1 3 3v3H9V6a3 3 0 0 1 3-3zm0 10a2 2 0 1 1 0 4 2 2 0 0 1 0-4z" />
+          </svg>
+        )}
+      </div>
+      <Sep />
+      <div className="w-[36px] flex items-center justify-center shrink-0 text-white/30 tabular-nums">#{pos + 1}</div>
+      <Sep />
+      <div className="w-[52px] flex items-center justify-center shrink-0 text-white/35 tabular-nums">Rod. {game.rodada}</div>
+      <Sep />
+      <div className="flex items-center px-2 shrink-0 gap-1.5">
+        <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: game.seriesColor }} />
+        <span className="text-white/45 max-w-[70px] truncate">{game.seriesLabel}</span>
+      </div>
+      <Sep />
+      <div className="flex items-center gap-1 px-2 shrink-0">
+        <TeamLogo team={game.mandante} size={13} />
+        <span className="text-white/20 text-[10px]">vs</span>
+        <TeamLogo team={game.visitante} size={13} />
+      </div>
+      <Sep />
+      <div className="w-[52px] flex items-center justify-end shrink-0 font-bold pr-2 tabular-nums" style={{ color: game.seriesColor }}>
+        {formatMetric(game.detentor, game.metric)}
+      </div>
+      <Sep />
+      <div className="w-6 flex items-center justify-center shrink-0">
+        {onUnlock && <button onClick={onUnlock} className="text-white/25 hover:text-white/60 transition-colors leading-none">✕</button>}
       </div>
     </div>
   );
@@ -195,10 +206,15 @@ export default function GraficosPage() {
   });
   const [chartMode, setChartMode] = useState<"line" | "bar">("line");
   const [showAvgs, setShowAvgs] = useState(true);
+  const [groupSeries, setGroupSeries] = useState(false);
+  const [showLabels, setShowLabels] = useState(false);
+  const [showShields, setShowShields] = useState(false);
   const [hoveredPos, setHoveredPos] = useState<number | null>(null);
   const [lockedPos, setLockedPos] = useState<number | null>(null);
+  const [editingLabelId, setEditingLabelId] = useState<string | null>(null);
+  const [editingLabelText, setEditingLabelText] = useState("");
 
-  // All games from all series merged and sorted descending by metric
+  // All games merged and sorted desc by metric
   const unifiedGames = useMemo<UnifiedGame[]>(() => {
     const all = seriesList.flatMap((s) =>
       s.sortedGames.map((g) => ({ ...g, seriesId: s.id, seriesColor: s.color, seriesLabel: s.label }))
@@ -206,35 +222,47 @@ export default function GraficosPage() {
     return all.sort((a, b) => b.metric - a.metric);
   }, [seriesList]);
 
-  // One chart entry per unified rank position
+  // Grouped mode: one point per series = series average
+  const groupedGames = useMemo<UnifiedGame[]>(() => {
+    return seriesList.map((s) => {
+      const avgVal = s.sortedGames.length ? avg(s.sortedGames.map((g) => g.metric)) : 0;
+      const best = s.sortedGames[0];
+      return {
+        mandante: best?.mandante ?? "", visitante: best?.visitante ?? "",
+        rodada: 0, ano: 0, detentor: best?.detentor ?? "CazéTV",
+        dia: "", horario: "", metric: avgVal,
+        seriesId: s.id, seriesColor: s.color, seriesLabel: s.label,
+      } as UnifiedGame;
+    }).sort((a, b) => b.metric - a.metric);
+  }, [seriesList]);
+
+  const activeGames = groupSeries ? groupedGames : unifiedGames;
+
+  // chartData: one entry per position
   const chartData = useMemo(() => {
-    return unifiedGames.map((g, pos) => {
+    return activeGames.map((g, pos) => {
       const point: Record<string, any> = {
-        pos,
-        metric: g.metric,
-        seriesId: g.seriesId,
-        seriesColor: g.seriesColor,
-        seriesLabel: g.seriesLabel,
-        game: `${g.mandante} × ${g.visitante}`,
-        rodada: g.rodada,
-        ano: g.ano,
-        detentor: g.detentor,
+        pos, metric: g.metric,
+        seriesId: g.seriesId, seriesColor: g.seriesColor, seriesLabel: g.seriesLabel,
+        mandante: g.mandante, visitante: g.visitante, rodada: g.rodada, detentor: g.detentor,
       };
-      // Per-series keys for line mode (null when position belongs to another series)
-      seriesList.forEach((s) => {
-        point[s.id] = g.seriesId === s.id ? g.metric : null;
-      });
+      seriesList.forEach((s) => { point[s.id] = g.seriesId === s.id ? g.metric : null; });
       return point;
     });
-  }, [unifiedGames, seriesList]);
+  }, [activeGames, seriesList]);
 
   const seriesAvgs = useMemo(() => {
     return seriesList.map((s) => ({
-      id: s.id,
-      color: s.color,
-      label: s.label,
+      id: s.id, color: s.color, label: s.label,
       avg: s.sortedGames.length ? avg(s.sortedGames.map((g) => g.metric)) : null,
     }));
+  }, [seriesList]);
+
+  // Mixed metrics warning
+  const isMixed = useMemo(() => {
+    const hasPnt = seriesList.some((s) => s.sortedGames.some((g) => PNT_DETENTORES.has(g.detentor)));
+    const hasAud = seriesList.some((s) => s.sortedGames.some((g) => !PNT_DETENTORES.has(g.detentor)));
+    return hasPnt && hasAud;
   }, [seriesList]);
 
   const handleModalConfirm = useCallback((filters: FilterState) => {
@@ -245,8 +273,7 @@ export default function GraficosPage() {
         ? (seriesList.find((s) => s.id === modalState.editId)?.color ?? PALETTE[seriesList.length % PALETTE.length])
         : (PALETTE.find((c) => !seriesList.map((s) => s.color).includes(c)) ?? PALETTE[seriesList.length % PALETTE.length]),
       label: autoLabel(filters),
-      filters,
-      sortedGames: filteredGames,
+      filters, sortedGames: filteredGames,
     };
     if (modalState.editId) {
       setSeriesList((prev) => prev.map((s) => s.id === modalState.editId ? newSeries : s));
@@ -257,8 +284,11 @@ export default function GraficosPage() {
     setModalState({ open: false, editId: null, filters: EMPTY_FILTERS });
   }, [modalState, seriesList]);
 
-  const displayPos = lockedPos ?? hoveredPos;
-  const displayGame = displayPos !== null ? unifiedGames[displayPos] : null;
+  // slot1 = locked (or hovered if no lock); slot2 = hovered when different from locked
+  const slot1Pos = lockedPos ?? hoveredPos;
+  const slot2Pos = (lockedPos !== null && hoveredPos !== null && hoveredPos !== lockedPos) ? hoveredPos : null;
+  const slot1Game = slot1Pos !== null ? activeGames[slot1Pos] : null;
+  const slot2Game = slot2Pos !== null ? activeGames[slot2Pos] : null;
 
   const handleMouseMove = useCallback((state: any) => {
     if (state?.activePayload?.length) {
@@ -266,36 +296,48 @@ export default function GraficosPage() {
       setHoveredPos(typeof pos === "number" ? pos : null);
     }
   }, []);
-
-  const handleMouseLeave = useCallback(() => {
-    setHoveredPos(null);
-  }, []);
-
+  const handleMouseLeave = useCallback(() => setHoveredPos(null), []);
   const handleClick = useCallback((state: any) => {
     if (state?.activePayload?.length) {
       const pos = state.activePayload[0]?.payload?.pos;
-      if (typeof pos === "number") {
-        setLockedPos((prev) => (prev === pos ? null : pos));
-      }
+      if (typeof pos === "number") setLockedPos((prev) => (prev === pos ? null : pos));
     }
   }, []);
 
-  const maxLen = unifiedGames.length;
+  const maxLen = activeGames.length;
   const ticks = useMemo(() => Array.from({ length: maxLen }, (_, i) => i), [maxLen]);
   const tickInterval = maxLen > 40 ? Math.ceil(maxLen / 30) - 1 : 0;
+
+  const ShieldsTick = useCallback((props: any) => {
+    const { x, y, payload } = props;
+    const pos = payload?.value;
+    const entry = chartData[pos];
+    return (
+      <g transform={`translate(${x},${y})`}>
+        <text textAnchor="middle" dy={10} fill="rgba(255,255,255,0.20)" fontSize={9}>{pos + 1}</text>
+        {showShields && entry?.mandante && (
+          <foreignObject x={-16} y={13} width={32} height={20}>
+            <div style={{ display: "flex", gap: "1px", justifyContent: "center", alignItems: "center" }}>
+              <TeamLogo team={entry.mandante} size={11} />
+              <TeamLogo team={entry.visitante} size={11} />
+            </div>
+          </foreignObject>
+        )}
+      </g>
+    );
+  }, [chartData, showShields]);
 
   return (
     <div className="py-6">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-white tracking-tight">Gráficos</h1>
-        <p className="text-white/40 text-sm mt-1.5">
-          Compare séries de jogos com filtros personalizados, ordenadas por audiência
-        </p>
+        <p className="text-white/40 text-sm mt-1.5">Compare séries com filtros personalizados, ordenadas por audiência</p>
       </div>
 
       <div className="flex gap-6 items-start">
         {/* Sidebar */}
         <aside className="w-64 flex-shrink-0 flex flex-col gap-4">
+          {/* Series list */}
           <div className="glass rounded-2xl p-4">
             <p className="text-[10px] font-semibold text-white/35 uppercase tracking-widest mb-3">Séries</p>
             {seriesList.length === 0 ? (
@@ -303,42 +345,68 @@ export default function GraficosPage() {
             ) : (
               <div className="flex flex-col gap-2">
                 {seriesList.map((s) => (
-                  <div key={s.id}
-                    className="flex items-center gap-2 p-2 rounded-xl border"
+                  <div key={s.id} className="flex items-center gap-2 p-2 rounded-xl border"
                     style={{ borderColor: s.color + "33", background: s.color + "10" }}>
                     <div className="w-2 h-2 rounded-full shrink-0" style={{ background: s.color }} />
-                    <span className="text-xs flex-1 min-w-0 truncate" style={{ color: s.color }}>{s.label}</span>
-                    <button
-                      onClick={() => setModalState({ open: true, editId: s.id, filters: s.filters })}
-                      className="text-white/30 hover:text-white/60 transition-colors text-sm leading-none shrink-0"
-                      title="Editar">
-                      ✎
-                    </button>
-                    <button
-                      onClick={() => { setSeriesList((prev) => prev.filter((x) => x.id !== s.id)); setLockedPos(null); }}
-                      className="text-white/25 hover:text-red-400 transition-colors text-sm leading-none shrink-0"
-                      title="Remover">
-                      ✕
-                    </button>
+                    {editingLabelId === s.id ? (
+                      <input
+                        autoFocus
+                        value={editingLabelText}
+                        onChange={(e) => setEditingLabelText(e.target.value)}
+                        onBlur={() => {
+                          if (editingLabelText.trim()) {
+                            setSeriesList((prev) => prev.map((x) => x.id === s.id ? { ...x, label: editingLabelText.trim() } : x));
+                          }
+                          setEditingLabelId(null);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") e.currentTarget.blur();
+                          if (e.key === "Escape") setEditingLabelId(null);
+                        }}
+                        className="text-xs flex-1 bg-transparent border-b outline-none min-w-0 pb-px"
+                        style={{ color: s.color, borderColor: s.color + "66" }}
+                      />
+                    ) : (
+                      <span
+                        className="text-xs flex-1 min-w-0 truncate cursor-text"
+                        style={{ color: s.color }}
+                        onDoubleClick={() => { setEditingLabelId(s.id); setEditingLabelText(s.label); }}
+                        title="Duplo clique para renomear"
+                      >
+                        {s.label}
+                      </span>
+                    )}
+                    <button onClick={() => setModalState({ open: true, editId: s.id, filters: s.filters })}
+                      className="text-white/30 hover:text-white/60 transition-colors text-sm leading-none shrink-0" title="Editar filtros">✎</button>
+                    <button onClick={() => { setSeriesList((prev) => prev.filter((x) => x.id !== s.id)); setLockedPos(null); }}
+                      className="text-white/25 hover:text-red-400 transition-colors text-sm leading-none shrink-0" title="Remover">✕</button>
                   </div>
                 ))}
               </div>
             )}
           </div>
 
-          <button
-            onClick={() => setModalState({ open: true, editId: null, filters: EMPTY_FILTERS })}
+          <button onClick={() => setModalState({ open: true, editId: null, filters: EMPTY_FILTERS })}
             className="w-full py-2.5 rounded-2xl text-xs font-semibold bg-blue-600/20 text-blue-300 border border-blue-500/35 hover:bg-blue-600/30 transition-colors">
             + Adicionar série
           </button>
 
+          {/* Options */}
           <div className="glass rounded-2xl p-4">
             <p className="text-[10px] font-semibold text-white/35 uppercase tracking-widest mb-3">Opções</p>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={showAvgs} onChange={(e) => setShowAvgs(e.target.checked)}
-                className="rounded accent-blue-500" />
-              <span className="text-xs text-white/50">Mostrar médias</span>
-            </label>
+            <div className="flex flex-col gap-2">
+              {[
+                { key: "showAvgs", label: "Mostrar médias", value: showAvgs, set: setShowAvgs },
+                { key: "groupSeries", label: "Agrupar séries", value: groupSeries, set: setGroupSeries },
+                { key: "showLabels", label: "Mostrar audiências", value: showLabels, set: setShowLabels },
+                { key: "showShields", label: "Mostrar escudos", value: showShields, set: setShowShields },
+              ].map(({ key, label, value, set }) => (
+                <label key={key} className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={value} onChange={(e) => set(e.target.checked)} className="rounded accent-blue-500" />
+                  <span className="text-xs text-white/50">{label}</span>
+                </label>
+              ))}
+            </div>
           </div>
         </aside>
 
@@ -358,62 +426,53 @@ export default function GraficosPage() {
             <div className="glass rounded-2xl p-6">
               {/* Toolbar */}
               <div className="flex items-center justify-between mb-3">
-                <div className="flex flex-wrap gap-4">
+                <div className="flex flex-wrap gap-4 items-center">
                   {seriesList.map((s) => {
                     const sa = seriesAvgs.find((x) => x.id === s.id);
                     return (
                       <div key={s.id} className="flex items-center gap-2">
                         <div className="w-4 h-0.5 rounded" style={{ background: s.color }} />
                         <span className="text-xs" style={{ color: s.color }}>{s.label}</span>
-                        {sa?.avg != null && (
+                        {sa?.avg != null && !groupSeries && (
                           <span className="text-[10px] text-white/25">({fmtY(sa.avg)} méd)</span>
                         )}
                       </div>
                     );
                   })}
+                  {isMixed && (
+                    <div className="flex items-center gap-1 bg-red-500/15 border border-red-500/30 rounded-md px-2 py-1">
+                      <svg className="w-3 h-3 text-red-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                          d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                      </svg>
+                      <span className="text-[9px] font-semibold text-red-400 uppercase tracking-wide">Métricas mistas</span>
+                    </div>
+                  )}
                 </div>
-                <button
-                  onClick={() => setChartMode((m) => m === "line" ? "bar" : "line")}
+                <button onClick={() => setChartMode((m) => m === "line" ? "bar" : "line")}
                   className="px-3 py-1.5 rounded-lg text-xs font-medium border border-white/10 text-white/50 hover:text-white/70 transition-all ml-4 shrink-0">
                   {chartMode === "line" ? "▐▌ Barras" : "━━ Linha"}
                 </button>
               </div>
 
-              {/* Hover / lock card */}
-              <div style={{ height: 36, marginBottom: 10, display: "flex", alignItems: "center" }}>
-                {displayGame ? (
-                  <div
-                    className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl border w-fit"
-                    style={{ borderColor: displayGame.seriesColor + "44", background: displayGame.seriesColor + "0f" }}
-                  >
-                    {lockedPos !== null && (
-                      <svg className="w-3 h-3 shrink-0" style={{ color: displayGame.seriesColor }}
-                        viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 1a5 5 0 00-5 5v3H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2v-9a2 2 0 00-2-2h-2V6a5 5 0 00-5-5zm0 2a3 3 0 013 3v3H9V6a3 3 0 013-3zm0 9a2 2 0 110 4 2 2 0 010-4z" />
-                      </svg>
-                    )}
-                    <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: displayGame.seriesColor }} />
-                    <span className="text-[10px] text-white/35 tabular-nums">#{displayPos! + 1}</span>
-                    <span className="text-xs text-white/40 tabular-nums">Rod.{displayGame.rodada}</span>
-                    <span className="text-xs text-white/75 font-medium">{displayGame.mandante} × {displayGame.visitante}</span>
-                    <span className="text-xs font-bold tabular-nums" style={{ color: displayGame.seriesColor }}>
-                      {formatMetric(displayGame.detentor, displayGame.metric)}
-                    </span>
-                    {lockedPos !== null && (
-                      <button onClick={() => setLockedPos(null)}
-                        className="text-white/25 hover:text-white/60 transition-colors ml-1 text-sm leading-none">
-                        ✕
-                      </button>
-                    )}
-                  </div>
-                ) : null}
+              {/* Hover/lock cards — fixed height like Geral */}
+              <div style={{ height: 56, marginBottom: 10, display: "flex", flexDirection: "column", gap: 4, overflow: "hidden" }}>
+                {slot1Game
+                  ? <GraficosCard game={slot1Game} pos={slot1Pos!} locked={lockedPos !== null}
+                      onUnlock={lockedPos !== null ? () => setLockedPos(null) : undefined} />
+                  : <div style={{ height: 26, flexShrink: 0 }} />
+                }
+                {slot2Game
+                  ? <GraficosCard game={slot2Game} pos={slot2Pos!} locked={false} />
+                  : <div style={{ height: 26, flexShrink: 0 }} />
+                }
               </div>
 
               {/* Chart */}
               <ResponsiveContainer width="100%" height={330}>
                 <ComposedChart
                   data={chartData}
-                  margin={{ top: 8, right: 16, left: 0, bottom: 4 }}
+                  margin={{ top: 8, right: 16, left: 0, bottom: showShields ? 36 : 4 }}
                   onMouseMove={handleMouseMove}
                   onMouseLeave={handleMouseLeave}
                   onClick={handleClick}
@@ -421,14 +480,11 @@ export default function GraficosPage() {
                 >
                   <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.04)" vertical={false} />
 
-                  {/* Column highlights */}
                   {hoveredPos !== null && (
-                    <ReferenceArea x1={hoveredPos - 0.45} x2={hoveredPos + 0.45}
-                      fill="rgba(255,255,255,0.05)" stroke="none" />
+                    <ReferenceArea x1={hoveredPos - 0.45} x2={hoveredPos + 0.45} fill="rgba(255,255,255,0.05)" stroke="none" />
                   )}
                   {lockedPos !== null && lockedPos !== hoveredPos && (
-                    <ReferenceArea x1={lockedPos - 0.45} x2={lockedPos + 0.45}
-                      fill="rgba(255,255,255,0.07)" stroke="none" />
+                    <ReferenceArea x1={lockedPos - 0.45} x2={lockedPos + 0.45} fill="rgba(255,255,255,0.07)" stroke="none" />
                   )}
 
                   <XAxis
@@ -437,64 +493,60 @@ export default function GraficosPage() {
                     domain={[-0.5, Math.max(0, maxLen - 0.5)]}
                     ticks={ticks}
                     interval={tickInterval}
-                    tickFormatter={(v) => String(v + 1)}
-                    tick={{ fill: "rgba(255,255,255,0.22)", fontSize: 10 }}
+                    tick={ShieldsTick}
                     axisLine={false}
                     tickLine={false}
                   />
                   <YAxis
                     tickFormatter={fmtY}
                     tick={{ fill: "rgba(255,255,255,0.25)", fontSize: 11 }}
-                    axisLine={false}
-                    tickLine={false}
-                    width={52}
+                    axisLine={false} tickLine={false} width={52}
                     domain={[(d: number) => Math.max(0, d * 0.92), (d: number) => d * 1.08]}
                   />
 
-                  {/* Series average reference lines */}
-                  {showAvgs && seriesAvgs.map((sa) =>
+                  {showAvgs && !groupSeries && seriesAvgs.map((sa) =>
                     sa.avg !== null ? (
                       <ReferenceLine key={`avg-${sa.id}`} y={sa.avg}
-                        stroke={sa.color} strokeOpacity={0.3}
-                        strokeDasharray="4 4" strokeWidth={1} />
+                        stroke={sa.color} strokeOpacity={0.3} strokeDasharray="4 4" strokeWidth={1} />
                     ) : null
                   )}
 
                   {chartMode === "bar" ? (
                     <Bar dataKey="metric" isAnimationActive={false} maxBarSize={30} radius={[3, 3, 0, 0]}>
+                      {showLabels && (
+                        <LabelList dataKey="metric" position="top"
+                          formatter={fmtY}
+                          style={{ fill: "rgba(255,255,255,0.45)", fontSize: 8 }} />
+                      )}
                       {chartData.map((entry, i) => (
-                        <Cell
-                          key={i}
-                          fill={entry.seriesColor}
-                          fillOpacity={lockedPos === i ? 1 : hoveredPos === i ? 0.95 : 0.78}
-                        />
+                        <Cell key={i} fill={entry.seriesColor}
+                          fillOpacity={lockedPos === i ? 1 : hoveredPos === i ? 0.95 : 0.78} />
                       ))}
                     </Bar>
                   ) : (
                     seriesList.map((s) => (
-                      <Line
-                        key={s.id}
-                        dataKey={s.id}
-                        stroke={s.color}
-                        strokeWidth={1.5}
-                        type="monotone"
+                      <Line key={s.id} dataKey={s.id} stroke={s.color} strokeWidth={1.5}
+                        type="monotone" connectNulls={false} isAnimationActive={false}
                         dot={(dotProps: any) => {
                           const { cx, cy, payload, key } = dotProps;
                           if (payload?.[s.id] == null) return <g key={key} />;
                           const pos = payload?.pos;
                           const isActive = pos === hoveredPos || pos === lockedPos;
                           return (
-                            <circle key={key} cx={cx} cy={cy}
-                              r={isActive ? 5 : 3.5}
-                              fill={isActive ? s.color : "#08090f"}
-                              stroke={s.color}
-                              strokeWidth={isActive ? 2.5 : 2}
-                            />
+                            <g key={key}>
+                              <circle cx={cx} cy={cy} r={isActive ? 5 : 3.5}
+                                fill={isActive ? s.color : "#08090f"}
+                                stroke={s.color} strokeWidth={isActive ? 2.5 : 2} />
+                              {showLabels && (
+                                <text x={cx} y={cy - 9} textAnchor="middle"
+                                  fill="rgba(255,255,255,0.45)" fontSize={8}>
+                                  {fmtY(payload[s.id])}
+                                </text>
+                              )}
+                            </g>
                           );
                         }}
                         activeDot={false}
-                        connectNulls={false}
-                        isAnimationActive={false}
                       />
                     ))
                   )}

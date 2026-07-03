@@ -6,6 +6,7 @@ export default function Nav() {
   const pathname = usePathname();
   const links = [
     { href: "/geral", label: "Geral" },
+    { href: "/detentores", label: "Detentores" },
     { href: "/comparacoes", label: "Comparações" },
     { href: "/graficos", label: "Gráficos" },
   ];
