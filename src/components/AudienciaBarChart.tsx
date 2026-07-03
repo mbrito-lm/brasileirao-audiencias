@@ -42,7 +42,7 @@ interface Props {
   isPnt?: boolean;
   onHoverChange?: (d: HoverData | null) => void;
   onDotClick?: (d: LockedDot) => void;
-  lockedDot?: LockedDot | null;
+  lockedDots?: LockedDot[];
 }
 
 const BG = "#08090f";
@@ -106,15 +106,21 @@ function isOutlier(val: number | null, avg: number): boolean {
   return Math.abs((val - avg) / avg) > OUTLIER_THRESHOLD;
 }
 
-function CustomTick({ x, y, payload, allRods, missingSet, offset }: any) {
+function CustomTick({ x, y, payload, allRods, missingSet, offset, activeIdx, lockedIdxSet, isDimming }: any) {
   const rawIdx = payload?.value ?? 0;
   const idx = Math.round(rawIdx - offset / 2);
   const rodada = allRods[idx] as number | undefined;
   const isMissing = rodada != null && (missingSet as Set<number>).has(rodada);
+  const isActiveOrLocked = activeIdx === idx || (lockedIdxSet as Set<number>).has(idx);
+  const dimmed = isDimming && !isActiveOrLocked;
   return (
     <g transform={`translate(${x ?? 0},${y ?? 0})`}>
       <text x={0} y={0} dy={14}
-        fill={isMissing ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.85)"}
+        fill={
+          isMissing
+            ? (dimmed ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.18)")
+            : (dimmed ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.85)")
+        }
         fontSize={11} textAnchor="middle">
         {rodada ?? ""}
       </text>
@@ -122,12 +128,7 @@ function CustomTick({ x, y, payload, allRods, missingSet, offset }: any) {
   );
 }
 
-// bright-data helper: returns data array with only 3 points around idx non-null
-function mkBrightData(fullData: { rod: number; val: number | null }[], idx: number) {
-  return fullData.map((p, i) => ({ rod: p.rod, val: Math.abs(i - idx) <= 1 ? p.val : null }));
-}
-
-export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotClick, lockedDot }: Props) {
+export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotClick, lockedDots = [] }: Props) {
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [activeIdx, setActiveIdx] = useState<number | null>(null);
   const [hoverDot, setHoverDot] = useState<{ val: number; color: string } | null>(null);
@@ -154,37 +155,40 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotCli
     data.filter((d) => d["2025"] === null && d["2026"] === null).map((d) => d.rodada)
   );
 
-  const data25 = data.map((d) => ({ rod: rodToIdx.get(d.rodada)!, val: d["2025"] }));
-  const data26 = data.map((d) => ({ rod: rodToIdx.get(d.rodada)! + OFFSET, val: d["2026"] }));
+  // Center series when only one season is visible
+  const bothVisible = show25 && show26;
+  const offset25 = bothVisible ? 0 : OFFSET / 2;
+  const offset26 = bothVisible ? OFFSET : OFFSET / 2;
+
+  const data25 = data.map((d) => ({ rod: rodToIdx.get(d.rodada)! + offset25, val: d["2025"] }));
+  const data26 = data.map((d) => ({ rod: rodToIdx.get(d.rodada)! + offset26, val: d["2026"] }));
 
   const segs25 = show25 ? buildBridgeSegs(data25, SEASON_COLORS[2025]) : [];
   const segs26 = show26 ? buildBridgeSegs(data26, SEASON_COLORS[2026]) : [];
 
   const midTicks = allRods.map((_, i) => i + OFFSET / 2);
 
-  const lockedRodadaIdx = lockedDot ? (rodToIdx.get(lockedDot.rodada) ?? null) : null;
+  // Locked columns
+  const lockedRodadaIdxs = lockedDots
+    .map((ld) => rodToIdx.get(ld.rodada) ?? null)
+    .filter((v): v is number => v !== null);
+  const lockedIdxSet = new Set(lockedRodadaIdxs);
 
-  // Dim when hovering OR when a dot is locked
-  const isDimming = activeIdx !== null || lockedRodadaIdx !== null;
+  const isDimming = activeIdx !== null || lockedRodadaIdxs.length > 0;
+
+  const isActiveOrLocked = (rodada: number) =>
+    (activeIdx !== null && allRods[activeIdx] === rodada) ||
+    lockedDots.some((ld) => ld.rodada === rodada);
 
   const colBounds = (idx: number) => ({
     x1: idx + OFFSET / 2 - 0.5,
     x2: idx + OFFSET / 2 + 0.5,
   });
 
-  // Bright segment data for overlay lines at active and locked columns
-  const bright25Active = show25 && activeIdx !== null ? mkBrightData(data25, activeIdx) : null;
-  const bright26Active = show26 && activeIdx !== null ? mkBrightData(data26, activeIdx) : null;
-  const bright25Locked = show25 && lockedRodadaIdx !== null && lockedRodadaIdx !== activeIdx
-    ? mkBrightData(data25, lockedRodadaIdx) : null;
-  const bright26Locked = show26 && lockedRodadaIdx !== null && lockedRodadaIdx !== activeIdx
-    ? mkBrightData(data26, lockedRodadaIdx) : null;
-
   const handleMouseMove = useCallback((chartState: any) => {
     if (!chartState?.activeLabel) return;
     const idx = Math.round((chartState.activeLabel as number) - OFFSET / 2);
     if (idx < 0 || idx >= allRods.length) return;
-    // Clear hoverDot when switching columns
     if (idx !== activeIdx) setHoverDot(null);
     const rodada = allRods[idx];
     setActiveIdx(idx);
@@ -242,10 +246,10 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotCli
           {activeIdx !== null && (
             <ReferenceArea {...colBounds(activeIdx)} fill="rgba(255,255,255,0.05)" stroke="none" />
           )}
-          {/* Locked column highlight (when different from active) */}
-          {lockedRodadaIdx !== null && lockedRodadaIdx !== activeIdx && (
-            <ReferenceArea {...colBounds(lockedRodadaIdx)} fill="rgba(255,255,255,0.05)" stroke="none" />
-          )}
+          {/* Locked column highlights */}
+          {lockedRodadaIdxs.filter(i => i !== activeIdx).map((li) => (
+            <ReferenceArea key={li} {...colBounds(li)} fill="rgba(255,255,255,0.05)" stroke="none" />
+          ))}
 
           {/* Average reference lines */}
           {show25 && avg25 > 0 && (
@@ -259,15 +263,10 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotCli
               label={{ value: "méd 26", position: "insideTopRight", fill: SEASON_COLORS[2026], fontSize: 10, opacity: 0.6, dy: 14 }} />
           )}
 
-          {/* Horizontal dot hover reference line — stays while in column */}
+          {/* Horizontal dot hover line — persists while in same column */}
           {hoverDot && (
-            <ReferenceLine
-              y={hoverDot.val}
-              stroke={hoverDot.color}
-              strokeDasharray="3 4"
-              strokeWidth={1}
-              strokeOpacity={0.55}
-            />
+            <ReferenceLine y={hoverDot.val} stroke={hoverDot.color}
+              strokeDasharray="3 4" strokeWidth={1} strokeOpacity={0.55} />
           )}
 
           <XAxis
@@ -277,7 +276,10 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotCli
             ticks={midTicks}
             interval={0}
             tick={(props: any) => (
-              <CustomTick {...props} allRods={allRods} missingSet={missingSet} offset={OFFSET} />
+              <CustomTick {...props}
+                allRods={allRods} missingSet={missingSet} offset={OFFSET}
+                activeIdx={activeIdx} lockedIdxSet={lockedIdxSet} isDimming={isDimming}
+              />
             )}
             axisLine={false}
             tickLine={false}
@@ -285,13 +287,12 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotCli
           <YAxis
             tickFormatter={(v) => fmtY(v, isPnt)}
             tick={{ fill: "rgba(255,255,255,0.25)", fontSize: 11 }}
-            axisLine={false}
-            tickLine={false}
+            axisLine={false} tickLine={false}
             width={isPnt ? 34 : 48}
             domain={[(d: number) => Math.max(0, d * 0.92), (d: number) => d * 1.14]}
           />
 
-          {/* Smooth bezier bridges (below main lines) */}
+          {/* Smooth bezier bridges + bright SVG segments for active/locked columns */}
           <Customized
             component={(props: any) => {
               const xAxis = Object.values(props.xAxisMap ?? {})[0] as any;
@@ -299,31 +300,66 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotCli
               if (!xAxis?.scale || !yAxis?.scale) return null;
               const xs = xAxis.scale;
               const ys = yAxis.scale;
+
+              // Bezier bridges
               const allSegs = [...segs25, ...segs26];
-              if (!allSegs.length) return null;
-              return (
-                <g>
-                  {allSegs.map((seg, i) => {
-                    const px0 = xs(seg.x0), py0 = ys(seg.y0);
-                    const px1 = xs(seg.x1), py1 = ys(seg.y1);
-                    const ppx = seg.prevX !== null ? xs(seg.prevX) : px0;
-                    const ppy = seg.prevY !== null ? ys(seg.prevY) : py0;
-                    const pnx = seg.nextX !== null ? xs(seg.nextX) : px1;
-                    const pny = seg.nextY !== null ? ys(seg.nextY) : py1;
-                    const t0x = (px1 - ppx) / 2, t0y = (py1 - ppy) / 2;
-                    const t1x = (pnx - px0) / 2, t1y = (pny - py0) / 2;
-                    const cp1x = px0 + t0x / 3, cp1y = py0 + t0y / 3;
-                    const cp2x = px1 - t1x / 3, cp2y = py1 - t1y / 3;
-                    return (
-                      <path key={i}
-                        d={`M${px0},${py0} C${cp1x},${cp1y} ${cp2x},${cp2y} ${px1},${py1}`}
-                        fill="none" stroke={seg.color}
-                        strokeWidth={1.5} strokeOpacity={0.30} strokeDasharray="3 4"
-                      />
+              const bridgePaths = allSegs.map((seg, i) => {
+                const px0 = xs(seg.x0), py0 = ys(seg.y0);
+                const px1 = xs(seg.x1), py1 = ys(seg.y1);
+                const ppx = seg.prevX !== null ? xs(seg.prevX) : px0;
+                const ppy = seg.prevY !== null ? ys(seg.prevY) : py0;
+                const pnx = seg.nextX !== null ? xs(seg.nextX) : px1;
+                const pny = seg.nextY !== null ? ys(seg.nextY) : py1;
+                const t0x = (px1 - ppx) / 2, t0y = (py1 - ppy) / 2;
+                const t1x = (pnx - px0) / 2, t1y = (pny - py0) / 2;
+                const cp1x = px0 + t0x / 3, cp1y = py0 + t0y / 3;
+                const cp2x = px1 - t1x / 3, cp2y = py1 - t1y / 3;
+                return (
+                  <path key={`b${i}`}
+                    d={`M${px0},${py0} C${cp1x},${cp1y} ${cp2x},${cp2y} ${px1},${py1}`}
+                    fill="none" stroke={seg.color}
+                    strokeWidth={1.5} strokeOpacity={0.30} strokeDasharray="3 4"
+                  />
+                );
+              });
+
+              // Bright SVG line segments for active and locked columns
+              // These are straight lines — for short adjacent segments, visually indistinguishable from monotone curves
+              const brightIdxs = new Set<number>();
+              if (activeIdx !== null) brightIdxs.add(activeIdx);
+              lockedRodadaIdxs.forEach((li) => brightIdxs.add(li));
+
+              const brightSegs: JSX.Element[] = [];
+              brightIdxs.forEach((colIdx) => {
+                const series: [typeof data25, string, boolean][] = [
+                  [data25, SEASON_COLORS[2025], show25],
+                  [data26, SEASON_COLORS[2026], show26],
+                ];
+                series.forEach(([d, color, show]) => {
+                  if (!show) return;
+                  const prev = colIdx > 0 ? d[colIdx - 1] : null;
+                  const curr = d[colIdx];
+                  const next = colIdx < d.length - 1 ? d[colIdx + 1] : null;
+                  if (prev?.val != null && curr?.val != null) {
+                    brightSegs.push(
+                      <line key={`bs-${colIdx}-${color}-prev`}
+                        x1={xs(prev.rod)} y1={ys(prev.val)}
+                        x2={xs(curr.rod)} y2={ys(curr.val)}
+                        stroke={color} strokeWidth={2.5} strokeOpacity={1} />
                     );
-                  })}
-                </g>
-              );
+                  }
+                  if (curr?.val != null && next?.val != null) {
+                    brightSegs.push(
+                      <line key={`bs-${colIdx}-${color}-next`}
+                        x1={xs(curr.rod)} y1={ys(curr.val)}
+                        x2={xs(next.rod)} y2={ys(next.val)}
+                        stroke={color} strokeWidth={2.5} strokeOpacity={1} />
+                    );
+                  }
+                });
+              });
+
+              return <g>{bridgePaths}{brightSegs}</g>;
             }}
           />
 
@@ -341,31 +377,7 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotCli
               type="monotone" dot={false} activeDot={false} isAnimationActive={false} />
           )}
 
-          {/* Bright segment overlays for active column */}
-          {bright25Active && (
-            <Line data={bright25Active} dataKey="val" name="2025-bright-active"
-              stroke={SEASON_COLORS[2025]} strokeWidth={2.5} strokeOpacity={1}
-              type="monotone" dot={false} activeDot={false} isAnimationActive={false} legendType="none" />
-          )}
-          {bright26Active && (
-            <Line data={bright26Active} dataKey="val" name="2026-bright-active"
-              stroke={SEASON_COLORS[2026]} strokeWidth={2.5} strokeOpacity={1}
-              type="monotone" dot={false} activeDot={false} isAnimationActive={false} legendType="none" />
-          )}
-
-          {/* Bright segment overlays for locked column (when different from active) */}
-          {bright25Locked && (
-            <Line data={bright25Locked} dataKey="val" name="2025-bright-locked"
-              stroke={SEASON_COLORS[2025]} strokeWidth={2.5} strokeOpacity={1}
-              type="monotone" dot={false} activeDot={false} isAnimationActive={false} legendType="none" />
-          )}
-          {bright26Locked && (
-            <Line data={bright26Locked} dataKey="val" name="2026-bright-locked"
-              stroke={SEASON_COLORS[2026]} strokeWidth={2.5} strokeOpacity={1}
-              type="monotone" dot={false} activeDot={false} isAnimationActive={false} legendType="none" />
-          )}
-
-          {/* Dot layer — re-renders on state change, handles dim/lock/hover/click */}
+          {/* Dot layer — handles dim/lock/hover/click */}
           <Customized
             component={(props: any) => {
               const xAxis = Object.values(props.xAxisMap ?? {})[0] as any;
@@ -383,9 +395,8 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotCli
                 const color = SEASON_COLORS[season];
                 const isOut = isOutlier(pt.val, avg);
                 const isActive = activeIdx !== null && allRods[activeIdx] === rodada;
-                const isLockedSeason = lockedDot?.rodada === rodada && lockedDot?.season === season;
-                const isLockedRod = lockedDot?.rodada === rodada;
-                // Dim if isDimming and not active column and not locked column
+                const isLockedSeason = lockedDots.some((ld) => ld.rodada === rodada && ld.season === season);
+                const isLockedRod = lockedDots.some((ld) => ld.rodada === rodada);
                 const dimmed = isDimming && !isActive && !isLockedRod;
                 const point = data.find((d) => d.rodada === rodada);
                 const teams = season === 2025 ? (point?.teams25 ?? []) : (point?.teams26 ?? []);
@@ -395,10 +406,7 @@ export default function AudienciaBarChart({ data, isPnt, onHoverChange, onDotCli
                 const sw = isActive || isLockedSeason ? 2.5 : 2;
 
                 return (
-                  <g
-                    key={`${season}-${idx}`}
-                    opacity={dimmed ? 0.6 : 1}
-                    style={{ cursor: "pointer" }}
+                  <g key={`${season}-${idx}`} opacity={dimmed ? 0.85 : 1} style={{ cursor: "pointer" }}
                     onMouseEnter={() => setHoverDot({ val: pt.val!, color })}
                     onClick={(e) => {
                       e.stopPropagation();

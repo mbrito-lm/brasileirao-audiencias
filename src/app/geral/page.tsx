@@ -13,7 +13,7 @@ const TABS = ["Geral", ...DETENTORES] as const;
 export default function GeralPage() {
   const [activeTab, setActiveTab] = useState<string>("Geral");
   const [chartHover, setChartHover] = useState<HoverData | null>(null);
-  const [lockedDot, setLockedDot] = useState<LockedDot | null>(null);
+  const [lockedDots, setLockedDots] = useState<LockedDot[]>([]);
   const detentor = activeTab === "Geral" ? null : activeTab;
   const filteredGames = detentor ? games.filter((g) => g.detentor === detentor) : games;
   const chartData = getChartData(games, detentor);
@@ -25,15 +25,15 @@ export default function GeralPage() {
     (best, g) => (!best || (getMetric(g) ?? 0) > (getMetric(best) ?? 0) ? g : best),
     null as typeof gamesWithMetric[0] | null
   );
-  const has2026 = filteredGames.some((g) => g.ano === 2026);
 
   const handleDotClick = (d: LockedDot) => {
-    setLockedDot((prev) =>
-      prev?.rodada === d.rodada && prev?.season === d.season ? null : d
-    );
+    setLockedDots((prev) => {
+      const alreadyIdx = prev.findIndex((ld) => ld.rodada === d.rodada && ld.season === d.season);
+      if (alreadyIdx >= 0) return prev.filter((_, i) => i !== alreadyIdx);
+      if (prev.length >= 2) return [prev[1], d]; // drop oldest, add new
+      return [...prev, d];
+    });
   };
-
-  const displayHover = chartHover;
 
   return (
     <div className="py-6">
@@ -44,14 +44,14 @@ export default function GeralPage() {
         </p>
       </div>
 
-      {/* Tabs — logo only, no text */}
+      {/* Tabs */}
       <div className="flex gap-1.5 flex-wrap mb-8 p-1.5 rounded-2xl border border-white/[0.07] bg-white/[0.03]"
         style={{ backdropFilter: "blur(12px)" }}>
         {TABS.map((tab) => {
           const isActive = activeTab === tab;
           const logo = tab !== "Geral" ? LOGOS[tab] : undefined;
           return (
-            <button key={tab} onClick={() => { setActiveTab(tab); setLockedDot(null); }}
+            <button key={tab} onClick={() => { setActiveTab(tab); setLockedDots([]); }}
               title={tab}
               className="flex items-center justify-center px-3 py-2.5 rounded-xl transition-all duration-200"
               style={isActive ? {
@@ -60,8 +60,7 @@ export default function GeralPage() {
                 boxShadow: "0 0 16px rgba(30, 70, 255, 0.35)"
               } : { border: "1px solid transparent" }}>
               {logo ? (
-                <img src={logo} alt={tab}
-                  className="h-8 w-auto object-contain"
+                <img src={logo} alt={tab} className="h-8 w-auto object-contain"
                   style={{ filter: isActive ? "brightness(0) invert(1)" : "grayscale(1) opacity(0.45)" }} />
               ) : (
                 <svg className={`w-5 h-5 ${isActive ? "text-white" : "text-white/35"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -102,24 +101,26 @@ export default function GeralPage() {
       <div className="glass rounded-2xl p-6 mb-4">
         <div className="flex items-center justify-between mb-5">
           <div className="flex-1 min-w-0">
-            {/* Title row — hover box sits immediately to the right of the title text */}
             <div className="flex items-center gap-3 flex-wrap">
               <h2 className="text-sm font-semibold text-white uppercase tracking-widest whitespace-nowrap">
                 {detentor || "Visão Geral"} — por Rodada
               </h2>
 
-              {/* Locked dot card (pinned) */}
-              {lockedDot && (
+              {/* Locked dot cards (up to 2) */}
+              {lockedDots.map((dot) => (
                 <LockedDotCard
-                  dot={lockedDot}
+                  key={`${dot.rodada}-${dot.season}`}
+                  dot={dot}
                   detentor={detentor}
-                  onUnlock={() => setLockedDot(null)}
+                  onUnlock={() => setLockedDots((prev) =>
+                    prev.filter((ld) => !(ld.rodada === dot.rodada && ld.season === dot.season))
+                  )}
                 />
-              )}
+              ))}
 
               {/* Live hover card */}
-              {displayHover && (
-                <HoverCard data={displayHover} detentor={detentor} />
+              {chartHover && (
+                <HoverCard data={chartHover} detentor={detentor} />
               )}
             </div>
             <p className="text-white/30 text-xs mt-0.5">
@@ -139,16 +140,16 @@ export default function GeralPage() {
           isPnt={isPnt}
           onHoverChange={setChartHover}
           onDotClick={handleDotClick}
-          lockedDot={lockedDot}
+          lockedDots={lockedDots}
         />
       </div>
 
-      {/* Breakdown tables — only for specific detentor */}
+      {/* Breakdown tables */}
       {detentor && (
         <BreakdownTables games={filteredGames} detentor={detentor} />
       )}
 
-      {/* Table */}
+      {/* Games table */}
       <div className="glass rounded-2xl p-6 mt-4">
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -171,71 +172,68 @@ function LockedDotCard({ dot, detentor, onUnlock }: {
 }) {
   const color = SEASON_COLORS[dot.season];
   return (
-    <div className="flex items-center gap-2.5 px-3 py-1 rounded-lg border border-white/15 bg-white/[0.06] text-xs">
+    <div className="flex items-center gap-2 px-3 py-1 rounded-lg border border-white/15 bg-white/[0.06] text-xs">
       <svg className="w-3 h-3 text-white/30 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
         <path d="M12 1a5 5 0 0 0-5 5v3H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V11a2 2 0 0 0-2-2h-2V6a5 5 0 0 0-5-5zm0 2a3 3 0 0 1 3 3v3H9V6a3 3 0 0 1 3-3zm0 10a2 2 0 1 1 0 4 2 2 0 0 1 0-4z"/>
       </svg>
       <span className="text-white/35">Rod. {dot.rodada}</span>
-      <span className="font-bold" style={{ color }}>
-        {dot.season} · {formatMetric(detentor || "CazéTV", dot.val)}
-      </span>
+      <span className="font-bold" style={{ color }}>{dot.season}</span>
       {dot.teams.slice(0, 1).map((t, i) => (
-        <div key={i} className="flex items-center gap-1 border-l border-white/10 pl-2.5">
-          {dot.isOutlier && (
-            <span className="font-semibold uppercase tracking-wide mr-0.5" style={{ color, fontSize: 9 }}>outlier</span>
-          )}
+        <div key={i} className="flex items-center gap-1">
           <TeamLogo team={t.mandante} size={14} />
-          <span className="text-white/20">vs</span>
+          <span className="text-white/20 text-[10px]">vs</span>
           <TeamLogo team={t.visitante} size={14} />
         </div>
       ))}
-      <button onClick={onUnlock} className="ml-1 text-white/25 hover:text-white/50 transition-colors text-xs leading-none">✕</button>
+      {dot.isOutlier && (
+        <span className="font-semibold uppercase tracking-wide" style={{ color, fontSize: 9 }}>outlier</span>
+      )}
+      <span className="font-bold" style={{ color }}>
+        {formatMetric(detentor || "CazéTV", dot.val)}
+      </span>
+      <button onClick={onUnlock} className="ml-0.5 text-white/25 hover:text-white/50 transition-colors leading-none">✕</button>
     </div>
   );
 }
 
-function HoverCard({ data, detentor, locked, onUnlock }: {
-  data: HoverData; detentor: string | null; locked?: boolean; onUnlock?: () => void;
-}) {
+function HoverCard({ data, detentor }: { data: HoverData; detentor: string | null }) {
   const fmt = (v: number | null) => v !== null ? formatMetric(detentor || "CazéTV", v) : null;
-  const outlierSeason = data.isOutlier25 ? 2025 : data.isOutlier26 ? 2026 : null;
-  const outlierTeams = data.isOutlier25 ? data.teams25 : data.isOutlier26 ? data.teams26 : [];
+  const singleGame25 = data.teams25.length === 1;
+  const singleGame26 = data.teams26.length === 1;
   return (
-    <div className={`flex items-center gap-2.5 px-3 py-1 rounded-lg border text-xs ${
-      locked
-        ? "border-white/15 bg-white/[0.06]"
-        : "border-white/[0.08] bg-white/[0.04]"
-    }`}>
-      {locked && (
-        <svg className="w-3 h-3 text-white/30 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M12 1a5 5 0 0 0-5 5v3H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V11a2 2 0 0 0-2-2h-2V6a5 5 0 0 0-5-5zm0 2a3 3 0 0 1 3 3v3H9V6a3 3 0 0 1 3-3zm0 10a2 2 0 1 1 0 4 2 2 0 0 1 0-4z"/>
-        </svg>
-      )}
+    <div className="flex items-center gap-2 px-3 py-1 rounded-lg border border-white/[0.08] bg-white/[0.04] text-xs">
       <span className="text-white/35">Rod. {data.rodada}</span>
       {data.v25 !== null && fmt(data.v25) && (
-        <span className="font-bold" style={{ color: SEASON_COLORS[2025] }}>
-          2025 · {fmt(data.v25)}
-        </span>
-      )}
-      {data.v26 !== null && fmt(data.v26) && (
-        <span className="font-bold" style={{ color: SEASON_COLORS[2026] }}>
-          2026 · {fmt(data.v26)}
-        </span>
-      )}
-      {outlierSeason && (
-        <div className="flex items-center gap-1.5 border-l border-white/10 pl-2.5">
-          <span className="font-semibold uppercase tracking-wide" style={{ color: SEASON_COLORS[outlierSeason], fontSize: 9 }}>outlier</span>
-          {outlierTeams.slice(0, 1).map((t, i) => (
-            <div key={i} className="flex items-center gap-1">
-              <TeamLogo team={t.mandante} size={14} />
-              <span className="text-white/20">vs</span>
-              <TeamLogo team={t.visitante} size={14} />
-            </div>
-          ))}
+        <div className="flex items-center gap-1.5">
+          <span className="font-bold" style={{ color: SEASON_COLORS[2025] }}>2025</span>
+          {singleGame25 && (
+            <>
+              <TeamLogo team={data.teams25[0].mandante} size={13} />
+              <span className="text-white/20 text-[10px]">vs</span>
+              <TeamLogo team={data.teams25[0].visitante} size={13} />
+            </>
+          )}
+          <span className="font-bold" style={{ color: SEASON_COLORS[2025] }}>{fmt(data.v25)}</span>
         </div>
       )}
-      {locked && onUnlock && (
-        <button onClick={onUnlock} className="ml-1 text-white/25 hover:text-white/50 transition-colors text-xs leading-none">✕</button>
+      {data.v26 !== null && fmt(data.v26) && (
+        <div className="flex items-center gap-1.5">
+          <span className="font-bold" style={{ color: SEASON_COLORS[2026] }}>2026</span>
+          {singleGame26 && (
+            <>
+              <TeamLogo team={data.teams26[0].mandante} size={13} />
+              <span className="text-white/20 text-[10px]">vs</span>
+              <TeamLogo team={data.teams26[0].visitante} size={13} />
+            </>
+          )}
+          <span className="font-bold" style={{ color: SEASON_COLORS[2026] }}>{fmt(data.v26)}</span>
+        </div>
+      )}
+      {(data.isOutlier25 || data.isOutlier26) && (
+        <span className="font-semibold uppercase tracking-wide border-l border-white/10 pl-2"
+          style={{ color: data.isOutlier25 ? SEASON_COLORS[2025] : SEASON_COLORS[2026], fontSize: 9 }}>
+          outlier
+        </span>
       )}
     </div>
   );
