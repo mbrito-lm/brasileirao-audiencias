@@ -41,6 +41,23 @@ function SeasonFilter({ value, onChange, nullLabel = "Todas" }: {
   );
 }
 
+// Season toggle pill (2025 ↔ 2026)
+function SeasonToggle({ value, onChange }: { value: 2025 | 2026; onChange: (s: 2025 | 2026) => void }) {
+  return (
+    <div className="flex items-center bg-white/[0.06] border border-white/[0.08] rounded-full p-0.5">
+      {([2025, 2026] as const).map((yr) => (
+        <button key={yr} onClick={() => onChange(yr)}
+          className="px-3.5 py-1.5 rounded-full text-xs font-bold transition-all duration-200"
+          style={value === yr
+            ? { background: SEASON_COLORS[yr] + "35", color: SEASON_COLORS[yr], boxShadow: `0 0 10px ${SEASON_COLORS[yr]}30` }
+            : { color: "rgba(255,255,255,0.3)" }}>
+          {yr}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 // ─── Detentor Avg Bar ──────────────────────────────────────────────────────────
 
 function DetentorAvgBar({ season, onSeasonChange }: { season: number | null; onSeasonChange: (s: number | null) => void }) {
@@ -58,16 +75,16 @@ function DetentorAvgBar({ season, onSeasonChange }: { season: number | null; onS
       <div className="flex items-center gap-3 mb-3">
         <SeasonFilter value={season} onChange={onSeasonChange} nullLabel="Geral" />
       </div>
-      <div className="flex gap-2 flex-wrap">
+      <div style={{ display: "grid", gridTemplateColumns: `repeat(${stats.length}, 1fr)`, gap: 8 }}>
         {stats.map(({ detentor: d, avgVal }) => (
-          <div key={d} className="glass rounded-xl px-3 py-2.5 border border-white/[0.07] flex items-center gap-2.5">
+          <div key={d} className="glass rounded-xl px-3 py-3 border border-white/[0.07] flex flex-col items-center gap-1.5">
             {LOGOS[d] ? (
-              <img src={LOGOS[d]} alt={d} className="h-5 w-auto object-contain"
-                style={{ filter: "brightness(0) invert(1)", opacity: 0.75, maxWidth: 64 }} />
+              <img src={LOGOS[d]} alt={d} className="h-6 w-auto object-contain"
+                style={{ filter: "brightness(0) invert(1)", opacity: 0.75, maxWidth: 80 }} />
             ) : (
               <span className="text-sm font-semibold" style={{ color: DETENTOR_COLORS[d] || "#9ca3af" }}>{d}</span>
             )}
-            <div className="w-px h-4 bg-white/[0.10]" />
+            <div className="w-full h-px bg-white/[0.07]" />
             <span className="text-sm font-bold text-white tabular-nums">{formatMetric(d, avgVal)}</span>
           </div>
         ))}
@@ -90,14 +107,11 @@ type DayCol = { date: string; display: string; weekday: string; matches: MatchIn
 
 function buildTimeline(season: 2025 | 2026): DayCol[] {
   const filtered = games.filter((g) => g.ano === season);
-
   const dayMap = new Map<string, Game[]>();
   filtered.forEach((g) => {
     if (!dayMap.has(g.data)) dayMap.set(g.data, []);
     dayMap.get(g.data)!.push(g);
   });
-
-  // Most recent on left → sort descending
   const sortedDates = Array.from(dayMap.entries()).sort(([a], [b]) => parseDate(b) - parseDate(a));
 
   return sortedDates.map(([dateStr, dayGames]) => {
@@ -113,8 +127,7 @@ function buildTimeline(season: 2025 | 2026): DayCol[] {
           rodada: g.rodada, ano: g.ano,
           mandante: g.mandante, visitante: g.visitante,
           horario: normalizeHorario(g.horario.substring(0, 5)),
-          broadcasters: [],
-          key: `${dateStr}|${mKey}`,
+          broadcasters: [], key: `${dateStr}|${mKey}`,
         });
       }
       matchMap.get(mKey)!.broadcasters.push({ detentor: g.detentor, metric: getMetric(g) });
@@ -139,38 +152,43 @@ function MatchCard({ match, isPinned, onPin }: { match: MatchInDay; isPinned: bo
       onMouseLeave={() => setHovered(false)}
       onClick={onPin}
       style={{
-        transform: isElevated ? "scale(1.07)" : "scale(1)",
+        transform: isElevated ? "scale(1.35)" : "scale(1)",
         transformOrigin: "top center",
-        transition: "transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease",
-        boxShadow: isPinned ? "0 6px 24px rgba(60,100,255,0.25)" : isElevated ? "0 6px 20px rgba(0,0,0,0.5)" : undefined,
+        transition: "transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease",
+        boxShadow: isPinned
+          ? "0 0 0 1.5px rgba(96,165,250,0.8), 0 0 20px rgba(60,100,255,0.4)"
+          : isElevated
+          ? "0 10px 32px rgba(0,0,0,0.7)"
+          : undefined,
         cursor: "pointer",
-        zIndex: isElevated ? 10 : 1,
+        zIndex: isElevated ? 20 : 1,
         position: "relative",
+        background: isPinned ? "rgba(10,14,30,0.85)" : undefined,
       }}
-      className={`glass rounded-lg px-2 py-1.5 border ${isPinned ? "border-blue-500/40" : isElevated ? "border-white/20" : "border-white/[0.06]"}`}
+      className={`rounded-lg px-2.5 py-2 border glass ${isPinned ? "border-blue-400/70" : isElevated ? "border-white/25" : "border-white/[0.07]"}`}
     >
-      <div className="flex items-center justify-between mb-1">
-        <div className="flex items-center gap-0.5">
-          <TeamLogo team={match.mandante} size={14} />
-          <span className="text-white/15 text-[9px] mx-0.5">×</span>
-          <TeamLogo team={match.visitante} size={14} />
+      <div className="flex items-center justify-between mb-1.5">
+        <div className="flex items-center gap-1">
+          <TeamLogo team={match.mandante} size={18} />
+          <span className="text-white/15 text-[10px] mx-0.5">×</span>
+          <TeamLogo team={match.visitante} size={18} />
         </div>
-        <span className="text-[9px] text-white/30 tabular-nums">{match.horario}</span>
+        <span className="text-[10px] text-white/35 tabular-nums ml-2">{match.horario}</span>
       </div>
       {match.broadcasters.map((b) => (
-        <div key={b.detentor} className="flex items-center justify-between gap-1 mt-0.5">
-          <div className="h-3 flex items-center">
+        <div key={b.detentor} className="flex items-center justify-between gap-1.5 mt-1">
+          <div className="h-3.5 flex items-center">
             {LOGOS[b.detentor] ? (
               <img src={LOGOS[b.detentor]} alt={b.detentor}
-                className="h-3 w-auto object-contain max-w-[56px]"
-                style={{ filter: "brightness(0) invert(1)", opacity: 0.65 }} />
+                className="h-3.5 w-auto object-contain max-w-[60px]"
+                style={{ filter: "brightness(0) invert(1)", opacity: 0.7 }} />
             ) : (
-              <span className="text-[9px] font-semibold" style={{ color: DETENTOR_COLORS[b.detentor] || "#9ca3af" }}>
+              <span className="text-[10px] font-semibold" style={{ color: DETENTOR_COLORS[b.detentor] || "#9ca3af" }}>
                 {b.detentor}
               </span>
             )}
           </div>
-          <span className="text-[10px] font-bold text-white tabular-nums shrink-0">
+          <span className="text-xs font-bold text-white tabular-nums shrink-0">
             {formatMetric(b.detentor, b.metric)}
           </span>
         </div>
@@ -191,7 +209,8 @@ function Timeline({ season, onSeasonChange }: { season: 2025 | 2026; onSeasonCha
       const isVertical = Math.abs(e.deltaY) > Math.abs(e.deltaX);
       if (isVertical) {
         e.preventDefault();
-        window.scrollBy({ top: e.deltaY, behavior: "auto" });
+        // scroll up (negative deltaY) = scroll left, scroll down = scroll right
+        el.scrollLeft += e.deltaY;
       }
     };
     el.addEventListener("wheel", handler, { passive: false });
@@ -208,28 +227,19 @@ function Timeline({ season, onSeasonChange }: { season: 2025 | 2026; onSeasonCha
 
   return (
     <div className="mb-4">
-      <div className="flex items-center gap-3 mb-4">
-        {([2025, 2026] as const).map((yr) => (
-          <button key={yr} onClick={() => onSeasonChange(yr)}
-            className="px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all border"
-            style={season === yr
-              ? { borderColor: SEASON_COLORS[yr] + "80", background: SEASON_COLORS[yr] + "20", color: SEASON_COLORS[yr] }
-              : { borderColor: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.3)" }}>
-            {yr}
-          </button>
-        ))}
-        {pinnedMatches.size > 0 && (
+      {pinnedMatches.size > 0 && (
+        <div className="flex justify-end mb-2">
           <button onClick={() => setPinnedMatches(new Set())}
-            className="text-[10px] text-white/25 hover:text-white/50 transition-colors border border-white/[0.07] rounded-lg px-2 py-1">
+            className="text-[11px] text-white/30 hover:text-white/55 transition-colors border border-white/[0.07] rounded-lg px-2.5 py-1">
             Limpar {pinnedMatches.size} fixado{pinnedMatches.size > 1 ? "s" : ""}
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       <div ref={scrollRef}
         style={{ overflowX: "auto", overflowY: "visible", scrollbarWidth: "none" } as React.CSSProperties}
-        className="pb-4">
-        <div style={{ display: "flex", gap: "0", minWidth: "max-content", overflowY: "visible" }}>
+        className="pb-6">
+        <div style={{ display: "flex", gap: "0", minWidth: "max-content", paddingBottom: 32 }}>
           {dayCols.map((day, colIdx) => {
             const rodadaKeys = Array.from(new Set(day.matches.map((m) => `${m.rodada}-${m.ano}`)));
             const hasMultipleRodadas = rodadaKeys.length > 1;
@@ -243,25 +253,26 @@ function Timeline({ season, onSeasonChange }: { season: 2025 | 2026; onSeasonCha
             return (
               <div key={day.date}
                 style={{
-                  width: 130, flexShrink: 0,
-                  paddingRight: 12,
+                  width: 148, flexShrink: 0,
+                  paddingRight: 14,
                   marginRight: 4,
                   borderRight: colIdx < dayCols.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none",
+                  overflow: "visible",
                 }}>
-                <div className="text-[10px] text-white/25 px-1 mb-1.5 tabular-nums">
+                <div className="text-[11px] text-white/30 px-1 mb-2 tabular-nums">
                   <span className="capitalize">{day.weekday.slice(0, 3)}</span>
                   <span className="ml-1">{day.display}</span>
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "4px", overflow: "visible" }}>
                   {Array.from(rodadaGroups.values()).map((rg) => (
-                    <div key={`${rg.rodada}-${rg.ano}`}>
+                    <div key={`${rg.rodada}-${rg.ano}`} style={{ overflow: "visible" }}>
                       {hasMultipleRodadas && (
-                        <div className="text-[9px] text-white/20 px-1 mb-1 uppercase tracking-wider">
+                        <div className="text-[10px] text-white/20 px-1 mb-1 uppercase tracking-wider">
                           Rod. {rg.rodada}
                         </div>
                       )}
                       {rg.matches.map((match) => (
-                        <div key={match.key} className="mb-1" style={{ position: "relative", zIndex: pinnedMatches.has(match.key) ? 10 : 1 }}>
+                        <div key={match.key} style={{ marginBottom: 5, position: "relative", overflow: "visible", zIndex: pinnedMatches.has(match.key) ? 20 : 1 }}>
                           <MatchCard
                             match={match}
                             isPinned={pinnedMatches.has(match.key)}
@@ -389,21 +400,19 @@ function RankingCard({ title, type }: { title: string; type: "top10" | "clubs" |
           <tbody>
             {data.top10.map((g, idx) => (
               <tr key={idx} className="border-t border-white/[0.04] hover:bg-white/[0.02] transition-colors">
-                <td className="pl-4 pr-2 py-2.5 text-white/25 tabular-nums text-sm w-6">{idx + 1}</td>
-                <td className="py-2.5 pr-2">
-                  <div className="flex items-center gap-1 flex-wrap">
-                    <span className="text-sm text-white/60 truncate max-w-[60px]">{g.mandante}</span>
-                    <TeamLogo team={g.mandante} size={15} />
+                <td className="pl-4 pr-2 py-3 text-white/25 tabular-nums text-sm w-6">{idx + 1}</td>
+                <td className="py-3 pr-2">
+                  <div className="flex items-center gap-1.5">
+                    <TeamLogo team={g.mandante} size={22} />
                     <span className="text-white/20 text-xs shrink-0">×</span>
-                    <TeamLogo team={g.visitante} size={15} />
-                    <span className="text-sm text-white/60 truncate max-w-[60px]">{g.visitante}</span>
+                    <TeamLogo team={g.visitante} size={22} />
                   </div>
-                  <div className="flex items-center gap-1.5 mt-0.5">
+                  <div className="flex items-center gap-1.5 mt-1">
                     <span className="text-xs text-white/25">Rod. {g.rodada}</span>
                     <SeasonPill ano={g.ano} />
                   </div>
                 </td>
-                <td className="pr-4 py-2.5 text-right font-bold text-white tabular-nums whitespace-nowrap text-base">
+                <td className="pr-4 py-3 text-right font-bold text-white tabular-nums whitespace-nowrap text-base">
                   {formatMetric(g.detentor, getMetric(g))}
                 </td>
               </tr>
@@ -411,48 +420,36 @@ function RankingCard({ title, type }: { title: string; type: "top10" | "clubs" |
           </tbody>
         </table>
       ) : type === "clubs" ? (
-        <table className="w-full border-collapse" style={{ tableLayout: "fixed" }}>
-          <colgroup>
-            <col style={{ width: 32 }} />
-            <col />
-            <col style={{ width: 88 }} />
-            <col style={{ width: 88 }} />
-          </colgroup>
-          <tbody>
-            {data.topClubs.map((c, idx) => {
-              const pct = data.topClubs[0]?.avg ? (c.avg / data.topClubs[0].avg) * 100 : 0;
-              return (
-                <tr key={c.team} className="border-t border-white/[0.04] hover:bg-white/[0.02] transition-colors">
-                  <td className="pl-4 pr-1 py-2.5 text-white/25 tabular-nums text-sm">{idx + 1}</td>
-                  <td className="py-2.5 pr-2">
-                    <div className="flex items-center gap-1.5">
-                      <TeamLogo team={c.team} size={16} />
-                      <div>
-                        <div className="text-sm text-white/65 truncate">{c.team}</div>
-                        <div className="text-xs text-white/35 mt-0.5">{c.count} jogos</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-2.5 px-2">
-                    <div className="w-full h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
-                      <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: accent }} />
-                    </div>
-                  </td>
-                  <td className="pr-4 py-2.5 text-right font-bold text-white tabular-nums whitespace-nowrap text-base">
-                    {formatMetric(data.detentor, c.avg)}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <div>
+          {data.topClubs.map((c, idx) => {
+            const pct = data.topClubs[0]?.avg ? (c.avg / data.topClubs[0].avg) * 100 : 0;
+            return (
+              <div key={c.team} className="flex items-center border-t border-white/[0.04] hover:bg-white/[0.02] transition-colors px-4 py-3 gap-3">
+                <span className="text-sm text-white/25 tabular-nums w-5 shrink-0">{idx + 1}</span>
+                <div className="w-36 shrink-0">
+                  <div className="flex items-center gap-1.5">
+                    <TeamLogo team={c.team} size={16} />
+                    <span className="text-sm text-white/65 truncate">{c.team}</span>
+                  </div>
+                  <div className="text-xs text-white/35 mt-0.5 pl-0.5">{c.count} jogos</div>
+                </div>
+                <div className="flex-1 h-2 rounded-full bg-white/[0.06] overflow-hidden">
+                  <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: accent }} />
+                </div>
+                <span className="text-base font-bold text-white tabular-nums whitespace-nowrap shrink-0">
+                  {formatMetric(data.detentor, c.avg)}
+                </span>
+              </div>
+            );
+          })}
+        </div>
       ) : (
         <table className="w-full border-collapse">
           <tbody>
             {data.topSlots.map((s, idx) => (
               <tr key={`${s.dia}|${s.horario}`} className="border-t border-white/[0.04] hover:bg-white/[0.02] transition-colors">
-                <td className="pl-4 pr-2 py-2.5 text-white/25 tabular-nums text-sm w-6">{idx + 1}</td>
-                <td className="py-2.5 pr-4">
+                <td className="pl-4 pr-2 py-3 text-white/25 tabular-nums text-sm w-6">{idx + 1}</td>
+                <td className="py-3 pr-4">
                   <div>
                     <span className="text-sm text-white/65 capitalize">{DIA_LABELS[s.dia]?.slice(0, 3) ?? s.dia}</span>
                     <span className="text-white/25 mx-1.5">·</span>
@@ -460,7 +457,7 @@ function RankingCard({ title, type }: { title: string; type: "top10" | "clubs" |
                   </div>
                   <div className="text-xs text-white/35 mt-0.5">{s.count} {s.count === 1 ? "jogo" : "jogos"}</div>
                 </td>
-                <td className="pr-4 py-2.5 text-right font-bold text-white tabular-nums whitespace-nowrap text-base">
+                <td className="pr-4 py-3 text-right font-bold text-white tabular-nums whitespace-nowrap text-base">
                   {formatMetric(data.detentor, s.avg)}
                 </td>
               </tr>
@@ -487,9 +484,10 @@ export default function GeralPage() {
 
       <DetentorAvgBar season={avgSeason} onSeasonChange={setAvgSeason} />
 
-      <div className="mt-8 mb-4">
-        <h2 className="text-2xl font-bold text-white mb-1">Calendário</h2>
-        <p className="text-white/35 text-sm">Jogos em ordem cronológica — mais recente à esquerda</p>
+      <div className="mt-10 mb-4 flex items-center gap-4">
+        <h2 className="text-2xl font-bold text-white">Calendário</h2>
+        <SeasonToggle value={calendarSeason} onChange={setCalendarSeason} />
+        <p className="text-white/30 text-sm">Scroll vertical: ↑ esquerda · ↓ direita</p>
       </div>
 
       <Timeline season={calendarSeason} onSeasonChange={setCalendarSeason} />
