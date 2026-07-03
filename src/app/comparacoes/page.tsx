@@ -3,7 +3,7 @@ import { useState, useMemo } from "react";
 import { games, DETENTORES, DETENTOR_COLORS, SEASON_COLORS } from "@/data/games";
 import { LOGOS } from "@/data/logos";
 import { getMetric, formatMetric, formatAudiencia, parseDate, avg, normalizeHorario, PNT_DETENTORES } from "@/lib/stats";
-import FilterDialog, { FilterState } from "@/components/FilterDialog";
+import FilterDialog, { FilterState, filterSummaryText } from "@/components/FilterDialog";
 import TeamLogo from "@/components/TeamLogo";
 
 type SortKey = "rodada" | "metric" | "data";
@@ -146,23 +146,31 @@ function ComparePanel({ label, accentColor }: { label: string; accentColor: stri
       </div>
 
       {/* Stats box */}
-      <div className="glass rounded-2xl p-4 relative">
-        {/* Mixed-metrics alert — top-right */}
-        {isMixed && (
-          <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-red-500/15 border border-red-500/30 rounded-lg px-2.5 py-1.5">
-            <svg className="w-3.5 h-3.5 text-red-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-            </svg>
-            <span className="text-[10px] font-semibold text-red-400 uppercase tracking-wide">Métricas mistas</span>
-          </div>
-        )}
-
+      <div className="glass rounded-2xl p-4">
         {withMetric.length === 0 ? (
           <p className="text-white/25 text-xs">Nenhum jogo com dados</p>
         ) : (
           <>
-            {/* Primary: overall average */}
-            <p className="text-[10px] text-white/35 uppercase tracking-widest mb-1">Média geral</p>
+            {/* Top row: label + filter summary + mixed alert */}
+            <div className="flex items-start justify-between gap-3 mb-1">
+              <p className="text-[10px] text-white/35 uppercase tracking-widest shrink-0">Média geral</p>
+              <div className="flex items-center gap-2 min-w-0">
+                {filterSummaryText(filters) && (
+                  <p className="text-[9px] text-white/20 text-right leading-tight truncate" title={filterSummaryText(filters) ?? undefined}>
+                    {filterSummaryText(filters)}
+                  </p>
+                )}
+                {isMixed && (
+                  <div className="flex items-center gap-1 bg-red-500/15 border border-red-500/30 rounded-md px-2 py-1 shrink-0">
+                    <svg className="w-3 h-3 text-red-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                    </svg>
+                    <span className="text-[9px] font-semibold text-red-400 uppercase tracking-wide whitespace-nowrap">Métricas mistas</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
             <p className="text-3xl font-bold text-white tabular-nums mb-3">{avgAllFmt}</p>
 
             {/* Secondary: per-season breakdown */}

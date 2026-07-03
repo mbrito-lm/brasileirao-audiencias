@@ -32,6 +32,28 @@ const DIA_LABELS: Record<string, string> = {
   "qui.": "Quinta", "sex.": "Sexta", "sáb.": "Sábado", "dom.": "Domingo",
 };
 
+const DIA_LABELS_SHORT: Record<string, string> = {
+  "seg.": "Seg", "ter.": "Ter", "qua.": "Qua",
+  "qui.": "Qui", "sex.": "Sex", "sáb.": "Sáb", "dom.": "Dom",
+};
+
+export function filterSummaryText(filters: FilterState): string | null {
+  const parts: string[] = [];
+  if (filters.detentores?.length) parts.push(filters.detentores.join(" · "));
+  if (filters.anos.length) parts.push(filters.anos.join(" · "));
+  if (filters.dias.length) parts.push(filters.dias.map((d) => DIA_LABELS_SHORT[d] ?? d).join(" · "));
+  if (filters.horarios.length) parts.push(filters.horarios.join(" · "));
+  if (filters.rodadas.length) {
+    if (filters.rodadas.length <= 5) parts.push("Rod. " + filters.rodadas.join(" · "));
+    else parts.push(`${filters.rodadas.length} rodadas`);
+  }
+  if (filters.times.length) {
+    if (filters.times.length <= 3) parts.push(filters.times.join(" · "));
+    else parts.push(`${filters.times.length} times`);
+  }
+  return parts.length ? parts.join("  |  ") : null;
+}
+
 export default function FilterDialog({ state, onChange, options, singleDetentor }: FilterDialogProps) {
   const [open, setOpen] = useState(false);
   const [teamSearch, setTeamSearch] = useState("");
@@ -133,7 +155,8 @@ export default function FilterDialog({ state, onChange, options, singleDetentor 
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: "rgba(0,0,0,0.70)", backdropFilter: "blur(8px)" }}
           onClick={() => setOpen(false)}>
-          <div className="glass-strong rounded-3xl w-full max-w-5xl shadow-2xl overflow-hidden"
+          <div className="glass-strong rounded-3xl w-full max-w-5xl shadow-2xl overflow-hidden flex flex-col"
+            style={{ height: "82vh" }}
             onClick={(e) => e.stopPropagation()}>
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-5 border-b border-white/[0.07]">
@@ -185,8 +208,8 @@ export default function FilterDialog({ state, onChange, options, singleDetentor 
               </div>
             )}
 
-            {/* Columns */}
-            <div className="grid grid-cols-5 divide-x divide-white/[0.06]" style={{ maxHeight: "65vh" }}>
+            {/* Columns — flex-1 fills remaining modal height, overflow hidden so each column scrolls independently */}
+            <div className="grid grid-cols-5 divide-x divide-white/[0.06] flex-1 min-h-0" style={{ overflow: "hidden" }}>
               {/* Temporada */}
               <ColSection title="Temporada" count={state.anos.length} onClear={() => clearKey("anos")}>
                 <div className="space-y-1 px-4 py-3">

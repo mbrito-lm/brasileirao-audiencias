@@ -6,7 +6,7 @@ import {
   getMetric, formatMetric, deltaPercent, formatDelta, deltaClass, parseDate, avg, normalizeHorario,
 } from "@/lib/stats";
 import { SEASON_COLORS } from "@/data/games";
-import FilterDialog, { FilterState } from "./FilterDialog";
+import FilterDialog, { FilterState, filterSummaryText } from "./FilterDialog";
 import TeamLogo from "./TeamLogo";
 
 type SortKey = "data" | "rodada" | "metric" | "deltaDet" | "deltaSlot" | "deltaTimes";
@@ -170,8 +170,15 @@ export default function GamesTable({ games, allGames, detentor }: Props) {
       {/* Season summary (detentor mode) */}
       {detentor && summary && summary.length > 0 && (
         <div className="grid grid-cols-2 gap-3 mb-4">
-          {summary.map((s) => (
-            <div key={s.ano} className="glass rounded-xl p-4">
+          {summary.map((s) => {
+            const summary_text = filterSummaryText(filters);
+            return (
+            <div key={s.ano} className="glass rounded-xl p-4 relative">
+              {summary_text && (
+                <p className="absolute top-3 right-3 text-[9px] text-white/20 text-right leading-tight max-w-[55%] truncate" title={summary_text}>
+                  {summary_text}
+                </p>
+              )}
               <p className="text-xs uppercase tracking-widest mb-3">
                 <span className="font-bold" style={{ color: SEASON_COLORS[s.ano] }}>{s.ano}</span>
                 <span className="text-white/35"> · {s.count} jogo{s.count !== 1 ? "s" : ""}</span>
@@ -192,7 +199,7 @@ export default function GamesTable({ games, allGames, detentor }: Props) {
                 </div>
               </div>
             </div>
-          ))}
+          );})}
         </div>
       )}
 
