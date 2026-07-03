@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { Game } from "@/data/games";
 import {
   mediaDetentor, mediaDiaHorario, mediaTimes,
@@ -8,8 +8,25 @@ import {
 import { SEASON_COLORS } from "@/data/games";
 import FilterDialog, { FilterState, filterSummaryText } from "./FilterDialog";
 import TeamLogo from "./TeamLogo";
+import { ALL_SCHEDULE, ScheduleGameTagged } from "@/data/schedule";
 
 type SortKey = "data" | "rodada" | "metric" | "deltaDet" | "deltaSlot" | "deltaTimes";
+
+function timeToMin(h: string): number {
+  const [hh, mm] = h.split(":").map(Number);
+  return hh * 60 + (mm || 0);
+}
+
+function findConcurrent(game: Game): ScheduleGameTagged[] {
+  if (!game.horario) return [];
+  const gameMin = timeToMin(game.horario.substring(0, 5));
+  return ALL_SCHEDULE.filter(sg => {
+    if (sg.data !== game.data) return false;
+    if (sg.mandante === game.mandante && sg.visitante === game.visitante) return false;
+    if (!sg.hora) return false;
+    return Math.abs(timeToMin(sg.hora) - gameMin) < 120;
+  });
+}
 
 const DELTA_TIPS: Record<string, string> = {
   deltaDet: "Diferença % em relação à média de todos os jogos deste detentor",
@@ -29,6 +46,7 @@ export default function GamesTable({ games, allGames, detentor }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>("data");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [tooltip, setTooltip] = useState<{ key: string; x: number; y: number } | null>(null);
+  const [concPopup, setConcPopup] = useState<{ games: ScheduleGameTagged[]; x: number; y: number } | null>(null);
 
   const filterOptions = useMemo(() => {
     function cross(exclude: keyof FilterState) {
@@ -221,6 +239,7 @@ export default function GamesTable({ games, allGames, detentor }: Props) {
                   <DeltaTh label="Δ Detentor" tipKey="deltaDet" sortKey="deltaDet" current={sortKey} dir={sortDir} onSort={handleSort} onTip={setTooltip} />
                   <DeltaTh label="Δ Slot" tipKey="deltaSlot" sortKey="deltaSlot" current={sortKey} dir={sortDir} onSort={handleSort} onTip={setTooltip} />
                   <DeltaTh label="Δ Times" tipKey="deltaTimes" sortKey="deltaTimes" current={sortKey} dir={sortDir} onSort={handleSort} onTip={setTooltip} />
+                  <th className="px-4 py-3 text-center font-medium">Simultâneos</th>
                 </tr>
               </thead>
               <tbody>
@@ -261,6 +280,7 @@ export default function GamesTable({ games, allGames, detentor }: Props) {
                       <DeltaCell value={g.deltaDet} />
                       <DeltaCell value={g.deltaSlot} />
                       <DeltaCell value={g.deltaTimes} />
+                      <ConcurrentCell game={g} onHover={setConcPopup} />
                     </tr>
                   ))
                 )}
@@ -276,6 +296,25 @@ export default function GamesTable({ games, allGames, detentor }: Props) {
           style={{ left: tooltip.x, top: tooltip.y - 8, transform: "translate(-50%, -100%)" }}
         >
           <p className="text-white/80 leading-relaxed">{DELTA_TIPS[tooltip.key]}</p>
+        </div>
+      )}
+      {concPopup && (
+        <div
+          className="fixed z-50 glass rounded-xl p-3 shadow-2xl pointer-events-none"
+          style={{ left: concPopup.x, top: concPopup.y - 8, transform: "translate(-50%, -100%)", minWidth: 260, maxWidth: 340 }}
+        >
+          <p className="text-white/40 text-[10px] uppercase tracking-widest mb-2">Jogos simultâneos</p>
+          <div className="flex flex-col gap-1.5">
+            {concPopup.games.map((sg, i) => (
+              <div key={i} className="flex items-center gap-2 text-xs">
+                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${sg.liga === "FFU" ? "bg-blue-500/20 text-blue-300" : "bg-white/10 text-white/40"}`}>
+                  {sg.liga}
+                </span>
+                <span className="text-white/70 font-medium">{sg.mandante} × {sg.visitante}</span>
+                <span className="text-white/35 tabular-nums ml-auto">{sg.hora}</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -319,6 +358,28 @@ function DeltaTh({ label, tipKey, sortKey, current, dir, onSort, onTip }: {
         <span className="ml-1 text-white/15">↕</span>
       )}
     </th>
+  );
+}
+
+function ConcurrentCell({ game, onHover }: {
+  game: Game;
+  onHover: (p: { games: ScheduleGameTagged[]; x: number; y: number } | null) => void;
+}) {
+  const concurrent = useMemo(() => findConcurrent(game), [game]);
+  if (concurrent.length === 0) return <td className="px-4 py-3 text-center text-white/15 text-xs">—</td>;
+  return (
+    <td className="px-4 py-3 text-center">
+      <span
+        className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-white/[0.07] text-white/60 text-xs font-semibold cursor-default hover:bg-white/[0.13] transition-colors"
+        onMouseEnter={(e) => {
+          const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+          onHover({ games: concurrent, x: r.left + r.width / 2, y: r.top + window.scrollY });
+        }}
+        onMouseLeave={() => onHover(null)}
+      >
+        {concurrent.length}
+      </span>
+    </td>
   );
 }
 

@@ -4,6 +4,7 @@ import { games, DETENTORES, DETENTOR_COLORS, SEASON_COLORS, Game } from "@/data/
 import { LOGOS } from "@/data/logos";
 import { getMetric, formatMetric, avg, normalizeHorario, parseDate } from "@/lib/stats";
 import TeamLogo from "@/components/TeamLogo";
+import { FFU_SCHEDULE, ScheduleGame } from "@/data/schedule";
 
 const WEEK_DAYS = ["dom.", "seg.", "ter.", "qua.", "qui.", "sex.", "sáb."];
 
@@ -36,6 +37,74 @@ function BrandedLogo({ detentor, src, className, imgStyle }: {
   detentor: string; src: string; className?: string; imgStyle?: React.CSSProperties;
 }) {
   return <img src={src} alt={detentor} className={className} style={imgStyle} />;
+}
+
+function parseDDMMYYYY(s: string): number {
+  if (!s) return 0;
+  const [d, m, y] = s.split("/");
+  return new Date(+y, +m - 1, +d).getTime();
+}
+
+function ProximosJogos() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayMs = today.getTime();
+
+  const nextDate = useMemo(() => {
+    const futureDates = FFU_SCHEDULE
+      .map(g => g.data)
+      .filter(d => d && parseDDMMYYYY(d) >= todayMs);
+    if (!futureDates.length) return null;
+    return futureDates.reduce((min, d) => parseDDMMYYYY(d) < parseDDMMYYYY(min) ? d : min);
+  }, [todayMs]);
+
+  const nextGames = useMemo(() =>
+    nextDate ? FFU_SCHEDULE.filter(g => g.data === nextDate).sort((a, b) => a.hora.localeCompare(b.hora)) : [],
+    [nextDate]
+  );
+
+  if (!nextGames.length) return null;
+
+  const [d, m, y] = nextDate!.split("/");
+  const dateObj = new Date(+y, +m - 1, +d);
+  const weekDay = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"][dateObj.getDay()];
+  const dateLabel = `${weekDay}, ${d}/${m}`;
+
+  // Group by hora
+  const byHora: Record<string, ScheduleGame[]> = {};
+  nextGames.forEach(g => { (byHora[g.hora] = byHora[g.hora] || []).push(g); });
+
+  return (
+    <div className="mt-4 mb-2">
+      <div className="flex items-center gap-3 mb-3">
+        <span className="text-xs text-white/40 uppercase tracking-widest font-semibold">Próximos Jogos</span>
+        <span className="text-xs text-white/25">{dateLabel}</span>
+        <span className="ml-auto text-xs text-white/20">{nextGames.length} jogo{nextGames.length !== 1 ? "s" : ""}</span>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {nextGames.map((g, i) => (
+          <div key={i} className="glass border border-white/[0.07] rounded-xl px-3 py-2 flex items-center gap-2 text-xs">
+            <span className="text-white/30 tabular-nums w-10 shrink-0">{g.hora}</span>
+            <TeamLogo team={g.mandante} size={16} />
+            <span className="text-white/70 font-medium">{g.mandante}</span>
+            <span className="text-white/20">×</span>
+            <span className="text-white/70 font-medium">{g.visitante}</span>
+            <TeamLogo team={g.visitante} size={16} />
+            {g.detentores.length > 0 && (
+              <div className="flex gap-1 ml-1">
+                {g.detentores.map(det => (
+                  <span key={det} className="text-[9px] font-bold px-1.5 py-0.5 rounded"
+                    style={{ background: (DETENTOR_COLORS[det] || "#444") + "33", color: DETENTOR_COLORS[det] || "#999" }}>
+                    {det}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 const DIA_LABELS: Record<string, string> = {
@@ -578,6 +647,8 @@ export default function GeralPage() {
       </div>
 
       <Timeline season={calendarSeason} onSeasonChange={setCalendarSeason} />
+
+      <ProximosJogos />
 
       <div className="mt-6 pt-8 border-t border-white/[0.08] mb-6">
         <h2 className="text-2xl font-bold text-white mb-1">Rankings</h2>
