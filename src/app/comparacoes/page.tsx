@@ -29,7 +29,7 @@ function buildOptions(base: typeof games, filters: FilterState) {
     return r;
   }
   return {
-    detentores: DETENTORES,
+    detentores: [...DETENTORES],
     anos: Array.from(new Set(cross("anos").map((g) => g.ano))).sort(),
     dias: DIA_ORDER.filter((d) => cross("dias").some((g) => g.dia === d)),
     horarios: Array.from(new Set(cross("horarios").map((g) => normalizeHorario(g.horario.substring(0, 5))))).sort(),
