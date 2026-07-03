@@ -18,10 +18,10 @@ export type Detentor = (typeof DETENTORES)[number];
 
 export const DETENTOR_COLORS: Record<string, string> = {
   Amazon: "#006FFF",
-  "YouTube": "#00ADEF",
-  Globo: "#5C70A8",
+  YouTube: "#FF0000",
+  Globo: "#00ADEF",
   Premiere: "#8B2FC9",
-  Record: "#FF0000",
+  Record: "#5C70A8",
   SporTV: "#060927",
 };
 
