@@ -12,7 +12,7 @@ import { ALL_SCHEDULE, ScheduleGameTagged, getConcurrentCount } from "@/data/sch
 import { LOGOS, } from "@/data/logos";
 import { DETENTOR_COLORS } from "@/data/games";
 
-type SortKey = "data" | "rodada" | "metric" | "deltaDet" | "deltaSlot" | "deltaTimes" | "peak" | "streams" | "liveMinutes" | "totalViewers" | "ytPeak" | "ytAlcance" | "recordPraca";
+type SortKey = "data" | "rodada" | "metric" | "concorrentes" | "deltaDet" | "deltaSlot" | "deltaTimes" | "peak" | "streams" | "liveMinutes" | "totalViewers" | "ytPeak" | "ytAlcance" | "recordPraca";
 
 function timeToMin(h: string): number {
   const [hh, mm] = h.split(":").map(Number);
@@ -102,6 +102,7 @@ export default function GamesTable({ games, allGames, detentor, showDeltas = tru
         deltaSlot: metric !== null ? deltaPercent(metric, medSlot) : null,
         deltaTimes: metric !== null ? deltaPercent(metric, medTms) : null,
         _date: parseDate(g.data),
+        _concCount: findConcurrent(g).length,
       };
     });
   }, [games, allGames]);
@@ -133,6 +134,7 @@ export default function GamesTable({ games, allGames, detentor, showDeltas = tru
       if (sortKey === "data") { va = a._date; vb = b._date; }
       else if (sortKey === "rodada") { va = a.rodada; vb = b.rodada; }
       else if (sortKey === "metric") { va = a._metric; vb = b._metric; }
+      else if (sortKey === "concorrentes") { va = a._concCount; vb = b._concCount; }
       else if (sortKey === "peak" || sortKey === "streams" || sortKey === "liveMinutes" || sortKey === "totalViewers") {
         const ea = AMAZON_EXTRA_METRICS[a.data]; const eb = AMAZON_EXTRA_METRICS[b.data];
         va = ea ? ea[sortKey] : null; vb = eb ? eb[sortKey] : null;
@@ -265,7 +267,7 @@ export default function GamesTable({ games, allGames, detentor, showDeltas = tru
                   <th className="px-4 py-3 text-left font-medium">Horário</th>
                   <th className="px-4 py-3 text-center font-medium">Jogo</th>
                   <SortTh label="Audiência" sortKey="metric" current={sortKey} dir={sortDir} onSort={handleSort} right />
-                  <th className="px-2 py-3 text-center font-medium" style={{ width: 80, minWidth: 80 }}>Conc.</th>
+                  <SortTh label="Conc." sortKey="concorrentes" current={sortKey} dir={sortDir} onSort={handleSort} />
                   {isAmazon && (
                     <th className="pl-4 pr-1 py-3 text-center" style={{ width: 28, minWidth: 28 }}>
                       <button
