@@ -155,7 +155,7 @@ export default function GamesTable({ games, allGames, detentor, showDeltas = tru
       if (vb === null) return -1;
       return sortDir === "asc" ? va - vb : vb - va;
     });
-  }, [enriched, detentor, filters, search, sortKey, sortDir]);
+  }, [enriched, detentor, filters, search, sortKey, sortDir, sortRecordPraca]);
 
   const handleSort = (key: SortKey) => {
     if (key === sortKey) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
