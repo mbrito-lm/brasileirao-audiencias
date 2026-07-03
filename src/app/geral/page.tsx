@@ -10,6 +10,7 @@ const DIA_LABELS: Record<string, string> = {
   "seg.": "Segunda", "ter.": "Terça", "qua.": "Quarta",
   "qui.": "Quinta", "sex.": "Sexta", "sáb.": "Sábado", "dom.": "Domingo",
 };
+const ROW_H = 56; // consistent row height across all ranking cards
 
 function parseDateObj(dateStr: string): Date {
   const [d, m, y] = dateStr.split("/");
@@ -41,7 +42,6 @@ function SeasonFilter({ value, onChange, nullLabel = "Todas" }: {
   );
 }
 
-// Season toggle pill (2025 ↔ 2026)
 function SeasonToggle({ value, onChange }: { value: 2025 | 2026; onChange: (s: 2025 | 2026) => void }) {
   return (
     <div className="flex items-center bg-white/[0.06] border border-white/[0.08] rounded-full p-0.5">
@@ -75,17 +75,17 @@ function DetentorAvgBar({ season, onSeasonChange }: { season: number | null; onS
       <div className="flex items-center gap-3 mb-3">
         <SeasonFilter value={season} onChange={onSeasonChange} nullLabel="Geral" />
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: `repeat(${stats.length}, 1fr)`, gap: 8 }}>
+      <div style={{ display: "flex", gap: 8 }}>
         {stats.map(({ detentor: d, avgVal }) => (
-          <div key={d} className="glass rounded-xl px-3 py-3 border border-white/[0.07] flex flex-col items-center gap-1.5">
+          <div key={d} className="glass rounded-xl border border-white/[0.07] flex items-center gap-3 flex-1 px-4 py-3">
             {LOGOS[d] ? (
-              <img src={LOGOS[d]} alt={d} className="h-6 w-auto object-contain"
-                style={{ filter: "brightness(0) invert(1)", opacity: 0.75, maxWidth: 80 }} />
+              <img src={LOGOS[d]} alt={d} className="h-8 w-auto object-contain shrink-0"
+                style={{ filter: "brightness(0) invert(1)", opacity: 0.8, maxWidth: 88 }} />
             ) : (
-              <span className="text-sm font-semibold" style={{ color: DETENTOR_COLORS[d] || "#9ca3af" }}>{d}</span>
+              <span className="text-sm font-semibold shrink-0" style={{ color: DETENTOR_COLORS[d] || "#9ca3af" }}>{d}</span>
             )}
-            <div className="w-full h-px bg-white/[0.07]" />
-            <span className="text-sm font-bold text-white tabular-nums">{formatMetric(d, avgVal)}</span>
+            <div className="w-px h-5 bg-white/[0.10] shrink-0" />
+            <span className="text-base font-bold text-white tabular-nums">{formatMetric(d, avgVal)}</span>
           </div>
         ))}
       </div>
@@ -104,6 +104,8 @@ type MatchInDay = {
   key: string;
 };
 type DayCol = { date: string; display: string; weekday: string; matches: MatchInDay[] };
+type DayWithRodada = DayCol & { primaryRodada: number | null };
+type DayGroup = { rodada: number | null; days: DayWithRodada[] };
 
 function buildTimeline(season: 2025 | 2026): DayCol[] {
   const filtered = games.filter((g) => g.ano === season);
@@ -154,41 +156,41 @@ function MatchCard({ match, isPinned, onPin }: { match: MatchInDay; isPinned: bo
       style={{
         transform: isElevated ? "scale(1.35)" : "scale(1)",
         transformOrigin: "top center",
-        transition: "transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease",
+        transition: "transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease",
         boxShadow: isPinned
-          ? "0 0 0 1.5px rgba(96,165,250,0.8), 0 0 20px rgba(60,100,255,0.4)"
+          ? "0 0 0 1.5px rgba(96,165,250,0.85), 0 0 24px rgba(60,100,255,0.4)"
           : isElevated
-          ? "0 10px 32px rgba(0,0,0,0.7)"
+          ? "0 10px 32px rgba(0,0,0,0.75)"
           : undefined,
+        background: isElevated ? "rgba(10, 13, 28, 0.98)" : "rgba(18, 22, 42, 0.50)",
+        backdropFilter: isElevated ? "none" : "blur(12px)",
         cursor: "pointer",
         zIndex: isElevated ? 20 : 1,
         position: "relative",
-        background: isPinned ? "rgba(10,14,30,0.85)" : undefined,
+        borderRadius: 8,
+        padding: "8px 10px",
+        border: isPinned ? "1px solid rgba(96,165,250,0.7)" : isElevated ? "1px solid rgba(255,255,255,0.22)" : "1px solid rgba(255,255,255,0.07)",
       }}
-      className={`rounded-lg px-2.5 py-2 border glass ${isPinned ? "border-blue-400/70" : isElevated ? "border-white/25" : "border-white/[0.07]"}`}
     >
       <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-1">
           <TeamLogo team={match.mandante} size={18} />
-          <span className="text-white/15 text-[10px] mx-0.5">×</span>
+          <span style={{ color: "rgba(255,255,255,0.15)", fontSize: 10, margin: "0 2px" }}>×</span>
           <TeamLogo team={match.visitante} size={18} />
         </div>
-        <span className="text-[10px] text-white/35 tabular-nums ml-2">{match.horario}</span>
+        <span style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", fontVariantNumeric: "tabular-nums", marginLeft: 6 }}>{match.horario}</span>
       </div>
       {match.broadcasters.map((b) => (
-        <div key={b.detentor} className="flex items-center justify-between gap-1.5 mt-1">
-          <div className="h-3.5 flex items-center">
+        <div key={b.detentor} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, marginTop: 4 }}>
+          <div style={{ height: 14, display: "flex", alignItems: "center" }}>
             {LOGOS[b.detentor] ? (
               <img src={LOGOS[b.detentor]} alt={b.detentor}
-                className="h-3.5 w-auto object-contain max-w-[60px]"
-                style={{ filter: "brightness(0) invert(1)", opacity: 0.7 }} />
+                style={{ height: 14, width: "auto", objectFit: "contain", maxWidth: 60, filter: "brightness(0) invert(1)", opacity: 0.7 }} />
             ) : (
-              <span className="text-[10px] font-semibold" style={{ color: DETENTOR_COLORS[b.detentor] || "#9ca3af" }}>
-                {b.detentor}
-              </span>
+              <span style={{ fontSize: 10, fontWeight: 600, color: DETENTOR_COLORS[b.detentor] || "#9ca3af" }}>{b.detentor}</span>
             )}
           </div>
-          <span className="text-xs font-bold text-white tabular-nums shrink-0">
+          <span style={{ fontSize: 12, fontWeight: 700, color: "white", fontVariantNumeric: "tabular-nums" }}>
             {formatMetric(b.detentor, b.metric)}
           </span>
         </div>
@@ -202,19 +204,51 @@ function Timeline({ season, onSeasonChange }: { season: 2025 | 2026; onSeasonCha
   const [pinnedMatches, setPinnedMatches] = useState<Set<string>>(new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Group consecutive days with the same single rodada
+  const dayGroups: DayGroup[] = useMemo(() => {
+    const withRodada: DayWithRodada[] = dayCols.map((day) => {
+      const rodadas = new Set(day.matches.map((m) => m.rodada));
+      return { ...day, primaryRodada: rodadas.size === 1 ? [...rodadas][0] : null };
+    });
+    const groups: DayGroup[] = [];
+    withRodada.forEach((day) => {
+      const last = groups[groups.length - 1];
+      if (last && last.rodada !== null && last.rodada === day.primaryRodada) {
+        last.days.push(day);
+      } else {
+        groups.push({ rodada: day.primaryRodada, days: [day] });
+      }
+    });
+    return groups;
+  }, [dayCols]);
+
+  // Smooth scroll: RAF easing
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
+    let target = el.scrollLeft;
+    let rafId: number | null = null;
+
+    const tick = () => {
+      const diff = target - el.scrollLeft;
+      if (Math.abs(diff) < 0.5) { el.scrollLeft = target; rafId = null; return; }
+      el.scrollLeft += diff * 0.14;
+      rafId = requestAnimationFrame(tick);
+    };
+
     const handler = (e: WheelEvent) => {
-      const isVertical = Math.abs(e.deltaY) > Math.abs(e.deltaX);
-      if (isVertical) {
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
         e.preventDefault();
-        // scroll up (negative deltaY) = scroll left, scroll down = scroll right
-        el.scrollLeft += e.deltaY;
+        target = Math.max(0, Math.min(el.scrollWidth - el.clientWidth, target + e.deltaY * 1.1));
+        if (rafId === null) rafId = requestAnimationFrame(tick);
       }
     };
+
     el.addEventListener("wheel", handler, { passive: false });
-    return () => el.removeEventListener("wheel", handler);
+    return () => {
+      el.removeEventListener("wheel", handler);
+      if (rafId !== null) cancelAnimationFrame(rafId);
+    };
   }, []);
 
   const handlePin = (key: string) => {
@@ -239,49 +273,65 @@ function Timeline({ season, onSeasonChange }: { season: 2025 | 2026; onSeasonCha
       <div ref={scrollRef}
         style={{ overflowX: "auto", overflowY: "visible", scrollbarWidth: "none" } as React.CSSProperties}
         className="pb-6">
-        <div style={{ display: "flex", gap: "0", minWidth: "max-content", paddingBottom: 32 }}>
-          {dayCols.map((day, colIdx) => {
-            const rodadaKeys = Array.from(new Set(day.matches.map((m) => `${m.rodada}-${m.ano}`)));
-            const hasMultipleRodadas = rodadaKeys.length > 1;
-            const rodadaGroups = new Map<string, { rodada: number; ano: number; matches: MatchInDay[] }>();
-            day.matches.forEach((m) => {
-              const k = `${m.rodada}-${m.ano}`;
-              if (!rodadaGroups.has(k)) rodadaGroups.set(k, { rodada: m.rodada, ano: m.ano, matches: [] });
-              rodadaGroups.get(k)!.matches.push(m);
-            });
-
+        {/* paddingLeft/right gives scaled boxes room at the edges */}
+        <div style={{ display: "flex", gap: 0, minWidth: "max-content", paddingLeft: 40, paddingRight: 40, paddingBottom: 40 }}>
+          {dayGroups.map((group, gi) => {
+            const isLastGroup = gi === dayGroups.length - 1;
             return (
-              <div key={day.date}
-                style={{
-                  width: 148, flexShrink: 0,
-                  paddingRight: 14,
-                  marginRight: 4,
-                  borderRight: colIdx < dayCols.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none",
-                  overflow: "visible",
-                }}>
-                <div className="text-[11px] text-white/30 px-1 mb-2 tabular-nums">
-                  <span className="capitalize">{day.weekday.slice(0, 3)}</span>
-                  <span className="ml-1">{day.display}</span>
+              <div key={gi} style={{ display: "flex", flexDirection: "column", flexShrink: 0, paddingRight: 14, marginRight: 4, borderRight: !isLastGroup ? "1px solid rgba(255,255,255,0.08)" : "none", overflow: "visible" }}>
+                {/* Rodada header spanning all days in this group */}
+                <div style={{ height: 22, display: "flex", alignItems: "center", paddingLeft: 4, marginBottom: 6 }}>
+                  {group.rodada !== null ? (
+                    <span style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                      Rod. {group.rodada}
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: 10, color: "rgba(255,255,255,0.15)" }}>—</span>
+                  )}
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "4px", overflow: "visible" }}>
-                  {Array.from(rodadaGroups.values()).map((rg) => (
-                    <div key={`${rg.rodada}-${rg.ano}`} style={{ overflow: "visible" }}>
-                      {hasMultipleRodadas && (
-                        <div className="text-[10px] text-white/20 px-1 mb-1 uppercase tracking-wider">
-                          Rod. {rg.rodada}
+                {/* Days in this group side by side */}
+                <div style={{ display: "flex", gap: 0, overflow: "visible" }}>
+                  {group.days.map((day, di) => {
+                    const isLastDay = di === group.days.length - 1;
+                    // When multiple rodadas in this day, group matches by rodada
+                    const rodadas = new Set(day.matches.map((m) => m.rodada));
+                    const hasMultipleRodadas = rodadas.size > 1;
+                    const matchesByRodada = new Map<number, MatchInDay[]>();
+                    day.matches.forEach((m) => {
+                      if (!matchesByRodada.has(m.rodada)) matchesByRodada.set(m.rodada, []);
+                      matchesByRodada.get(m.rodada)!.push(m);
+                    });
+
+                    return (
+                      <div key={day.date} style={{ width: 148, flexShrink: 0, paddingRight: !isLastDay ? 10 : 0, borderRight: !isLastDay ? "1px solid rgba(255,255,255,0.04)" : "none", overflow: "visible" }}>
+                        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.30)", paddingLeft: 4, marginBottom: 8, fontVariantNumeric: "tabular-nums" }}>
+                          <span style={{ textTransform: "capitalize" }}>{day.weekday.slice(0, 3)}</span>
+                          <span style={{ marginLeft: 4 }}>{day.display}</span>
                         </div>
-                      )}
-                      {rg.matches.map((match) => (
-                        <div key={match.key} style={{ marginBottom: 5, position: "relative", overflow: "visible", zIndex: pinnedMatches.has(match.key) ? 20 : 1 }}>
-                          <MatchCard
-                            match={match}
-                            isPinned={pinnedMatches.has(match.key)}
-                            onPin={() => handlePin(match.key)}
-                          />
+                        <div style={{ display: "flex", flexDirection: "column", gap: 4, overflow: "visible" }}>
+                          {hasMultipleRodadas
+                            ? Array.from(matchesByRodada.entries()).map(([rod, matches]) => (
+                                <div key={rod} style={{ overflow: "visible" }}>
+                                  <div style={{ fontSize: 9, color: "rgba(255,255,255,0.20)", paddingLeft: 4, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                                    Rod. {rod}
+                                  </div>
+                                  {matches.map((match) => (
+                                    <div key={match.key} style={{ marginBottom: 4, overflow: "visible", position: "relative", zIndex: pinnedMatches.has(match.key) ? 20 : 1 }}>
+                                      <MatchCard match={match} isPinned={pinnedMatches.has(match.key)} onPin={() => handlePin(match.key)} />
+                                    </div>
+                                  ))}
+                                </div>
+                              ))
+                            : day.matches.map((match) => (
+                                <div key={match.key} style={{ marginBottom: 4, overflow: "visible", position: "relative", zIndex: pinnedMatches.has(match.key) ? 20 : 1 }}>
+                                  <MatchCard match={match} isPinned={pinnedMatches.has(match.key)} onPin={() => handlePin(match.key)} />
+                                </div>
+                              ))
+                          }
                         </div>
-                      ))}
-                    </div>
-                  ))}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             );
@@ -320,7 +370,7 @@ function computeDetentorStats(season: number | null): DetentorStat[] {
     });
     const topClubs = Array.from(clubMap.entries())
       .map(([team, { metrics, gc }]) => ({ team, avg: avg(metrics), count: gc }))
-      .sort((a, b) => b.avg - a.avg).slice(0, 10);
+      .sort((a, b) => b.avg - a.avg);
 
     const slotMap = new Map<string, { dia: string; horario: string; metrics: number[] }>();
     dGames.forEach((g) => {
@@ -331,9 +381,9 @@ function computeDetentorStats(season: number | null): DetentorStat[] {
     });
     const topSlots = Array.from(slotMap.values())
       .map((s) => ({ ...s, avg: avg(s.metrics), count: s.metrics.length }))
-      .sort((a, b) => b.avg - a.avg).slice(0, 8);
+      .sort((a, b) => b.avg - a.avg);
 
-    return [{ detentor: d, count: dGames.length, avgVal: avg(dGames.map((g) => getMetric(g) as number)), top10: sorted.slice(0, 10), topClubs, topSlots }];
+    return [{ detentor: d, count: dGames.length, avgVal: avg(dGames.map((g) => getMetric(g) as number)), top10: sorted, topClubs, topSlots }];
   });
 }
 
@@ -366,6 +416,15 @@ function DetentorTabs({ available, selected, onSelect }: {
   );
 }
 
+// Scrollable content wrapper: shows 10 rows, user can scroll for more
+function ScrollableRows({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ maxHeight: ROW_H * 10, overflowY: "auto", scrollbarWidth: "none" } as React.CSSProperties}>
+      {children}
+    </div>
+  );
+}
+
 function RankingCard({ title, type }: { title: string; type: "top10" | "clubs" | "slots" }) {
   const [season, setSeason] = useState<number | null>(null);
   const [selectedDetentor, setSelectedDetentor] = useState<string>(DETENTORES[0]);
@@ -375,6 +434,7 @@ function RankingCard({ title, type }: { title: string; type: "top10" | "clubs" |
   const effectiveDetentor = available.includes(selectedDetentor) ? selectedDetentor : (available[0] ?? "");
   const data = allStats.find((d) => d.detentor === effectiveDetentor);
   const accent = DETENTOR_COLORS[effectiveDetentor] || "#3b82f6";
+  const maxAvg = data?.topClubs[0]?.avg ?? 1;
 
   return (
     <div className="glass rounded-2xl overflow-hidden flex flex-col">
@@ -384,49 +444,42 @@ function RankingCard({ title, type }: { title: string; type: "top10" | "clubs" |
           <SeasonFilter value={season} onChange={setSeason} />
         </div>
         <DetentorTabs available={available} selected={effectiveDetentor} onSelect={setSelectedDetentor} />
-        {data && (
-          <div className="flex items-center gap-3 mt-3">
-            <span className="text-xs text-white/30">Média</span>
-            <span className="text-lg font-bold text-white">{formatMetric(data.detentor, data.avgVal)}</span>
-            <span className="text-xs text-white/25">{data.count} jogos</span>
-          </div>
-        )}
       </div>
 
       {!data ? (
         <p className="p-4 text-sm text-white/25">Sem dados para os filtros selecionados</p>
       ) : type === "top10" ? (
-        <table className="w-full border-collapse">
-          <tbody>
-            {data.top10.map((g, idx) => (
-              <tr key={idx} className="border-t border-white/[0.04] hover:bg-white/[0.02] transition-colors">
-                <td className="pl-4 pr-2 py-3 text-white/25 tabular-nums text-sm w-6">{idx + 1}</td>
-                <td className="py-3 pr-2">
-                  <div className="flex items-center gap-1.5">
-                    <TeamLogo team={g.mandante} size={22} />
-                    <span className="text-white/20 text-xs shrink-0">×</span>
-                    <TeamLogo team={g.visitante} size={22} />
-                  </div>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <span className="text-xs text-white/25">Rod. {g.rodada}</span>
-                    <SeasonPill ano={g.ano} />
-                  </div>
-                </td>
-                <td className="pr-4 py-3 text-right font-bold text-white tabular-nums whitespace-nowrap text-base">
-                  {formatMetric(g.detentor, getMetric(g))}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <ScrollableRows>
+          {data.top10.map((g, idx) => (
+            <div key={idx} className="flex items-center border-t border-white/[0.04] hover:bg-white/[0.02] transition-colors px-4 gap-3"
+              style={{ minHeight: ROW_H }}>
+              <span className="text-sm text-white/25 tabular-nums w-5 shrink-0">{idx + 1}</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <TeamLogo team={g.mandante} size={22} />
+                  <span className="text-white/20 text-xs shrink-0">×</span>
+                  <TeamLogo team={g.visitante} size={22} />
+                </div>
+                <div className="flex items-center gap-1.5 mt-1">
+                  <span className="text-xs text-white/25">Rod. {g.rodada}</span>
+                  <SeasonPill ano={g.ano} />
+                </div>
+              </div>
+              <span className="text-base font-bold text-white tabular-nums whitespace-nowrap shrink-0">
+                {formatMetric(g.detentor, getMetric(g))}
+              </span>
+            </div>
+          ))}
+        </ScrollableRows>
       ) : type === "clubs" ? (
-        <div>
+        <ScrollableRows>
           {data.topClubs.map((c, idx) => {
-            const pct = data.topClubs[0]?.avg ? (c.avg / data.topClubs[0].avg) * 100 : 0;
+            const pct = maxAvg ? (c.avg / maxAvg) * 100 : 0;
             return (
-              <div key={c.team} className="flex items-center border-t border-white/[0.04] hover:bg-white/[0.02] transition-colors px-4 py-3 gap-3">
+              <div key={c.team} className="flex items-center border-t border-white/[0.04] hover:bg-white/[0.02] transition-colors px-4 gap-3"
+                style={{ minHeight: ROW_H }}>
                 <span className="text-sm text-white/25 tabular-nums w-5 shrink-0">{idx + 1}</span>
-                <div className="w-36 shrink-0">
+                <div style={{ width: 132, flexShrink: 0 }}>
                   <div className="flex items-center gap-1.5">
                     <TeamLogo team={c.team} size={16} />
                     <span className="text-sm text-white/65 truncate">{c.team}</span>
@@ -442,28 +495,27 @@ function RankingCard({ title, type }: { title: string; type: "top10" | "clubs" |
               </div>
             );
           })}
-        </div>
+        </ScrollableRows>
       ) : (
-        <table className="w-full border-collapse">
-          <tbody>
-            {data.topSlots.map((s, idx) => (
-              <tr key={`${s.dia}|${s.horario}`} className="border-t border-white/[0.04] hover:bg-white/[0.02] transition-colors">
-                <td className="pl-4 pr-2 py-3 text-white/25 tabular-nums text-sm w-6">{idx + 1}</td>
-                <td className="py-3 pr-4">
-                  <div>
-                    <span className="text-sm text-white/65 capitalize">{DIA_LABELS[s.dia]?.slice(0, 3) ?? s.dia}</span>
-                    <span className="text-white/25 mx-1.5">·</span>
-                    <span className="text-sm text-white/50 tabular-nums">{s.horario}</span>
-                  </div>
-                  <div className="text-xs text-white/35 mt-0.5">{s.count} {s.count === 1 ? "jogo" : "jogos"}</div>
-                </td>
-                <td className="pr-4 py-3 text-right font-bold text-white tabular-nums whitespace-nowrap text-base">
-                  {formatMetric(data.detentor, s.avg)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <ScrollableRows>
+          {data.topSlots.map((s, idx) => (
+            <div key={`${s.dia}|${s.horario}`} className="flex items-center border-t border-white/[0.04] hover:bg-white/[0.02] transition-colors px-4 gap-3"
+              style={{ minHeight: ROW_H }}>
+              <span className="text-sm text-white/25 tabular-nums w-5 shrink-0">{idx + 1}</span>
+              <div className="flex-1 min-w-0">
+                <div>
+                  <span className="text-sm text-white/65 capitalize">{DIA_LABELS[s.dia]?.slice(0, 3) ?? s.dia}</span>
+                  <span className="text-white/25 mx-1.5">·</span>
+                  <span className="text-sm text-white/50 tabular-nums">{s.horario}</span>
+                </div>
+                <div className="text-xs text-white/35 mt-0.5">{s.count} {s.count === 1 ? "jogo" : "jogos"}</div>
+              </div>
+              <span className="text-base font-bold text-white tabular-nums whitespace-nowrap shrink-0">
+                {formatMetric(data.detentor, s.avg)}
+              </span>
+            </div>
+          ))}
+        </ScrollableRows>
       )}
     </div>
   );
@@ -487,14 +539,13 @@ export default function GeralPage() {
       <div className="mt-10 mb-4 flex items-center gap-4">
         <h2 className="text-2xl font-bold text-white">Calendário</h2>
         <SeasonToggle value={calendarSeason} onChange={setCalendarSeason} />
-        <p className="text-white/30 text-sm">Scroll vertical: ↑ esquerda · ↓ direita</p>
       </div>
 
       <Timeline season={calendarSeason} onSeasonChange={setCalendarSeason} />
 
-      <div className="mt-10 pt-8 border-t border-white/[0.08] mb-6">
+      <div className="mt-6 pt-8 border-t border-white/[0.08] mb-6">
         <h2 className="text-2xl font-bold text-white mb-1">Rankings</h2>
-        <p className="text-white/35 text-sm mb-6">Escolha o detentor dentro de cada ranking</p>
+        <p className="text-white/35 text-sm mb-6">Escolha o detentor dentro de cada ranking — scroll para ver mais</p>
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           <RankingCard title="Top 10 Audiências" type="top10" />
           <RankingCard title="Top Clubes" type="clubs" />
