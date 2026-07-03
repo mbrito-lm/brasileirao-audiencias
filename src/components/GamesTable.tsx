@@ -253,12 +253,12 @@ export default function GamesTable({ games, allGames, detentor, showDeltas = tru
                   {!detentor && <th className="px-4 py-3 text-left font-medium">Detentor</th>}
                   <th className="px-4 py-3 text-left font-medium">Temp.</th>
                   <SortTh label="Rod." sortKey="rodada" current={sortKey} dir={sortDir} onSort={handleSort} />
-                  <th className="px-4 py-3 text-center font-medium">Jogo</th>
                   <SortTh label="Data" sortKey="data" current={sortKey} dir={sortDir} onSort={handleSort} />
                   <th className="px-4 py-3 text-left font-medium">Dia</th>
                   <th className="px-4 py-3 text-left font-medium">Horário</th>
-                  <th className="px-2 py-3 text-center font-medium" style={{ width: 80, minWidth: 80 }}>Conc.</th>
+                  <th className="px-4 py-3 text-center font-medium">Jogo</th>
                   <SortTh label="Audiência" sortKey="metric" current={sortKey} dir={sortDir} onSort={handleSort} right />
+                  <th className="px-2 py-3 text-center font-medium" style={{ width: 80, minWidth: 80 }}>Conc.</th>
                   {isAmazon && (
                     <th className="pl-4 pr-1 py-3 text-center" style={{ width: 28, minWidth: 28 }}>
                       <button
@@ -319,6 +319,9 @@ export default function GamesTable({ games, allGames, detentor, showDeltas = tru
                       )}
                       <td className="px-4 py-3 text-xs font-semibold tabular-nums" style={{ color: SEASON_COLORS[g.ano] || "rgba(255,255,255,0.30)" }}>{g.ano}</td>
                       <td className="px-4 py-3 text-xs text-white/40 tabular-nums">{g.rodada}</td>
+                      <td className="px-4 py-3 text-white/40 whitespace-nowrap text-xs tabular-nums">{g.data.substring(0, 5)}</td>
+                      <td className="px-4 py-3 text-white/40 text-xs capitalize">{g.dia}</td>
+                      <td className="px-4 py-3 text-white/40 text-xs tabular-nums">{normalizeHorario(g.horario.substring(0, 5))}</td>
                       {/* Jogo cell — centered by "vs" */}
                       <td className="px-4 py-3">
                         <div className="grid items-center gap-2" style={{ gridTemplateColumns: "1fr auto 1fr" }}>
@@ -333,13 +336,10 @@ export default function GamesTable({ games, allGames, detentor, showDeltas = tru
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-white/40 whitespace-nowrap text-xs tabular-nums">{g.data}</td>
-                      <td className="px-4 py-3 text-white/40 text-xs capitalize">{g.dia}</td>
-                      <td className="px-4 py-3 text-white/40 text-xs tabular-nums">{normalizeHorario(g.horario.substring(0, 5))}</td>
-                      <ConcurrentCell game={g} onHover={setConcPopup} />
-                      <td className="px-4 py-3 text-right font-bold text-white tabular-nums">
+                      <td className="px-4 py-3 text-right font-bold text-white tabular-nums text-base">
                         {formatMetric(g.detentor, g._metric)}
                       </td>
+                      <ConcurrentCell game={g} onHover={setConcPopup} />
                       {isAmazon && <td style={{ width: 24, minWidth: 24 }} />}
                       {isYoutube && <td style={{ width: 24, minWidth: 24 }} />}
                       {isYoutube && showYoutubeExtras && (() => {
