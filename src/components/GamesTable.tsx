@@ -357,12 +357,26 @@ export default function GamesTable({ games, allGames, detentor, showDeltas = tru
                       <td className="px-4 py-3 text-white/40 text-xs capitalize">{g.dia}</td>
                       <td className="px-4 py-3 text-white/40 text-xs tabular-nums">{normalizeHorario(g.horario.substring(0, 5))}</td>
                       {/* Jogo cell — centered by "vs" */}
-                      <td className="px-4 py-3" style={{ minWidth: 160 }}>
-                        <div className="flex items-center justify-center gap-1.5">
-                          <TeamLogo team={g.mandante} size={18} />
-                          <span className="text-white/20 text-xs font-normal flex-shrink-0">vs</span>
-                          <TeamLogo team={g.visitante} size={18} />
-                        </div>
+                      <td className="px-4 py-3" style={{ minWidth: isRecord && showRecordExtras ? 60 : 200 }}>
+                        {isRecord && showRecordExtras ? (
+                          <div className="flex items-center justify-center gap-1.5">
+                            <TeamLogo team={g.mandante} size={18} />
+                            <span className="text-white/20 text-xs font-normal flex-shrink-0">vs</span>
+                            <TeamLogo team={g.visitante} size={18} />
+                          </div>
+                        ) : (
+                          <div className="grid items-center gap-2" style={{ gridTemplateColumns: "1fr auto 1fr" }}>
+                            <div className="flex items-center gap-1.5 justify-end min-w-0">
+                              <span className="text-white/90 font-medium truncate text-right text-xs">{g.mandante}</span>
+                              <TeamLogo team={g.mandante} size={18} />
+                            </div>
+                            <span className="text-white/20 text-xs font-normal px-1 flex-shrink-0">vs</span>
+                            <div className="flex items-center gap-1.5 justify-start min-w-0">
+                              <TeamLogo team={g.visitante} size={18} />
+                              <span className="text-white/90 font-medium truncate text-xs">{g.visitante}</span>
+                            </div>
+                          </div>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-right font-bold text-white tabular-nums text-base">
                         {formatMetric(g.detentor, g._metric)}
