@@ -169,8 +169,8 @@ export default function GeralPage() {
                 {detentor || "Visão Geral"} — por Rodada
               </h2>
             </div>
-            {/* Cards area — always 2 rows tall (one per season) */}
-            <div className="h-[56px] flex flex-col gap-1 justify-start mt-1.5">
+            {/* Cards area — always exactly 2 rows of 26px + 4px gap = 56px, never reflows */}
+            <div className="mt-1.5" style={{ height: 56, display: "flex", flexDirection: "column", gap: 4, overflow: "hidden" }}>
               {slot1
                 ? <GameCard dot={slot1} detentor={detentor}
                     locked={lockedDots.some((ld) => ld.rodada === slot1!.rodada && ld.season === slot1!.season)}
@@ -178,7 +178,7 @@ export default function GeralPage() {
                       ? () => setLockedDots((prev) => prev.filter((ld) => !(ld.rodada === slot1!.rodada && ld.season === slot1!.season)))
                       : undefined}
                   />
-                : <div className="h-[26px]" />
+                : <div style={{ height: 26, flexShrink: 0 }} />
               }
               {slot2
                 ? <GameCard dot={slot2} detentor={detentor}
@@ -187,7 +187,7 @@ export default function GeralPage() {
                       ? () => setLockedDots((prev) => prev.filter((ld) => !(ld.rodada === slot2!.rodada && ld.season === slot2!.season)))
                       : undefined}
                   />
-                : <div className="h-[26px]" />
+                : <div style={{ height: 26, flexShrink: 0 }} />
               }
             </div>
             <p className="text-white/30 text-xs mt-0.5">
@@ -242,14 +242,14 @@ function GameCard({ dot, detentor, locked, onUnlock }: {
 }) {
   const color = SEASON_COLORS[dot.season];
   const team = dot.teams[0];
-  const dayStr = dot.dia ? dot.dia.slice(0, 3) : null;
+  // Capitalize first letter, take 3 chars: "dom" → "Dom", "sáb" → "Sáb"
+  const dayStr = dot.dia ? dot.dia.slice(0, 1).toUpperCase() + dot.dia.slice(1, 3) : null;
   const timeStr = dot.horario ?? null;
-  const dayTime = dayStr && timeStr ? `${dayStr} · ${timeStr}` : (timeStr ?? dayStr ?? null);
 
   return (
-    <div className="flex items-center w-fit text-xs border border-white/[0.10] rounded-lg bg-white/[0.04] overflow-hidden">
+    <div className="h-[26px] flex items-center w-fit text-xs border border-white/[0.10] rounded-lg bg-white/[0.04] overflow-hidden">
       {/* Lock icon */}
-      <div className="w-6 flex items-center justify-center shrink-0 text-white/25 py-1.5">
+      <div className="w-6 flex items-center justify-center shrink-0 text-white/25">
         {locked && (
           <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 1a5 5 0 0 0-5 5v3H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V11a2 2 0 0 0-2-2h-2V6a5 5 0 0 0-5-5zm0 2a3 3 0 0 1 3 3v3H9V6a3 3 0 0 1 3-3zm0 10a2 2 0 1 1 0 4 2 2 0 0 1 0-4z"/>
@@ -258,18 +258,28 @@ function GameCard({ dot, detentor, locked, onUnlock }: {
       </div>
       <Sep />
       {/* Rodada */}
-      <div className="w-[52px] flex items-center justify-center shrink-0 text-white/35 py-1.5 tabular-nums">
+      <div className="w-[52px] flex items-center justify-center shrink-0 text-white/35 tabular-nums">
         Rod. {dot.rodada}
       </div>
       <Sep />
       {/* Season */}
-      <div className="w-9 flex items-center justify-center shrink-0 font-bold py-1.5" style={{ color }}>
+      <div className="w-9 flex items-center justify-center shrink-0 font-bold" style={{ color }}>
         {dot.season}
       </div>
       <Sep />
-      {/* Dia + Horário */}
-      <div className="w-[70px] flex items-center justify-center shrink-0 text-white/40 py-1.5 tabular-nums">
-        {dayTime ?? <span className="text-white/15">—</span>}
+      {/* Dia + Horário — aligned by the separator dot */}
+      <div className="w-[82px] flex items-center shrink-0 px-2">
+        {dayStr && timeStr ? (
+          <>
+            <span className="w-[26px] text-right text-white/40">{dayStr}</span>
+            <span className="text-white/20 px-[5px]">·</span>
+            <span className="text-left text-white/40 tabular-nums">{timeStr}</span>
+          </>
+        ) : timeStr ? (
+          <span className="text-white/40 tabular-nums">{timeStr}</span>
+        ) : (
+          <span className="mx-auto text-white/15">—</span>
+        )}
       </div>
       <Sep />
       {/* Game shields */}
