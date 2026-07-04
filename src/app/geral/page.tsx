@@ -329,63 +329,66 @@ function Timeline({ season, onSeasonChange }: { season: 2025 | 2026; onSeasonCha
         </div>
       )}
 
-      <div ref={scrollRef}
-        style={{ overflowX: "auto", overflowY: "visible", scrollbarWidth: "none" } as React.CSSProperties}
-        className="pb-6">
-        {/* paddingLeft/right gives scaled boxes room at the edges */}
-        <div style={{ display: "flex", gap: 0, minWidth: "max-content", paddingLeft: 40, paddingRight: 40, paddingBottom: 40 }}>
-          {/* Próximos Jogos — fixed left column, same visual style as day columns */}
-          {nextGamesCol && (
-            <div style={{ display: "flex", flexDirection: "column", flexShrink: 0, paddingRight: 14, marginRight: 4, borderRight: "1px solid rgba(255,255,255,0.08)", overflow: "visible" }}>
-              {/* Rodada-level header (same height as real rodada headers) */}
-              <div style={{ height: 28, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 8 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.30)", textTransform: "uppercase", letterSpacing: "0.10em" }}>
-                  Próximos
-                </span>
+      <div style={{ display: "flex", alignItems: "flex-start", overflowY: "visible" }}>
+        {/* Próximos Jogos — sticky left column, outside the scroll */}
+        {nextGamesCol && (
+          <div style={{ flexShrink: 0, paddingRight: 14, marginRight: 4, borderRight: "1px solid rgba(255,255,255,0.14)", paddingBottom: 40, zIndex: 2, background: "rgba(10,12,22,1)" }}>
+            {/* Rodada-level header row (same 28px height as group headers) */}
+            <div style={{ height: 28, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 8 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.40)", textTransform: "uppercase", letterSpacing: "0.10em" }}>
+                Próximos
+              </span>
+            </div>
+            <div style={{ width: 148 }}>
+              {/* Date header (same style as day cols) */}
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.30)", paddingLeft: 4, marginBottom: 8, fontVariantNumeric: "tabular-nums" }}>
+                <span style={{ textTransform: "capitalize" }}>{nextGamesCol.weekday.slice(0, 3)}</span>
+                <span style={{ marginLeft: 4 }}>{nextGamesCol.display}</span>
               </div>
-              <div style={{ display: "flex", gap: 0, overflow: "visible" }}>
-                <div style={{ width: 148, flexShrink: 0, overflow: "visible" }}>
-                  {/* Date header */}
-                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.30)", paddingLeft: 4, marginBottom: 8, fontVariantNumeric: "tabular-nums" }}>
-                    <span style={{ textTransform: "capitalize" }}>{nextGamesCol.weekday.slice(0, 3)}</span>
-                    <span style={{ marginLeft: 4 }}>{nextGamesCol.display}</span>
-                  </div>
-                  {/* Game cards — no audiência, just teams + detentor */}
-                  <div style={{ display: "flex", flexDirection: "column", gap: 4, overflow: "visible" }}>
-                    {nextGamesCol.nextGames.map((g, i) => (
-                      <div key={i} style={{
-                        background: "rgba(18,22,42,0.50)",
-                        backdropFilter: "blur(12px)",
-                        borderRadius: 8,
-                        padding: "8px 10px",
-                        border: "1px solid rgba(255,255,255,0.07)",
-                      }}>
-                        <div className="flex items-center justify-between mb-1.5">
-                          <div className="flex items-center gap-1">
-                            <TeamLogo team={g.mandante} size={18} />
-                            <span style={{ color: "rgba(255,255,255,0.15)", fontSize: 10, margin: "0 2px" }}>×</span>
-                            <TeamLogo team={g.visitante} size={18} />
-                          </div>
-                          <span style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", fontVariantNumeric: "tabular-nums", marginLeft: 6 }}>{g.hora}</span>
-                        </div>
-                        {g.detentores.length > 0 && (
-                          <div style={{ display: "flex", flexWrap: "wrap", gap: 3, marginTop: 4 }}>
-                            {g.detentores.map(det => (
-                              <span key={det} style={{
-                                fontSize: 9, fontWeight: 700, padding: "2px 5px", borderRadius: 4,
-                                background: (DETENTOR_COLORS[det] || "#444") + "33",
-                                color: DETENTOR_COLORS[det] || "#999",
-                              }}>{det}</span>
-                            ))}
-                          </div>
-                        )}
+              {/* Game cards — teams + detentor logos */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                {nextGamesCol.nextGames.map((g, i) => (
+                  <div key={i} style={{
+                    background: "rgba(18,22,42,0.50)",
+                    backdropFilter: "blur(12px)",
+                    borderRadius: 8,
+                    padding: "8px 10px",
+                    border: "1px solid rgba(255,255,255,0.07)",
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <TeamLogo team={g.mandante} size={18} />
+                        <span style={{ color: "rgba(255,255,255,0.15)", fontSize: 10, margin: "0 2px" }}>×</span>
+                        <TeamLogo team={g.visitante} size={18} />
                       </div>
-                    ))}
+                      <span style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", fontVariantNumeric: "tabular-nums", marginLeft: 6 }}>{g.hora}</span>
+                    </div>
+                    {g.detentores.length > 0 && (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                        {g.detentores.map(det => (
+                          <div key={det} style={{ height: 14, display: "flex", alignItems: "center" }}>
+                            {LOGOS[det] ? (
+                              <img src={LOGOS[det]} alt={det}
+                                style={{ height: 14, width: "auto", objectFit: "contain", maxWidth: 60, filter: "brightness(0) invert(1)", opacity: 0.7 }} />
+                            ) : (
+                              <span style={{ fontSize: 10, fontWeight: 600, color: DETENTOR_COLORS[det] || "#9ca3af" }}>{det}</span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                </div>
+                ))}
               </div>
             </div>
-          )}
+          </div>
+        )}
+
+        {/* Scrollable Timeline */}
+        <div ref={scrollRef}
+          style={{ flex: 1, minWidth: 0, overflowX: "auto", overflowY: "visible", scrollbarWidth: "none" } as React.CSSProperties}
+          className="pb-6">
+          <div style={{ display: "flex", gap: 0, minWidth: "max-content", paddingLeft: 16, paddingRight: 40, paddingBottom: 40 }}>
           {dayGroups.map((group, gi) => {
             const isLastGroup = gi === dayGroups.length - 1;
             return (
@@ -447,8 +450,11 @@ function Timeline({ season, onSeasonChange }: { season: 2025 | 2026; onSeasonCha
               </div>
             );
           })}
+          </div>
         </div>
+        {/* end scrollable */}
       </div>
+      {/* end outer flex */}
     </div>
   );
 }
