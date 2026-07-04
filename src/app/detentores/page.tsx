@@ -7,6 +7,7 @@ import AudienciaBarChart, { LockedDot, RodadaHoverData } from "@/components/Audi
 import BreakdownTables from "@/components/BreakdownTables";
 import GamesTable from "@/components/GamesTable";
 import TeamLogo from "@/components/TeamLogo";
+import { ALL_SCHEDULE } from "@/data/schedule";
 
 const OUTLIER_THRESHOLD = 0.65;
 
@@ -65,6 +66,76 @@ export default function DetentoresPage() {
     const avgV = season === 2025 ? rh.avg2025 : rh.avg2026;
     if (val === null) return null;
     return { rodada: rh.rodada, season, val, teams, isOutlier: isOutlierVal(val, avgV), ...getGameInfo(rh.rodada, season, teams) };
+  }
+
+  function exportListaCompleta() {
+    function timeToMin(t: string) {
+      const [h, m] = t.split(":").map(Number);
+      return h * 60 + (m || 0);
+    }
+
+    const rows = games.map((g) => {
+      const metric = getMetric(g);
+      const horNorm = normalizeHorario(g.horario.substring(0, 5));
+      const gameMin = g.horario ? timeToMin(g.horario.substring(0, 5)) : null;
+
+      const concorrentes = gameMin !== null
+        ? ALL_SCHEDULE.filter(sg => {
+            if (sg.data !== g.data) return false;
+            if (sg.mandante === g.mandante && sg.visitante === g.visitante) return false;
+            if (!sg.hora) return false;
+            return Math.abs(timeToMin(sg.hora) - gameMin) < 120;
+          }).map(sg => ({
+            jogo: `${sg.mandante} × ${sg.visitante}`,
+            horario: sg.hora,
+            detentores: sg.detentores,
+            liga: sg.liga,
+          }))
+        : [];
+
+      return {
+        temporada: g.ano,
+        rodada: g.rodada,
+        data: g.data,
+        dia: g.dia,
+        horario: horNorm,
+        mandante: g.mandante,
+        visitante: g.visitante,
+        detentor: g.detentor,
+        audiencia_raw: metric,
+        audiencia_formatada: formatMetric(g.detentor, metric),
+        metrica_tipo: PNT_DETENTORES.has(g.detentor) ? "PNT (pontos)" : "Audiência (mil)",
+        concorrentes_simultaneos: concorrentes,
+        total_concorrentes: concorrentes.length,
+      };
+    });
+
+    const sorted = [...rows].sort((a, b) => {
+      if (a.temporada !== b.temporada) return a.temporada - b.temporada;
+      if (a.rodada !== b.rodada) return a.rodada - b.rodada;
+      return a.horario.localeCompare(b.horario);
+    });
+
+    const output = {
+      descricao: "Dados completos de audiência do Brasileirão 2025 e 2026 por detentor, com jogos concorrentes em cada slot",
+      total_jogos: sorted.length,
+      detentores: DETENTORES,
+      notas: [
+        "audiencia_raw: valor numérico bruto (null se dado indisponível)",
+        "metrica_tipo: 'PNT' para Record e SBT (pontos de audiência IBOPE), 'Audiência (mil)' para os demais",
+        "concorrentes_simultaneos: jogos no mesmo dia com início dentro de 120 minutos de diferença",
+        "detentores de cada concorrente refletem os direitos de transmissão conforme o calendário",
+      ],
+      jogos: sorted,
+    };
+
+    const blob = new Blob([JSON.stringify(output, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "brasileirao-audiencias-completo.json";
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   const isHoveredLocked = hoveredDot
@@ -147,6 +218,14 @@ export default function DetentoresPage() {
               <h2 className="text-sm font-semibold text-white uppercase tracking-widest">Lista Completa</h2>
               <p className="text-white/30 text-xs mt-0.5">Todos os jogos · todas as temporadas · todos os detentores</p>
             </div>
+            <button
+              onClick={exportListaCompleta}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all hover:bg-white/[0.08] border border-white/[0.10] text-white/60 hover:text-white/90">
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Exportar JSON
+            </button>
           </div>
           <GamesTable games={games} allGames={games} detentor={null} showDeltas={false} />
         </div>
