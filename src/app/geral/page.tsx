@@ -4,7 +4,7 @@ import { games, DETENTORES, DETENTOR_COLORS, SEASON_COLORS, Game } from "@/data/
 import { LOGOS } from "@/data/logos";
 import { getMetric, formatMetric, avg, normalizeHorario, parseDate } from "@/lib/stats";
 import TeamLogo from "@/components/TeamLogo";
-import { FFU_SCHEDULE, ScheduleGame } from "@/data/schedule";
+import { FFU_SCHEDULE } from "@/data/schedule";
 
 const WEEK_DAYS = ["dom.", "seg.", "ter.", "qua.", "qui.", "sex.", "sáb."];
 
@@ -45,67 +45,6 @@ function parseDDMMYYYY(s: string): number {
   return new Date(+y, +m - 1, +d).getTime();
 }
 
-function ProximosJogos() {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const todayMs = today.getTime();
-
-  const nextDate = useMemo(() => {
-    const futureDates = FFU_SCHEDULE
-      .map(g => g.data)
-      .filter(d => d && parseDDMMYYYY(d) >= todayMs);
-    if (!futureDates.length) return null;
-    return futureDates.reduce((min, d) => parseDDMMYYYY(d) < parseDDMMYYYY(min) ? d : min);
-  }, [todayMs]);
-
-  const nextGames = useMemo(() =>
-    nextDate ? FFU_SCHEDULE.filter(g => g.data === nextDate).sort((a, b) => a.hora.localeCompare(b.hora)) : [],
-    [nextDate]
-  );
-
-  if (!nextGames.length) return null;
-
-  const [d, m, y] = nextDate!.split("/");
-  const dateObj = new Date(+y, +m - 1, +d);
-  const weekDay = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"][dateObj.getDay()];
-  const dateLabel = `${weekDay}, ${d}/${m}`;
-
-  // Group by hora
-  const byHora: Record<string, ScheduleGame[]> = {};
-  nextGames.forEach(g => { (byHora[g.hora] = byHora[g.hora] || []).push(g); });
-
-  return (
-    <div className="mt-4 mb-2">
-      <div className="flex items-center gap-3 mb-3">
-        <span className="text-xs text-white/40 uppercase tracking-widest font-semibold">Próximos Jogos</span>
-        <span className="text-xs text-white/25">{dateLabel}</span>
-        <span className="ml-auto text-xs text-white/20">{nextGames.length} jogo{nextGames.length !== 1 ? "s" : ""}</span>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {nextGames.map((g, i) => (
-          <div key={i} className="glass border border-white/[0.07] rounded-xl px-3 py-2 flex items-center gap-2 text-xs">
-            <span className="text-white/30 tabular-nums w-10 shrink-0">{g.hora}</span>
-            <TeamLogo team={g.mandante} size={16} />
-            <span className="text-white/70 font-medium">{g.mandante}</span>
-            <span className="text-white/20">×</span>
-            <span className="text-white/70 font-medium">{g.visitante}</span>
-            <TeamLogo team={g.visitante} size={16} />
-            {g.detentores.length > 0 && (
-              <div className="flex gap-1 ml-1">
-                {g.detentores.map(det => (
-                  <span key={det} className="text-[9px] font-bold px-1.5 py-0.5 rounded"
-                    style={{ background: (DETENTOR_COLORS[det] || "#444") + "33", color: DETENTOR_COLORS[det] || "#999" }}>
-                    {det}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 const DIA_LABELS: Record<string, string> = {
   "seg.": "Segunda", "ter.": "Terça", "qua.": "Quarta",
@@ -354,6 +293,23 @@ function Timeline({ season, onSeasonChange }: { season: 2025 | 2026; onSeasonCha
     };
   }, []);
 
+  // Next scheduled games column
+  const nextGamesCol = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayMs = today.getTime();
+    const futureDates = FFU_SCHEDULE.map(g => g.data).filter(d => d && parseDDMMYYYY(d) >= todayMs);
+    if (!futureDates.length) return null;
+    const nextDate = futureDates.reduce((min, d) => parseDDMMYYYY(d) < parseDDMMYYYY(min) ? d : min);
+    const nextGames = FFU_SCHEDULE.filter(g => g.data === nextDate).sort((a, b) => a.hora.localeCompare(b.hora));
+    if (!nextGames.length) return null;
+    const [dd, mm, yy] = nextDate.split("/");
+    const dateObj = new Date(+yy, +mm - 1, +dd);
+    const weekday = ["dom.", "seg.", "ter.", "qua.", "qui.", "sex.", "sáb."][dateObj.getDay()];
+    const display = `${dd}/${mm}`;
+    return { nextGames, weekday, display };
+  }, []);
+
   const handlePin = (key: string) => {
     setPinnedMatches((prev) => {
       const next = new Set(prev);
@@ -378,6 +334,58 @@ function Timeline({ season, onSeasonChange }: { season: 2025 | 2026; onSeasonCha
         className="pb-6">
         {/* paddingLeft/right gives scaled boxes room at the edges */}
         <div style={{ display: "flex", gap: 0, minWidth: "max-content", paddingLeft: 40, paddingRight: 40, paddingBottom: 40 }}>
+          {/* Próximos Jogos — fixed left column, same visual style as day columns */}
+          {nextGamesCol && (
+            <div style={{ display: "flex", flexDirection: "column", flexShrink: 0, paddingRight: 14, marginRight: 4, borderRight: "1px solid rgba(255,255,255,0.08)", overflow: "visible" }}>
+              {/* Rodada-level header (same height as real rodada headers) */}
+              <div style={{ height: 28, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 8 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.30)", textTransform: "uppercase", letterSpacing: "0.10em" }}>
+                  Próximos
+                </span>
+              </div>
+              <div style={{ display: "flex", gap: 0, overflow: "visible" }}>
+                <div style={{ width: 148, flexShrink: 0, overflow: "visible" }}>
+                  {/* Date header */}
+                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.30)", paddingLeft: 4, marginBottom: 8, fontVariantNumeric: "tabular-nums" }}>
+                    <span style={{ textTransform: "capitalize" }}>{nextGamesCol.weekday.slice(0, 3)}</span>
+                    <span style={{ marginLeft: 4 }}>{nextGamesCol.display}</span>
+                  </div>
+                  {/* Game cards — no audiência, just teams + detentor */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4, overflow: "visible" }}>
+                    {nextGamesCol.nextGames.map((g, i) => (
+                      <div key={i} style={{
+                        background: "rgba(18,22,42,0.50)",
+                        backdropFilter: "blur(12px)",
+                        borderRadius: 8,
+                        padding: "8px 10px",
+                        border: "1px solid rgba(255,255,255,0.07)",
+                      }}>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <div className="flex items-center gap-1">
+                            <TeamLogo team={g.mandante} size={18} />
+                            <span style={{ color: "rgba(255,255,255,0.15)", fontSize: 10, margin: "0 2px" }}>×</span>
+                            <TeamLogo team={g.visitante} size={18} />
+                          </div>
+                          <span style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", fontVariantNumeric: "tabular-nums", marginLeft: 6 }}>{g.hora}</span>
+                        </div>
+                        {g.detentores.length > 0 && (
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 3, marginTop: 4 }}>
+                            {g.detentores.map(det => (
+                              <span key={det} style={{
+                                fontSize: 9, fontWeight: 700, padding: "2px 5px", borderRadius: 4,
+                                background: (DETENTOR_COLORS[det] || "#444") + "33",
+                                color: DETENTOR_COLORS[det] || "#999",
+                              }}>{det}</span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
           {dayGroups.map((group, gi) => {
             const isLastGroup = gi === dayGroups.length - 1;
             return (
@@ -647,8 +655,6 @@ export default function GeralPage() {
       </div>
 
       <Timeline season={calendarSeason} onSeasonChange={setCalendarSeason} />
-
-      <ProximosJogos />
 
       <div className="mt-6 pt-8 border-t border-white/[0.08] mb-6">
         <h2 className="text-2xl font-bold text-white mb-1">Rankings</h2>
