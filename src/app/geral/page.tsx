@@ -332,7 +332,7 @@ function Timeline({ season, onSeasonChange }: { season: 2025 | 2026; onSeasonCha
       <div style={{ display: "flex", alignItems: "flex-start", overflowY: "visible" }}>
         {/* Próximos Jogos — sticky left column, outside the scroll */}
         {nextGamesCol && (
-          <div style={{ flexShrink: 0, paddingRight: 14, marginRight: 4, borderRight: "1px solid rgba(255,255,255,0.14)", paddingBottom: 40, zIndex: 2, background: "rgba(10,12,22,1)" }}>
+          <div style={{ flexShrink: 0, paddingRight: 14, marginRight: 4, borderRight: "1px solid rgba(255,255,255,0.14)", paddingBottom: 40, zIndex: 30, position: "relative", background: "rgba(10,12,22,1)" }}>
             {/* Rodada-level header row (same 28px height as group headers) */}
             <div style={{ height: 28, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 8 }}>
               <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.40)", textTransform: "uppercase", letterSpacing: "0.10em" }}>
