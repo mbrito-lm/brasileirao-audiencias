@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { logout } from "@/app/login/actions";
 
 export default function Nav() {
   const pathname = usePathname();
@@ -30,6 +31,12 @@ export default function Nav() {
             </Link>
           ))}
         </nav>
+        <form action={logout} className="ml-auto">
+          <button type="submit"
+            className="text-xs text-white/30 hover:text-white/60 transition-colors px-2 py-1">
+            Sair
+          </button>
+        </form>
       </div>
     </header>
   );
