@@ -12,9 +12,13 @@ async function getKey() {
   );
 }
 
-function b64urlToBytes(s: string): Uint8Array {
+function b64urlToBytes(s: string): ArrayBuffer {
   const b64 = s.replace(/-/g, "+").replace(/_/g, "/");
-  return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+  const bin = atob(b64);
+  const buf = new ArrayBuffer(bin.length);
+  const view = new Uint8Array(buf);
+  for (let i = 0; i < bin.length; i++) view[i] = bin.charCodeAt(i);
+  return buf;
 }
 
 async function isValidToken(token: string): Promise<boolean> {
