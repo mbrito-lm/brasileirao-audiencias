@@ -99,17 +99,18 @@ function DetentorAvgBar({ season, onSeasonChange }: { season: number | null; onS
     return DETENTORES.flatMap((d) => {
       const dGames = filtered.filter((g) => g.detentor === d && getMetric(g) !== null);
       if (!dGames.length) return [];
-      return [{ detentor: d, avgVal: avg(dGames.map((g) => getMetric(g) as number)) }];
+      return [{ detentor: d, avgVal: avg(dGames.map((g) => getMetric(g) as number)), count: dGames.length }];
     });
   }, [season]);
 
   return (
     <div className="mb-2">
       <div className="flex items-center gap-3 mb-3">
+        <span className="text-sm font-semibold text-white/60">Média por detentor</span>
         <SeasonFilter value={season} onChange={onSeasonChange} nullLabel="Geral" />
       </div>
       <div style={{ display: "flex", gap: 8 }}>
-        {stats.map(({ detentor: d, avgVal }) => (
+        {stats.map(({ detentor: d, avgVal, count }) => (
           <div key={d} className="glass rounded-xl border border-white/[0.07] flex items-center gap-3 flex-1 px-3 py-3">
             <div style={detentorBoxStyle(DETENTOR_COLORS[d] || "#666")} className="shrink-0">
               {LOGOS[d] ? (
@@ -120,7 +121,10 @@ function DetentorAvgBar({ season, onSeasonChange }: { season: number | null; onS
               )}
             </div>
             <div className="w-px h-5 bg-white/[0.10] shrink-0" />
-            <span className="text-base font-bold text-white tabular-nums">{formatMetric(d, avgVal)}</span>
+            <div className="flex flex-col">
+              <span className="text-xl font-bold text-white tabular-nums leading-tight">{formatMetric(d, avgVal)}</span>
+              <span className="text-[10px] text-white/30 tabular-nums">{count} jogo{count !== 1 ? "s" : ""}</span>
+            </div>
           </div>
         ))}
       </div>
