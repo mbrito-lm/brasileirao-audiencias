@@ -9,40 +9,61 @@ const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const GAMES_CONTEXT = buildContext();
 
 const nf = new Intl.NumberFormat("pt-BR");
+const fmtPnt = (n: number) => n.toFixed(1).replace(".", ","); // 10.2 -> "10,2"
+
+type G = (typeof games)[number];
+const label = (g: G) => `${g.mandante} x ${g.visitante} R${g.rodada}`;
+
+// Estatísticas de uma métrica (audiencia ou pnt) para um conjunto de jogos.
+function metricStats(gs: G[], sel: (g: G) => number | null) {
+  const valid = gs.filter((g) => sel(g) != null);
+  if (!valid.length) return null;
+  const nums = valid.map((g) => sel(g)!);
+  const soma = nums.reduce((a, b) => a + b, 0);
+  const maxG = valid.reduce((a, b) => (sel(b)! > sel(a)! ? b : a));
+  const minG = valid.reduce((a, b) => (sel(b)! < sel(a)! ? b : a));
+  return { count: valid.length, soma, media: soma / valid.length, maxG, minG };
+}
 
 // Estatísticas calculadas em CÓDIGO (determinístico). LLM soma mal dezenas de
 // números; entregamos médias/somas/máximos prontos para o modelo só ler.
 function buildStats(): string {
-  const withAud = games.filter((g) => g.audiencia != null);
-  const key = (g: (typeof games)[number]) => `${g.ano}|${g.detentor}`;
-  const groups = new Map<string, typeof games>();
-  for (const g of withAud) {
+  const key = (g: G) => `${g.ano}|${g.detentor}`;
+  const groups = new Map<string, G[]>();
+  for (const g of games) {
     const k = key(g);
     if (!groups.has(k)) groups.set(k, []);
     groups.get(k)!.push(g);
   }
 
-  const label = (g: (typeof games)[number]) =>
-    `${g.mandante} x ${g.visitante} R${g.rodada}`;
-
   const lines: string[] = [];
-  const sorted = [...groups.keys()].sort();
-  for (const k of sorted) {
+  for (const k of [...groups.keys()].sort()) {
     const gs = groups.get(k)!;
     const [ano, detentor] = k.split("|");
-    const auds = gs.map((g) => g.audiencia!);
-    const soma = auds.reduce((a, b) => a + b, 0);
-    const media = Math.round(soma / auds.length);
-    const maiorG = gs.reduce((a, b) => (b.audiencia! > a.audiencia! ? b : a));
-    const menorG = gs.reduce((a, b) => (b.audiencia! < a.audiencia! ? b : a));
-    lines.push(
-      `${ano} ${detentor}: ${auds.length} jogos | média ${nf.format(media)} | ` +
-        `total ${nf.format(soma)} | maior ${nf.format(maiorG.audiencia!)} (${label(maiorG)}) | ` +
-        `menor ${nf.format(menorG.audiencia!)} (${label(menorG)})`
-    );
+    let line = `${ano} ${detentor} (${gs.length} jogos):`;
+
+    const aud = metricStats(gs, (g) => g.audiencia);
+    if (aud) {
+      line +=
+        ` audiência(pessoas): média ${nf.format(Math.round(aud.media))}, ` +
+        `total ${nf.format(aud.soma)}, ` +
+        `maior ${nf.format(aud.maxG.audiencia!)} (${label(aud.maxG)}), ` +
+        `menor ${nf.format(aud.minG.audiencia!)} (${label(aud.minG)}).`;
+    }
+
+    const pnt = metricStats(gs, (g) => g.pnt);
+    if (pnt) {
+      line +=
+        ` ibope(pontos): média ${fmtPnt(pnt.media)}, ` +
+        `maior ${fmtPnt(pnt.maxG.pnt!)} (${label(pnt.maxG)}), ` +
+        `menor ${fmtPnt(pnt.minG.pnt!)} (${label(pnt.minG)}).`;
+    }
+
+    lines.push(line);
   }
   return (
-    "RESUMO PRÉ-CALCULADO (audiência em pessoas) — use estes valores para médias, totais, máximos e mínimos:\n" +
+    "RESUMO PRÉ-CALCULADO — use SEMPRE estes valores para médias, totais, maiores e menores.\n" +
+    "Cada emissora pode ter dois indicadores: audiência em pessoas e/ou pontos de ibope.\n" +
     lines.join("\n")
   );
 }
@@ -72,10 +93,11 @@ REGRAS DE RESPOSTA (obrigatórias):
 - Vá direto ao ponto. NÃO escreva raciocínio, preâmbulo nem frases como "Calculando..." ou "Analisando os dados...".
 - Responda em texto puro, SEM formatação markdown: não use #, *, **, -, listas ou títulos.
 - Responda em 1 ou 2 frases completas, dando o resultado com contexto (ex: "A média de audiência da Amazon em 2025 foi de 583.728 pessoas, considerando os 38 jogos transmitidos.").
-- Para médias, totais, maiores e menores audiências, USE os valores do bloco RESUMO PRÉ-CALCULADO. NÃO recalcule somando os jogos.
+- Para médias, totais, maiores e menores, USE os valores do bloco RESUMO PRÉ-CALCULADO. NUNCA recalcule nem invente números; se um valor não estiver nos dados, diga que não há registro.
+- Existem DOIS indicadores: audiência em pessoas e pontos de ibope (pnt). Para emissoras de TV aberta (Globo, Record) e para o Premiere, o indicador principal são os PONTOS DE IBOPE — informe os pontos e, quando existir, também a audiência em pessoas. Para Amazon e YouTube use a audiência em pessoas.
 - Audiência: formate com pontos de milhar (ex: 1.340.317 pessoas).
-- Pontos de ibope: use vírgula decimal (ex: 2,5 pts).
-- Se a informação não estiver nos dados, diga apenas que não há registro.`;
+- Pontos de ibope: use vírgula decimal (ex: 10,2 pts).
+- Nunca troque as unidades: pessoas é contagem de pessoas, pts é ponto de ibope. São coisas diferentes.`;
 
 export async function POST(req: Request) {
   try {
