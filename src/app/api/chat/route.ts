@@ -14,27 +14,34 @@ function buildContext() {
 }
 
 export async function POST(req: Request) {
-  const session = await auth();
-  if (!session) return new Response("Unauthorized", { status: 401 });
+  try {
+    const session = await auth();
+    if (!session) return new Response("Unauthorized", { status: 401 });
 
-  const { messages } = await req.json();
-  if (!messages?.length) return new Response("Bad request", { status: 400 });
+    const body = await req.json();
+    const messages: { role: "user" | "assistant"; content: string }[] = body.messages;
+    if (!messages?.length) return new Response("Bad request", { status: 400 });
 
-  const context = buildContext();
+    const context = buildContext();
 
-  const response = await client.messages.create({
-    model: "claude-haiku-4-5-20251001",
-    max_tokens: 1024,
-    system: `Você é um assistente especializado em audiências do Brasileirão Série A.
+    const response = await client.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 1024,
+      system: `Você é um assistente especializado em audiências do Brasileirão Série A.
 Responda perguntas sobre os dados abaixo de forma direta e objetiva, em português.
 Use os dados exatos fornecidos. Quando mencionar audiências, use o formato com pontos (ex: 1.340.317).
 Para pontos de ibope, use vírgula decimal (ex: 2,5 pts).
 
 DADOS DOS JOGOS:
 ${context}`,
-    messages,
-  });
+      messages: messages.map((m) => ({ role: m.role, content: m.content })),
+    });
 
-  const text = response.content[0].type === "text" ? response.content[0].text : "";
-  return Response.json({ text });
+    const text = response.content[0].type === "text" ? response.content[0].text : "";
+    return Response.json({ text });
+  } catch (err) {
+    console.error("[/api/chat] Error:", err);
+    const message = err instanceof Error ? err.message : String(err);
+    return Response.json({ error: message }, { status: 500 });
+  }
 }

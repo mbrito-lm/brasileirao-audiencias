@@ -32,9 +32,13 @@ export default function ChatBox() {
         body: JSON.stringify({ messages: next }),
       });
       const data = await res.json();
-      setMessages([...next, { role: "assistant", content: data.text }]);
-    } catch {
-      setMessages([...next, { role: "assistant", content: "Erro ao consultar. Tente novamente." }]);
+      if (!res.ok) {
+        setMessages([...next, { role: "assistant", content: `Erro: ${data.error ?? res.status}` }]);
+      } else {
+        setMessages([...next, { role: "assistant", content: data.text }]);
+      }
+    } catch (err) {
+      setMessages([...next, { role: "assistant", content: `Erro: ${err instanceof Error ? err.message : "desconhecido"}` }]);
     } finally {
       setLoading(false);
     }
