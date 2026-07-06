@@ -61,7 +61,7 @@ export default function ChatBox() {
 
       {/* Painel */}
       {open && (
-        <div className="fixed bottom-22 right-6 z-50 w-80 sm:w-96 flex flex-col rounded-2xl border border-white/10 shadow-2xl overflow-hidden"
+        <div className="fixed bottom-[88px] right-6 z-50 w-80 sm:w-96 flex flex-col rounded-2xl border border-white/10 shadow-2xl overflow-hidden"
           style={{ background: "rgba(10, 12, 20, 0.97)", backdropFilter: "blur(24px)", maxHeight: "70vh" }}>
 
           {/* Header */}
