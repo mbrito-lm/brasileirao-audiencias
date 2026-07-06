@@ -101,6 +101,24 @@ REGRAS DE RESPOSTA (obrigatórias):
 - Pontos de ibope: use vírgula decimal (ex: 10,2 pts).
 - Nunca troque as unidades: pessoas é contagem de pessoas, pts é ponto de ibope. São coisas diferentes.`;
 
+// Nomes de times (para detectar perguntas que precisam dos jogos crus).
+const TEAM_NAMES = [
+  ...new Set(games.flatMap((g) => [g.mandante, g.visitante])),
+].map((t) => t.toLowerCase());
+
+// Palavras que indicam pergunta de detalhe jogo-a-jogo (não agregado).
+const DETAIL_RE =
+  /\b(jogo|jogos|partida|rodada|quando|que dia|data|hor[aá]rio|contra|confronto|adversári|estreia|clássico)\b/i;
+
+// Decide se precisamos anexar a lista completa de jogos. Perguntas de agregado
+// (média, maior, total, comparação por emissora) são respondidas só com o
+// RESUMO pré-calculado — muito mais barato e igualmente preciso.
+function needsRawGames(question: string): boolean {
+  const q = question.toLowerCase();
+  if (DETAIL_RE.test(q)) return true;
+  return TEAM_NAMES.some((t) => q.includes(t));
+}
+
 export async function POST(req: Request) {
   try {
     const session = await auth();
@@ -110,28 +128,37 @@ export async function POST(req: Request) {
     const messages: { role: "user" | "assistant"; content: string }[] = body.messages;
     if (!messages?.length) return new Response("Bad request", { status: 400 });
 
+    // Só anexa os 483 jogos crus quando a última pergunta pede detalhe.
+    const lastUser = [...messages].reverse().find((m) => m.role === "user");
+    const includeRaw = lastUser ? needsRawGames(lastUser.content) : false;
+
+    // Bloco 1: instruções + resumo pré-calculado (pequeno, sempre presente).
+    const system: { type: "text"; text: string; cache_control?: { type: "ephemeral" } }[] = [
+      { type: "text", text: `${INSTRUCTIONS}\n\n${GAMES_STATS}` },
+    ];
+    // Bloco 2: jogos crus, só em perguntas de detalhe. Grande o bastante para
+    // cachear — dentro de 1h, perguntas de detalhe seguidas custam ~10%.
+    if (includeRaw) {
+      system.push({
+        type: "text",
+        text: `DADOS DOS JOGOS:\n${GAMES_CONTEXT}`,
+        cache_control: { type: "ephemeral", ttl: "1h" } as { type: "ephemeral" },
+      });
+    }
+
     const response = await client.messages.create(
       {
         model: "claude-haiku-4-5-20251001",
         max_tokens: 400, // respostas são de 1-2 frases; limita custo de saída
-        system: [
-          { type: "text", text: INSTRUCTIONS },
-          {
-            type: "text",
-            text: `${GAMES_STATS}\n\nDADOS DOS JOGOS:\n${GAMES_CONTEXT}`,
-            // Cacheia todo o prefixo (instruções + dados). Dentro da janela de
-            // 1h, as próximas perguntas custam ~10% do preço de entrada.
-            cache_control: { type: "ephemeral", ttl: "1h" } as { type: "ephemeral" },
-          },
-        ],
+        system,
         messages: messages.map((m) => ({ role: m.role, content: m.content })),
       },
       // Habilita a janela de cache estendida de 1 hora.
       { headers: { "anthropic-beta": "extended-cache-ttl-2025-04-11" } }
     );
 
-    // Log de uso para acompanhar acerto de cache (aparece nos logs da Vercel).
-    console.log("[chat usage]", JSON.stringify(response.usage));
+    // Log de uso para acompanhar custo/cache (aparece nos logs da Vercel).
+    console.log("[chat usage]", includeRaw ? "detalhe" : "resumo", JSON.stringify(response.usage));
 
     const text = response.content[0].type === "text" ? response.content[0].text : "";
     return Response.json({ text });
