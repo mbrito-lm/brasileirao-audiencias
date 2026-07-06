@@ -1,6 +1,12 @@
 import { signIn } from "@/auth";
 
-export default function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const { error } = await searchParams;
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-950">
       <div className="w-full max-w-sm space-y-6 p-8 rounded-2xl bg-gray-900 border border-gray-800 shadow-xl">
@@ -8,6 +14,18 @@ export default function LoginPage({ searchParams }: { searchParams: Promise<{ er
           <h1 className="text-xl font-bold text-white">Audiências Brasileirão</h1>
           <p className="text-sm text-gray-400">Acesso exclusivo para @livemode.com</p>
         </div>
+
+        {error === "AccessDenied" && (
+          <p className="text-sm text-red-400 text-center bg-red-400/10 rounded-lg px-4 py-2">
+            E-mail não autorizado. Use sua conta @livemode.com.
+          </p>
+        )}
+
+        {error && error !== "AccessDenied" && (
+          <p className="text-sm text-red-400 text-center bg-red-400/10 rounded-lg px-4 py-2">
+            Erro: {error}
+          </p>
+        )}
 
         <form
           action={async () => {

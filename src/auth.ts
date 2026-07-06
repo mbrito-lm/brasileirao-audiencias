@@ -11,17 +11,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
-    async signIn({ profile }) {
-      const email = profile?.email ?? "";
+    async signIn({ user }) {
+      const email = user?.email ?? "";
       return email.endsWith("@livemode.com");
-    },
-    async jwt({ token, profile }) {
-      if (profile?.email) token.email = profile.email;
-      return token;
-    },
-    async session({ session, token }) {
-      if (token.email) session.user.email = token.email as string;
-      return session;
     },
     authorized({ auth }) {
       return !!auth?.user;
