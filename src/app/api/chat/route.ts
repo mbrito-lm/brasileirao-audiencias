@@ -108,21 +108,28 @@ export async function POST(req: Request) {
     const messages: { role: "user" | "assistant"; content: string }[] = body.messages;
     if (!messages?.length) return new Response("Bad request", { status: 400 });
 
-    const response = await client.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 1024,
-      system: [
-        { type: "text", text: INSTRUCTIONS },
-        {
-          type: "text",
-          text: `${GAMES_STATS}\n\nDADOS DOS JOGOS:\n${GAMES_CONTEXT}`,
-          // Cacheia todo o prefixo (instruções + dados). Leituras seguintes
-          // dentro da janela do cache custam ~10% do preço de entrada.
-          cache_control: { type: "ephemeral" },
-        },
-      ],
-      messages: messages.map((m) => ({ role: m.role, content: m.content })),
-    });
+    const response = await client.messages.create(
+      {
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 400, // respostas são de 1-2 frases; limita custo de saída
+        system: [
+          { type: "text", text: INSTRUCTIONS },
+          {
+            type: "text",
+            text: `${GAMES_STATS}\n\nDADOS DOS JOGOS:\n${GAMES_CONTEXT}`,
+            // Cacheia todo o prefixo (instruções + dados). Dentro da janela de
+            // 1h, as próximas perguntas custam ~10% do preço de entrada.
+            cache_control: { type: "ephemeral", ttl: "1h" } as { type: "ephemeral" },
+          },
+        ],
+        messages: messages.map((m) => ({ role: m.role, content: m.content })),
+      },
+      // Habilita a janela de cache estendida de 1 hora.
+      { headers: { "anthropic-beta": "extended-cache-ttl-2025-04-11" } }
+    );
+
+    // Log de uso para acompanhar acerto de cache (aparece nos logs da Vercel).
+    console.log("[chat usage]", JSON.stringify(response.usage));
 
     const text = response.content[0].type === "text" ? response.content[0].text : "";
     return Response.json({ text });
