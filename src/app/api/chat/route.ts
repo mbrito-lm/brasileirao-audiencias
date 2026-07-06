@@ -94,7 +94,9 @@ REGRAS DE RESPOSTA (obrigatórias):
 - Responda em texto puro, SEM formatação markdown: não use #, *, **, -, listas ou títulos.
 - Responda em 1 ou 2 frases completas, dando o resultado com contexto (ex: "A média de audiência da Amazon em 2025 foi de 583.728 pessoas, considerando os 38 jogos transmitidos.").
 - Para médias, totais, maiores e menores, USE os valores do bloco RESUMO PRÉ-CALCULADO. NUNCA recalcule nem invente números; se um valor não estiver nos dados, diga que não há registro.
-- Existem DOIS indicadores: audiência em pessoas e pontos de ibope (pnt). Para emissoras de TV aberta (Globo, Record) e para o Premiere, o indicador principal são os PONTOS DE IBOPE — informe os pontos e, quando existir, também a audiência em pessoas. Para Amazon e YouTube use a audiência em pessoas.
+- Existem DOIS indicadores: audiência em pessoas e pontos de ibope (pnt).
+  - Para GLOBO, RECORD, SPORTV e PREMIERE, o indicador PRINCIPAL são os PONTOS DE IBOPE. Sempre dê os pontos primeiro e, quando existir, cite também a audiência em pessoas entre parênteses.
+  - Para AMAZON e YOUTUBE, use a audiência em pessoas.
 - Audiência: formate com pontos de milhar (ex: 1.340.317 pessoas).
 - Pontos de ibope: use vírgula decimal (ex: 10,2 pts).
 - Nunca troque as unidades: pessoas é contagem de pessoas, pts é ponto de ibope. São coisas diferentes.`;
