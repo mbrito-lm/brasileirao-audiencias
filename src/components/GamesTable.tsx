@@ -12,7 +12,7 @@ import { ALL_SCHEDULE, ScheduleGameTagged, getConcurrentCount } from "@/data/sch
 import { LOGOS, } from "@/data/logos";
 import { DETENTOR_COLORS } from "@/data/games";
 
-type SortKey = "data" | "rodada" | "metric" | "concorrentes" | "deltaDet" | "deltaSlot" | "deltaTimes" | "peak" | "streams" | "liveMinutes" | "totalViewers" | "ytPeak" | "ytAlcance" | "recordPraca" | "globoPraca";
+type SortKey = "data" | "rodada" | "metric" | "concorrentes" | "deltaDet" | "deltaSlot" | "deltaTimes" | "peak" | "streams" | "liveMinutes" | "totalViewers" | "ytPeak" | "ytAlcance" | "recordPraca" | "globoPraca" | "globoNPracas";
 
 type GloboPraca = (typeof GLOBO_PRACAS)[number];
 
@@ -66,6 +66,11 @@ export default function GamesTable({ games, allGames, detentor, showDeltas = tru
     const cell = GLOBO_EXTRA_METRICS[globoKey(g)]?.[praca];
     if (!cell) return null;
     return mode === "espectadores" ? cell.ind : cell.dom;
+  };
+  // quantidade de praças em que o jogo passou (Globo)
+  const globoNPracas = (g: Game): number | null => {
+    const c = GLOBO_EXTRA_METRICS[globoKey(g)];
+    return c ? Object.keys(c).length : null;
   };
 
   const filterOptions = useMemo(() => {
@@ -165,6 +170,10 @@ export default function GamesTable({ games, allGames, detentor, showDeltas = tru
       else if (sortKey === "globoPraca") {
         va = globoPracaVal(a, sortGloboPraca);
         vb = globoPracaVal(b, sortGloboPraca);
+      }
+      else if (sortKey === "globoNPracas") {
+        va = globoNPracas(a);
+        vb = globoNPracas(b);
       }
       else { va = a[sortKey]; vb = b[sortKey]; }
       if (va === null && vb === null) return 0;
@@ -356,6 +365,7 @@ export default function GamesTable({ games, allGames, detentor, showDeltas = tru
                       </th>
                     );
                   })}
+                  {isGlobo && <SortTh label="Praças" sortKey="globoNPracas" current={sortKey} dir={sortDir} onSort={handleSort} right />}
                   {isGlobo && (
                     <th className="pl-4 pr-1 py-3 text-center" style={{ width: 28, minWidth: 28 }}>
                       <button
@@ -479,6 +489,10 @@ export default function GamesTable({ games, allGames, detentor, showDeltas = tru
                               </td>
                             : <td key={praca} className="px-3 py-3 text-right text-xs text-white/15">—</td>;
                         });
+                      })()}
+                      {isGlobo && (() => {
+                        const n = globoNPracas(g);
+                        return <td className="px-4 py-3 text-right tabular-nums text-xs text-white/50">{n ?? <span className="text-white/15">—</span>}</td>;
                       })()}
                       {isGlobo && <td style={{ width: 24, minWidth: 24 }} />}
                       {isGlobo && showGloboExtras && GLOBO_PRACAS.map(praca => {

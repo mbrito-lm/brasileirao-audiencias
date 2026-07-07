@@ -15,7 +15,7 @@ export interface Game {
   pnt: number | null;
 }
 
-export const DETENTORES = ["Amazon", "YouTube", "Globo", "Premiere", "Record", "SporTV"] as const;
+export const DETENTORES = ["Amazon", "YouTube", "Record", "Globo", "SporTV", "Premiere"] as const;
 export type Detentor = (typeof DETENTORES)[number];
 
 export const DETENTOR_COLORS: Record<string, string> = {
