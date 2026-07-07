@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { games, DETENTORES, DETENTOR_COLORS, SEASON_COLORS } from "@/data/games";
 import { LOGOS } from "@/data/logos";
-import { getChartData, mediaDetentor, formatMetric, metricLabel, getMetric, PNT_DETENTORES, normalizeHorario } from "@/lib/stats";
+import { getChartData, mediaDetentor, formatMetric, metricLabel, getMetric, PNT_DETENTORES, TOGGLE_DETENTORES, MetricMode, normalizeHorario } from "@/lib/stats";
 import AudienciaBarChart, { LockedDot, RodadaHoverData } from "@/components/AudienciaBarChart";
 import BreakdownTables from "@/components/BreakdownTables";
 import GamesTable from "@/components/GamesTable";
@@ -19,20 +19,24 @@ const LISTA_COMPLETA = "__lista__";
 
 export default function DetentoresPage() {
   const [activeTab, setActiveTab] = useState<string>(DETENTORES[0]);
+  const [mode, setMode] = useState<MetricMode>("pontos");
   const [hoveredDot, setHoveredDot] = useState<LockedDot | null>(null);
   const [lockedDots, setLockedDots] = useState<LockedDot[]>([]);
   const [rodadaHover, setRodadaHover] = useState<RodadaHoverData | null>(null);
 
   const isListaCompleta = activeTab === LISTA_COMPLETA;
   const detentor = isListaCompleta ? null : activeTab;
+  // Modo (pontos/espectadores) só se aplica às emissoras com toggle.
+  const canToggle = detentor ? TOGGLE_DETENTORES.has(detentor) : false;
+  const effMode: MetricMode | undefined = canToggle ? mode : undefined;
   const filteredGames = detentor ? games.filter((g) => g.detentor === detentor) : games;
-  const chartData = detentor ? getChartData(games, detentor) : [];
-  const isPnt = detentor ? PNT_DETENTORES.has(detentor) : false;
+  const chartData = detentor ? getChartData(games, detentor, effMode) : [];
+  const isPnt = canToggle ? mode === "pontos" : (detentor ? PNT_DETENTORES.has(detentor) : false);
 
-  const gamesWithMetric = filteredGames.filter((g) => getMetric(g) !== null);
-  const globalAvg = detentor ? mediaDetentor(games, detentor) : null;
+  const gamesWithMetric = filteredGames.filter((g) => getMetric(g, effMode) !== null);
+  const globalAvg = detentor ? mediaDetentor(games, detentor, effMode) : null;
   const maxGame = gamesWithMetric.reduce(
-    (best, g) => (!best || (getMetric(g) ?? 0) > (getMetric(best) ?? 0) ? g : best),
+    (best, g) => (!best || (getMetric(g, effMode) ?? 0) > (getMetric(best, effMode) ?? 0) ? g : best),
     null as typeof gamesWithMetric[0] | null
   );
 
@@ -232,16 +236,31 @@ export default function DetentoresPage() {
       )}
 
       {/* KPI Cards + Chart + Breakdown + Games */}
-      {!isListaCompleta && (<><div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-8">
+      {!isListaCompleta && (<>
+      {canToggle && (
+        <div className="flex items-center gap-2 mb-5">
+          <span className="text-xs text-white/30 uppercase tracking-widest mr-1">Visualização</span>
+          {(["pontos", "espectadores"] as MetricMode[]).map((m) => (
+            <button key={m} onClick={() => setMode(m)}
+              className="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all"
+              style={mode === m
+                ? { background: "rgba(18,55,215,0.70)", border: "1px solid rgba(60,100,255,0.55)", color: "white" }
+                : { border: "1px solid rgba(255,255,255,0.10)", color: "rgba(255,255,255,0.45)" }}>
+              {m === "pontos" ? "Pontos (PNT)" : "Espectadores"}
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-8">
         <KpiCard label="Total de jogos" value={filteredGames.length.toString()}
           sub={`${gamesWithMetric.length} com dados`} accent="#3b82f6" />
         <KpiCard
           label={isPnt ? "PNT médio" : "Audiência média"}
-          value={formatMetric(detentor ?? "", globalAvg || null)}
-          sub={metricLabel(detentor ?? "")} accent={DETENTOR_COLORS[detentor ?? ""] || "#3b82f6"} />
+          value={formatMetric(detentor ?? "", globalAvg || null, effMode)}
+          sub={metricLabel(detentor ?? "", effMode)} accent={DETENTOR_COLORS[detentor ?? ""] || "#3b82f6"} />
         <KpiCard
           label="Recorde"
-          value={maxGame ? formatMetric(detentor ?? "", getMetric(maxGame)) : "—"}
+          value={maxGame ? formatMetric(detentor ?? "", getMetric(maxGame, effMode), effMode) : "—"}
           sub={maxGame ? `${maxGame.mandante} × ${maxGame.visitante}` : undefined}
           sub2={maxGame ? `Rod. ${maxGame.rodada} · ${maxGame.dia} · ${normalizeHorario(maxGame.horario.substring(0, 5))} · ${maxGame.ano}` : undefined}
           accent="#f59e0b" />
@@ -258,7 +277,7 @@ export default function DetentoresPage() {
             </div>
             <div className="mt-1.5" style={{ height: 56, display: "flex", flexDirection: "column", gap: 4, overflow: "hidden" }}>
               {slot1
-                ? <GameCard dot={slot1} detentor={detentor ?? ""}
+                ? <GameCard dot={slot1} detentor={detentor ?? ""} mode={effMode}
                     locked={lockedDots.some((ld) => ld.rodada === slot1!.rodada && ld.season === slot1!.season)}
                     onUnlock={lockedDots.some((ld) => ld.rodada === slot1!.rodada && ld.season === slot1!.season)
                       ? () => setLockedDots((prev) => prev.filter((ld) => !(ld.rodada === slot1!.rodada && ld.season === slot1!.season)))
@@ -267,7 +286,7 @@ export default function DetentoresPage() {
                 : <div style={{ height: 26, flexShrink: 0 }} />
               }
               {slot2
-                ? <GameCard dot={slot2} detentor={detentor ?? ""}
+                ? <GameCard dot={slot2} detentor={detentor ?? ""} mode={effMode}
                     locked={lockedDots.some((ld) => ld.rodada === slot2!.rodada && ld.season === slot2!.season)}
                     onUnlock={lockedDots.some((ld) => ld.rodada === slot2!.rodada && ld.season === slot2!.season)
                       ? () => setLockedDots((prev) => prev.filter((ld) => !(ld.rodada === slot2!.rodada && ld.season === slot2!.season)))
@@ -311,7 +330,7 @@ export default function DetentoresPage() {
         />
       </div>
 
-      <BreakdownTables games={filteredGames} detentor={detentor ?? ""} />
+      <BreakdownTables games={filteredGames} detentor={detentor ?? ""} mode={effMode} />
 
       <div className="glass rounded-2xl p-6 mt-4">
         <div className="flex items-center justify-between mb-4">
@@ -322,7 +341,7 @@ export default function DetentoresPage() {
             </p>
           </div>
         </div>
-        <GamesTable games={filteredGames} allGames={games} detentor={detentor} showDeltas={false} />
+        <GamesTable games={filteredGames} allGames={games} detentor={detentor} showDeltas={false} mode={effMode} />
       </div>
       </>)}
     </div>
@@ -333,8 +352,8 @@ function Sep() {
   return <div className="w-px self-stretch bg-white/[0.08] my-[5px] shrink-0" />;
 }
 
-function GameCard({ dot, detentor, locked, onUnlock }: {
-  dot: LockedDot; detentor: string; locked?: boolean; onUnlock?: () => void;
+function GameCard({ dot, detentor, locked, onUnlock, mode }: {
+  dot: LockedDot; detentor: string; locked?: boolean; onUnlock?: () => void; mode?: MetricMode;
 }) {
   const color = SEASON_COLORS[dot.season];
   const team = dot.teams[0];
@@ -373,7 +392,7 @@ function GameCard({ dot, detentor, locked, onUnlock }: {
       </div>
       <Sep />
       <div className="w-[52px] flex items-center justify-end shrink-0 font-bold text-white py-1.5 pr-2">
-        {formatMetric(detentor, dot.val)}
+        {formatMetric(detentor, dot.val, mode)}
       </div>
       <Sep />
       <div className="w-[46px] flex items-center justify-center shrink-0 font-semibold uppercase tracking-wide py-1.5"

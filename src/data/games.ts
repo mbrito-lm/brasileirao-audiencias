@@ -1,4 +1,4 @@
-﻿import { PRACAS, PracaAudiencia } from "./ibope";
+import { PRACAS, PracaAudiencia } from "./ibope";
 
 export interface Game {
   competicao: string;

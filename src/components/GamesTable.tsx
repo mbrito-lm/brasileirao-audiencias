@@ -3,16 +3,18 @@ import { useState, useMemo, useRef } from "react";
 import { Game } from "@/data/games";
 import {
   mediaDetentor, mediaDiaHorario, mediaTimes,
-  getMetric, formatMetric, deltaPercent, formatDelta, deltaClass, parseDate, avg, normalizeHorario,
+  getMetric, formatMetric, deltaPercent, formatDelta, deltaClass, parseDate, avg, normalizeHorario, MetricMode,
 } from "@/lib/stats";
-import { SEASON_COLORS, AMAZON_EXTRA_METRICS, YOUTUBE_EXTRA_METRICS, RECORD_EXTRA_METRICS, RECORD_PRACAS, RecordPraca } from "@/data/games";
+import { SEASON_COLORS, AMAZON_EXTRA_METRICS, YOUTUBE_EXTRA_METRICS, RECORD_EXTRA_METRICS, RECORD_PRACAS, RecordPraca, GLOBO_EXTRA_METRICS, GLOBO_PRACAS, globoKey } from "@/data/games";
 import FilterDialog, { FilterState, filterSummaryText } from "./FilterDialog";
 import TeamLogo from "./TeamLogo";
 import { ALL_SCHEDULE, ScheduleGameTagged, getConcurrentCount } from "@/data/schedule";
 import { LOGOS, } from "@/data/logos";
 import { DETENTOR_COLORS } from "@/data/games";
 
-type SortKey = "data" | "rodada" | "metric" | "concorrentes" | "deltaDet" | "deltaSlot" | "deltaTimes" | "peak" | "streams" | "liveMinutes" | "totalViewers" | "ytPeak" | "ytAlcance" | "recordPraca";
+type SortKey = "data" | "rodada" | "metric" | "concorrentes" | "deltaDet" | "deltaSlot" | "deltaTimes" | "peak" | "streams" | "liveMinutes" | "totalViewers" | "ytPeak" | "ytAlcance" | "recordPraca" | "globoPraca";
+
+type GloboPraca = (typeof GLOBO_PRACAS)[number];
 
 function timeToMin(h: string): number {
   const [hh, mm] = h.split(":").map(Number);
@@ -38,9 +40,9 @@ const DELTA_TIPS: Record<string, string> = {
 
 const DIA_ORDER = ["seg.", "ter.", "qua.", "qui.", "sex.", "sáb.", "dom."];
 
-interface Props { games: Game[]; allGames: Game[]; detentor: string | null; showDeltas?: boolean }
+interface Props { games: Game[]; allGames: Game[]; detentor: string | null; showDeltas?: boolean; mode?: MetricMode }
 
-export default function GamesTable({ games, allGames, detentor, showDeltas = true }: Props) {
+export default function GamesTable({ games, allGames, detentor, showDeltas = true, mode }: Props) {
   const [filters, setFilters] = useState<FilterState>({
     anos: [], dias: [], horarios: [], rodadas: [], times: [], concorrencia: [],
   });
@@ -53,9 +55,18 @@ export default function GamesTable({ games, allGames, detentor, showDeltas = tru
   const [showYoutubeExtras, setShowYoutubeExtras] = useState(false);
   const [showRecordExtras, setShowRecordExtras] = useState(false);
   const [sortRecordPraca, setSortRecordPraca] = useState<RecordPraca>("GSP");
+  const [showGloboExtras, setShowGloboExtras] = useState(false);
+  const [sortGloboPraca, setSortGloboPraca] = useState<GloboPraca>("SP");
   const isAmazon = detentor === "Amazon";
   const isYoutube = detentor === "YouTube";
   const isRecord = detentor === "Record";
+  const isGlobo = detentor === "Globo";
+  // valor por praça da Globo conforme o modo (domiciliar em pontos, individual em espectadores)
+  const globoPracaVal = (g: Game, praca: GloboPraca): number | null => {
+    const cell = GLOBO_EXTRA_METRICS[globoKey(g)]?.[praca];
+    if (!cell) return null;
+    return mode === "espectadores" ? cell.ind : cell.dom;
+  };
 
   const filterOptions = useMemo(() => {
     function cross(exclude: keyof FilterState) {
@@ -80,21 +91,21 @@ export default function GamesTable({ games, allGames, detentor, showDeltas = tru
       horarios: Array.from(new Set(cross("horarios").map((g) => normalizeHorario(g.horario.substring(0, 5))))).sort(),
       rodadas: Array.from(new Set(cross("rodadas").map((g) => g.rodada))).sort((a, b) => a - b),
       times: (() => {
-        const subset = cross("times").filter((g) => getMetric(g) !== null);
+        const subset = cross("times").filter((g) => getMetric(g, mode) !== null);
         const s = new Set<string>();
         subset.forEach((g) => { s.add(g.mandante); s.add(g.visitante); });
         return Array.from(s).sort();
       })(),
       concorrencia: Array.from(new Set(cross("concorrencia").map((g) => getConcurrentCount(g.data, g.horario)))).sort((a, b) => a - b),
     };
-  }, [games, filters]);
+  }, [games, filters, mode]);
 
   const enriched = useMemo(() => {
     return games.map((g) => {
-      const metric = getMetric(g);
-      const medDet = mediaDetentor(allGames, g.detentor);
-      const medSlot = mediaDiaHorario(allGames, g.detentor, g.dia, g.horario);
-      const medTms = mediaTimes(allGames, g.detentor, g.mandante, g.visitante);
+      const metric = getMetric(g, mode);
+      const medDet = mediaDetentor(allGames, g.detentor, mode);
+      const medSlot = mediaDiaHorario(allGames, g.detentor, g.dia, g.horario, mode);
+      const medTms = mediaTimes(allGames, g.detentor, g.mandante, g.visitante, mode);
       return {
         ...g,
         _metric: metric,
@@ -105,7 +116,7 @@ export default function GamesTable({ games, allGames, detentor, showDeltas = tru
         _concCount: findConcurrent(g).length,
       };
     });
-  }, [games, allGames]);
+  }, [games, allGames, mode]);
 
   const filtered = useMemo(() => {
     let base = enriched;
@@ -151,13 +162,17 @@ export default function GamesTable({ games, allGames, detentor, showDeltas = tru
         va = RECORD_EXTRA_METRICS[a.data]?.[sortRecordPraca] ?? null;
         vb = RECORD_EXTRA_METRICS[b.data]?.[sortRecordPraca] ?? null;
       }
+      else if (sortKey === "globoPraca") {
+        va = globoPracaVal(a, sortGloboPraca);
+        vb = globoPracaVal(b, sortGloboPraca);
+      }
       else { va = a[sortKey]; vb = b[sortKey]; }
       if (va === null && vb === null) return 0;
       if (va === null) return 1;
       if (vb === null) return -1;
       return sortDir === "asc" ? va - vb : vb - va;
     });
-  }, [enriched, detentor, filters, search, sortKey, sortDir, sortRecordPraca]);
+  }, [enriched, detentor, filters, search, sortKey, sortDir, sortRecordPraca, sortGloboPraca, mode]);
 
   const handleSort = (key: SortKey) => {
     if (key === sortKey) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -236,13 +251,13 @@ export default function GamesTable({ games, allGames, detentor, showDeltas = tru
                 <div>
                   <p className="text-xs text-white/30 mb-0.5">Média</p>
                   <p className="text-xl font-bold text-white tabular-nums">
-                    {s.avgVal !== null ? formatMetric(detentor, s.avgVal) : "—"}
+                    {s.avgVal !== null ? formatMetric(detentor, s.avgVal, mode) : "—"}
                   </p>
                 </div>
                 <div>
                   <p className="text-xs text-white/30 mb-0.5">Pico</p>
                   <p className="text-xl font-bold text-white tabular-nums">
-                    {s.peakVal !== null ? formatMetric(detentor, s.peakVal) : "—"}
+                    {s.peakVal !== null ? formatMetric(detentor, s.peakVal, mode) : "—"}
                   </p>
                   {s.peakGame && <p className="text-xs text-white/25 mt-0.5">{s.peakGame}</p>}
                 </div>
@@ -341,6 +356,39 @@ export default function GamesTable({ games, allGames, detentor, showDeltas = tru
                       </th>
                     );
                   })}
+                  {isGlobo && (
+                    <th className="pl-4 pr-1 py-3 text-center" style={{ width: 28, minWidth: 28 }}>
+                      <button
+                        onClick={() => setShowGloboExtras((v) => !v)}
+                        title={showGloboExtras ? "Ocultar praças" : "Ver por praça"}
+                        className="w-5 h-5 flex items-center justify-center mx-auto transition-colors"
+                        style={{ color: "rgba(255,255,255,0.70)" }}>
+                        <svg viewBox="0 0 10 14" width="8" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          {showGloboExtras ? <polyline points="8,2 2,7 8,12" /> : <polyline points="2,2 8,7 2,12" />}
+                        </svg>
+                      </button>
+                    </th>
+                  )}
+                  {isGlobo && showGloboExtras && GLOBO_PRACAS.map(praca => {
+                    const isActive = sortKey === "globoPraca" && sortGloboPraca === praca;
+                    return (
+                      <th key={praca}
+                        className="px-3 py-3 text-right font-medium cursor-pointer select-none transition-colors whitespace-nowrap"
+                        style={{ color: isActive ? "#5bb8e6" : "rgba(91,184,230,0.50)" }}
+                        onClick={() => {
+                          if (sortKey === "globoPraca" && sortGloboPraca === praca) {
+                            setSortDir(d => d === "desc" ? "asc" : "desc");
+                          } else {
+                            setSortGloboPraca(praca); setSortKey("globoPraca"); setSortDir("desc");
+                          }
+                        }}>
+                        {praca}
+                        {isActive
+                          ? <span className="ml-1" style={{ color: "#5bb8e6" }}>{sortDir === "desc" ? "↓" : "↑"}</span>
+                          : <span className="ml-1 text-white/15">↕</span>}
+                      </th>
+                    );
+                  })}
                   {showDeltas && <DeltaTh label="Δ Detentor" tipKey="deltaDet" sortKey="deltaDet" current={sortKey} dir={sortDir} onSort={handleSort} onTip={setTooltip} />}
                   {showDeltas && <DeltaTh label="Δ Slot" tipKey="deltaSlot" sortKey="deltaSlot" current={sortKey} dir={sortDir} onSort={handleSort} onTip={setTooltip} />}
                   {showDeltas && <DeltaTh label="Δ Times" tipKey="deltaTimes" sortKey="deltaTimes" current={sortKey} dir={sortDir} onSort={handleSort} onTip={setTooltip} />}
@@ -387,7 +435,7 @@ export default function GamesTable({ games, allGames, detentor, showDeltas = tru
                         )}
                       </td>
                       <td className="px-4 py-3 text-right font-bold text-white tabular-nums text-base">
-                        {formatMetric(g.detentor, g._metric)}
+                        {formatMetric(g.detentor, g._metric, mode)}
                       </td>
                       <ConcurrentCell game={g} onHover={setConcPopup} />
                       {isAmazon && <td style={{ width: 24, minWidth: 24 }} />}
@@ -432,6 +480,17 @@ export default function GamesTable({ games, allGames, detentor, showDeltas = tru
                             : <td key={praca} className="px-3 py-3 text-right text-xs text-white/15">—</td>;
                         });
                       })()}
+                      {isGlobo && <td style={{ width: 24, minWidth: 24 }} />}
+                      {isGlobo && showGloboExtras && GLOBO_PRACAS.map(praca => {
+                        const val = globoPracaVal(g, praca);
+                        const isActive = sortKey === "globoPraca" && sortGloboPraca === praca;
+                        return val != null
+                          ? <td key={praca} className="px-3 py-3 text-right tabular-nums text-xs"
+                              style={{ color: isActive ? "#5bb8e6" : "rgba(91,184,230,0.55)" }}>
+                              {val.toFixed(1).replace(".", ",")}
+                            </td>
+                          : <td key={praca} className="px-3 py-3 text-right text-xs text-white/15">—</td>;
+                      })}
                       {showDeltas && <DeltaCell value={g.deltaDet} />}
                       {showDeltas && <DeltaCell value={g.deltaSlot} />}
                       {showDeltas && <DeltaCell value={g.deltaTimes} />}

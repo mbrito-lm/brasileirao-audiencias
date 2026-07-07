@@ -1,6 +1,12 @@
 import { Game } from "@/data/games";
+import { espectadoresDePontos } from "@/data/ibope";
 
 export const PNT_DETENTORES = new Set(["Record", "Premiere", "SporTV"]);
+
+// Emissoras cujo indicador principal são pontos PNT e que suportam alternar
+// entre pontos e espectadores (usado na página Detentores).
+export const TOGGLE_DETENTORES = new Set(["Globo", "Record", "SporTV", "Premiere"]);
+export type MetricMode = "pontos" | "espectadores";
 
 export function normalizeHorario(h: string): string {
   const colon = h.indexOf(":");
@@ -13,22 +19,36 @@ export function normalizeHorario(h: string): string {
   return `${String((hh + 1) % 24).padStart(2, "0")}:00`;
 }
 
-export function getMetric(game: Game): number | null {
+export function getMetric(game: Game, mode?: MetricMode): number | null {
+  // Modo explícito (página Detentores): alterna pontos ⇄ espectadores.
+  if (mode && TOGGLE_DETENTORES.has(game.detentor)) {
+    if (mode === "pontos") return game.pnt ?? game.audiencia;
+    // espectadores: Globo/Record já têm o absoluto; SporTV/Premiere derivam do PNT.
+    if (game.detentor === "Globo" || game.detentor === "Record") return game.audiencia;
+    return game.pnt != null ? espectadoresDePontos(game.ano, game.pnt) : null;
+  }
+  // Comportamento legado (demais páginas / sem modo).
   if (PNT_DETENTORES.has(game.detentor)) {
     return game.pnt ?? game.audiencia;
   }
   return game.audiencia;
 }
 
-export function formatMetric(detentor: string, value: number | null): string {
+export function formatMetric(detentor: string, value: number | null, mode?: MetricMode): string {
   if (value === null) return "—";
+  if (mode && TOGGLE_DETENTORES.has(detentor)) {
+    return mode === "pontos" ? value.toFixed(1).replace(".", ",") + " pts" : formatAudiencia(value);
+  }
   if (PNT_DETENTORES.has(detentor)) {
     return value.toFixed(1).replace(".", ",") + " pts";
   }
   return formatAudiencia(value);
 }
 
-export function metricLabel(detentor: string | null): string {
+export function metricLabel(detentor: string | null, mode?: MetricMode): string {
+  if (mode && detentor && TOGGLE_DETENTORES.has(detentor)) {
+    return mode === "pontos" ? "Pontos (PNT)" : "Espectadores";
+  }
   if (detentor && PNT_DETENTORES.has(detentor)) return "Pontos (PNT)";
   return "Espectadores";
 }
@@ -43,31 +63,31 @@ export function deltaPercent(value: number, mean: number): number | null {
   return ((value - mean) / mean) * 100;
 }
 
-export function mediaDetentor(games: Game[], detentor: string): number {
+export function mediaDetentor(games: Game[], detentor: string, mode?: MetricMode): number {
   const vals = games
-    .filter((g) => g.detentor === detentor && getMetric(g) !== null)
-    .map((g) => getMetric(g) as number);
+    .filter((g) => g.detentor === detentor && getMetric(g, mode) !== null)
+    .map((g) => getMetric(g, mode) as number);
   return avg(vals);
 }
 
-export function mediaDiaHorario(games: Game[], detentor: string, dia: string, horario: string): number {
+export function mediaDiaHorario(games: Game[], detentor: string, dia: string, horario: string, mode?: MetricMode): number {
   const norm = (h: string) => normalizeHorario(h.substring(0, 5));
   const vals = games
-    .filter((g) => g.detentor === detentor && g.dia === dia && norm(g.horario) === norm(horario) && getMetric(g) !== null)
-    .map((g) => getMetric(g) as number);
+    .filter((g) => g.detentor === detentor && g.dia === dia && norm(g.horario) === norm(horario) && getMetric(g, mode) !== null)
+    .map((g) => getMetric(g, mode) as number);
   return avg(vals);
 }
 
-export function mediaTime(games: Game[], detentor: string, time: string): number {
+export function mediaTime(games: Game[], detentor: string, time: string, mode?: MetricMode): number {
   const vals = games
-    .filter((g) => g.detentor === detentor && (g.mandante === time || g.visitante === time) && getMetric(g) !== null)
-    .map((g) => getMetric(g) as number);
+    .filter((g) => g.detentor === detentor && (g.mandante === time || g.visitante === time) && getMetric(g, mode) !== null)
+    .map((g) => getMetric(g, mode) as number);
   return avg(vals);
 }
 
-export function mediaTimes(games: Game[], detentor: string, mandante: string, visitante: string): number {
-  const m = mediaTime(games, detentor, mandante);
-  const v = mediaTime(games, detentor, visitante);
+export function mediaTimes(games: Game[], detentor: string, mandante: string, visitante: string, mode?: MetricMode): number {
+  const m = mediaTime(games, detentor, mandante, mode);
+  const v = mediaTime(games, detentor, visitante, mode);
   if (!m && !v) return 0;
   if (!m) return v;
   if (!v) return m;
@@ -104,13 +124,14 @@ export interface ChartTeam { mandante: string; visitante: string }
 
 export function getChartData(
   games: Game[],
-  detentor: string | null
+  detentor: string | null,
+  mode?: MetricMode
 ): { rodada: number; "2025": number | null; "2026": number | null; avg2025: number; avg2026: number; missing2025: boolean; missing2026: boolean; teams25: ChartTeam[]; teams26: ChartTeam[] }[] {
   const filtered = detentor ? games.filter((g) => g.detentor === detentor) : games.filter((g) => !PNT_DETENTORES.has(g.detentor));
   const maxRodada = filtered.length ? Math.max(...filtered.map((g) => g.rodada)) : 0;
 
-  const all25 = filtered.filter((g) => g.ano === 2025 && getMetric(g) !== null).map((g) => getMetric(g) as number);
-  const all26 = filtered.filter((g) => g.ano === 2026 && getMetric(g) !== null).map((g) => getMetric(g) as number);
+  const all25 = filtered.filter((g) => g.ano === 2025 && getMetric(g, mode) !== null).map((g) => getMetric(g, mode) as number);
+  const all26 = filtered.filter((g) => g.ano === 2026 && getMetric(g, mode) !== null).map((g) => getMetric(g, mode) as number);
   const avg2025 = avg(all25);
   const avg2026 = avg(all26);
 
@@ -120,10 +141,10 @@ export function getChartData(
   for (let r = minRodada; r <= maxRodada; r++) {
     const all25 = filtered.filter((g) => g.rodada === r && g.ano === 2025);
     const all26 = filtered.filter((g) => g.rodada === r && g.ano === 2026);
-    const g25 = all25.filter((g) => getMetric(g) !== null);
-    const g26 = all26.filter((g) => getMetric(g) !== null);
-    const v25 = g25.length ? avg(g25.map((g) => getMetric(g) as number)) : null;
-    const v26 = g26.length ? avg(g26.map((g) => getMetric(g) as number)) : null;
+    const g25 = all25.filter((g) => getMetric(g, mode) !== null);
+    const g26 = all26.filter((g) => getMetric(g, mode) !== null);
+    const v25 = g25.length ? avg(g25.map((g) => getMetric(g, mode) as number)) : null;
+    const v26 = g26.length ? avg(g26.map((g) => getMetric(g, mode) as number)) : null;
     const missing2025 = all25.length > 0 && g25.length === 0;
     const missing2026 = all26.length > 0 && g26.length === 0;
     const teams25: ChartTeam[] = g25.map((g) => ({ mandante: g.mandante, visitante: g.visitante }));

@@ -1,11 +1,12 @@
 "use client";
 import { useState } from "react";
 import { Game, SEASON_COLORS } from "@/data/games";
-import { getMetric, formatMetric, avg, normalizeHorario } from "@/lib/stats";
+import { getMetric, formatMetric, avg, normalizeHorario, MetricMode } from "@/lib/stats";
 
 interface Props {
   games: Game[];
   detentor: string;
+  mode?: MetricMode;
 }
 
 const ANOS = [2025, 2026];
@@ -19,16 +20,17 @@ interface TableRow { key: string; geral: number | null; vals: Record<number, num
 function buildRows(
   games: Game[],
   keyFn: (g: Game) => string,
-  sortKeys?: (a: string, b: string) => number
+  sortKeys?: (a: string, b: string) => number,
+  mode?: MetricMode
 ): TableRow[] {
   const keys = Array.from(new Set(games.map(keyFn))).sort(sortKeys);
   return keys.map((k, idx) => {
     const subset = games.filter((g) => keyFn(g) === k);
-    const allMetrics = subset.map(getMetric).filter((v): v is number => v !== null);
+    const allMetrics = subset.map((g) => getMetric(g, mode)).filter((v): v is number => v !== null);
     const geral = allMetrics.length ? avg(allMetrics) : null;
     const vals: Record<number, number | null> = {};
     for (const ano of ANOS) {
-      const m = subset.filter((g) => g.ano === ano).map(getMetric).filter((v): v is number => v !== null);
+      const m = subset.filter((g) => g.ano === ano).map((g) => getMetric(g, mode)).filter((v): v is number => v !== null);
       vals[ano] = m.length ? avg(m) : null;
     }
     return { key: k, geral, vals, defaultIdx: idx };
@@ -47,8 +49,8 @@ function sortRows(rows: TableRow[], col: SortCol | null, dir: SortDir | null): T
   });
 }
 
-function BreakdownTable({ title, rows, detentor }: {
-  title: string; rows: TableRow[]; detentor: string;
+function BreakdownTable({ title, rows, detentor, mode }: {
+  title: string; rows: TableRow[]; detentor: string; mode?: MetricMode;
 }) {
   const [sortCol, setSortCol] = useState<SortCol | null>(null);
   const [sortDir, setSortDir] = useState<SortDir | null>(null);
@@ -111,12 +113,12 @@ function BreakdownTable({ title, rows, detentor }: {
               <tr key={key} className="border-t border-white/[0.04] hover:bg-white/[0.02] transition-colors">
                 <td className="px-4 py-2.5 text-white/60 font-medium capitalize whitespace-nowrap">{key}</td>
                 <td className="px-3 py-2.5 text-right font-bold tabular-nums whitespace-nowrap text-white">
-                  {geral !== null ? formatMetric(detentor, geral) : <span className="text-white/15">—</span>}
+                  {geral !== null ? formatMetric(detentor, geral, mode) : <span className="text-white/15">—</span>}
                 </td>
                 {ANOS.map((a) => (
                   <td key={a} className="px-3 py-2.5 text-right tabular-nums whitespace-nowrap font-bold">
                     <span style={{ color: vals[a] !== null ? "#ffffff" : "rgba(255,255,255,0.12)" }}>
-                      {vals[a] !== null ? formatMetric(detentor, vals[a]) : "—"}
+                      {vals[a] !== null ? formatMetric(detentor, vals[a], mode) : "—"}
                     </span>
                   </td>
                 ))}
@@ -129,9 +131,9 @@ function BreakdownTable({ title, rows, detentor }: {
   );
 }
 
-export default function BreakdownTables({ games, detentor }: Props) {
-  const byDia = buildRows(games, (g) => g.dia, (a, b) => DIA_ORDER.indexOf(a) - DIA_ORDER.indexOf(b));
-  const byHorario = buildRows(games, (g) => normalizeHorario(g.horario.substring(0, 5)));
+export default function BreakdownTables({ games, detentor, mode }: Props) {
+  const byDia = buildRows(games, (g) => g.dia, (a, b) => DIA_ORDER.indexOf(a) - DIA_ORDER.indexOf(b), mode);
+  const byHorario = buildRows(games, (g) => normalizeHorario(g.horario.substring(0, 5)), undefined, mode);
   const byDiaHorario = buildRows(
     games,
     (g) => `${g.dia} ${normalizeHorario(g.horario.substring(0, 5))}`,
@@ -140,14 +142,15 @@ export default function BreakdownTables({ games, detentor }: Props) {
       const [db, hb] = b.split(" ");
       const di = DIA_ORDER.indexOf(da) - DIA_ORDER.indexOf(db);
       return di !== 0 ? di : ha.localeCompare(hb);
-    }
+    },
+    mode
   );
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-      <BreakdownTable title="Por Dia" rows={byDia} detentor={detentor} />
-      <BreakdownTable title="Por Horário" rows={byHorario} detentor={detentor} />
-      <BreakdownTable title="Dia + Horário" rows={byDiaHorario} detentor={detentor} />
+      <BreakdownTable title="Por Dia" rows={byDia} detentor={detentor} mode={mode} />
+      <BreakdownTable title="Por Horário" rows={byHorario} detentor={detentor} mode={mode} />
+      <BreakdownTable title="Dia + Horário" rows={byDiaHorario} detentor={detentor} mode={mode} />
     </div>
   );
 }
