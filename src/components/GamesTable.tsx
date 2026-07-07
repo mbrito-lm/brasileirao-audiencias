@@ -5,14 +5,14 @@ import {
   mediaDetentor, mediaDiaHorario, mediaTimes,
   getMetric, formatMetric, deltaPercent, formatDelta, deltaClass, parseDate, avg, normalizeHorario, MetricMode,
 } from "@/lib/stats";
-import { SEASON_COLORS, AMAZON_EXTRA_METRICS, YOUTUBE_EXTRA_METRICS, RECORD_EXTRA_METRICS, RECORD_PRACAS, RecordPraca, GLOBO_EXTRA_METRICS, GLOBO_PRACAS, globoKey } from "@/data/games";
+import { SEASON_COLORS, AMAZON_EXTRA_METRICS, YOUTUBE_EXTRA_METRICS, RECORD_EXTRA_METRICS, RECORD_PRACAS, RecordPraca, GLOBO_EXTRA_METRICS, GLOBO_PRACAS, globoKey, DETENTORES } from "@/data/games";
 import FilterDialog, { FilterState, filterSummaryText } from "./FilterDialog";
 import TeamLogo from "./TeamLogo";
 import { ALL_SCHEDULE, ScheduleGameTagged, getConcurrentCount } from "@/data/schedule";
 import { LOGOS, } from "@/data/logos";
 import { DETENTOR_COLORS } from "@/data/games";
 
-type SortKey = "data" | "rodada" | "metric" | "concorrentes" | "deltaDet" | "deltaSlot" | "deltaTimes" | "peak" | "streams" | "liveMinutes" | "totalViewers" | "ytPeak" | "ytAlcance" | "recordPraca" | "globoPraca" | "globoNPracas";
+type SortKey = "data" | "rodada" | "metric" | "concorrentes" | "deltaDet" | "deltaSlot" | "deltaTimes" | "peak" | "streams" | "liveMinutes" | "totalViewers" | "ytPeak" | "ytAlcance" | "recordPraca" | "globoPraca" | "globoNPracas" | "detentor" | "ano" | "dia" | "horario" | "jogo";
 
 type GloboPraca = (typeof GLOBO_PRACAS)[number];
 
@@ -44,7 +44,7 @@ interface Props { games: Game[]; allGames: Game[]; detentor: string | null; show
 
 export default function GamesTable({ games, allGames, detentor, showDeltas = true, mode }: Props) {
   const [filters, setFilters] = useState<FilterState>({
-    anos: [], dias: [], horarios: [], rodadas: [], times: [], concorrencia: [],
+    anos: [], dias: [], horarios: [], rodadas: [], times: [], detentores: [], concorrencia: [],
   });
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("data");
@@ -88,9 +88,13 @@ export default function GamesTable({ games, allGames, detentor, showDeltas = tru
         r = r.filter((g) => filters.times.some((t) => g.mandante === t || g.visitante === t));
       if (exclude !== "concorrencia" && filters.concorrencia.length)
         r = r.filter((g) => filters.concorrencia.includes(getConcurrentCount(g.data, g.horario)));
+      if (exclude !== "detentores" && filters.detentores?.length)
+        r = r.filter((g) => filters.detentores!.includes(g.detentor));
       return r;
     }
     return {
+      detentores: detentor ? undefined : Array.from(new Set(cross("detentores").map((g) => g.detentor)))
+        .sort((a, b) => DETENTORES.indexOf(a as typeof DETENTORES[number]) - DETENTORES.indexOf(b as typeof DETENTORES[number])),
       anos: Array.from(new Set(cross("anos").map((g) => g.ano))).sort(),
       dias: DIA_ORDER.filter((d) => cross("dias").some((g) => g.dia === d)),
       horarios: Array.from(new Set(cross("horarios").map((g) => normalizeHorario(g.horario.substring(0, 5))))).sort(),
@@ -103,7 +107,7 @@ export default function GamesTable({ games, allGames, detentor, showDeltas = tru
       })(),
       concorrencia: Array.from(new Set(cross("concorrencia").map((g) => getConcurrentCount(g.data, g.horario)))).sort((a, b) => a - b),
     };
-  }, [games, filters, mode]);
+  }, [games, filters, mode, detentor]);
 
   const enriched = useMemo(() => {
     return games.map((g) => {
@@ -126,15 +130,16 @@ export default function GamesTable({ games, allGames, detentor, showDeltas = tru
   const filtered = useMemo(() => {
     let base = enriched;
 
-    if (detentor) {
-      const { anos, dias, horarios, rodadas, times } = filters;
-      if (anos.length) base = base.filter((g) => anos.includes(g.ano));
-      if (dias.length) base = base.filter((g) => dias.includes(g.dia));
-      if (horarios.length) base = base.filter((g) => horarios.includes(normalizeHorario(g.horario.substring(0, 5))));
-      if (rodadas.length) base = base.filter((g) => rodadas.includes(g.rodada));
-      if (times.length) base = base.filter((g) => times.some((t) => g.mandante === t || g.visitante === t));
-      if (filters.concorrencia.length) base = base.filter((g) => filters.concorrencia.includes(getConcurrentCount(g.data, g.horario)));
-    } else {
+    const { anos, dias, horarios, rodadas, times } = filters;
+    if (anos.length) base = base.filter((g) => anos.includes(g.ano));
+    if (dias.length) base = base.filter((g) => dias.includes(g.dia));
+    if (horarios.length) base = base.filter((g) => horarios.includes(normalizeHorario(g.horario.substring(0, 5))));
+    if (rodadas.length) base = base.filter((g) => rodadas.includes(g.rodada));
+    if (times.length) base = base.filter((g) => times.some((t) => g.mandante === t || g.visitante === t));
+    if (filters.concorrencia.length) base = base.filter((g) => filters.concorrencia.includes(getConcurrentCount(g.data, g.horario)));
+
+    if (!detentor) {
+      if (filters.detentores?.length) base = base.filter((g) => filters.detentores!.includes(g.detentor));
       const q = search.trim().toLowerCase();
       if (q) base = base.filter((g) =>
         g.mandante.toLowerCase().includes(q) ||
@@ -146,8 +151,18 @@ export default function GamesTable({ games, allGames, detentor, showDeltas = tru
     }
 
     return [...base].sort((a, b) => {
+      // Colunas de texto — comparação alfabética.
+      if (sortKey === "detentor" || sortKey === "jogo") {
+        const sa = sortKey === "detentor" ? a.detentor : `${a.mandante} ${a.visitante}`;
+        const sb = sortKey === "detentor" ? b.detentor : `${b.mandante} ${b.visitante}`;
+        const c = sa.localeCompare(sb, "pt-BR");
+        return sortDir === "asc" ? c : -c;
+      }
       let va: number | null, vb: number | null;
       if (sortKey === "data") { va = a._date; vb = b._date; }
+      else if (sortKey === "ano") { va = a.ano; vb = b.ano; }
+      else if (sortKey === "dia") { va = DIA_ORDER.indexOf(a.dia); vb = DIA_ORDER.indexOf(b.dia); }
+      else if (sortKey === "horario") { va = timeToMin(normalizeHorario(a.horario.substring(0, 5))); vb = timeToMin(normalizeHorario(b.horario.substring(0, 5))); }
       else if (sortKey === "rodada") { va = a.rodada; vb = b.rodada; }
       else if (sortKey === "metric") { va = a._metric; vb = b._metric; }
       else if (sortKey === "concorrentes") { va = a._concCount; vb = b._concCount; }
@@ -209,28 +224,25 @@ export default function GamesTable({ games, allGames, detentor, showDeltas = tru
   }, [filtered, detentor]);
 
   const totalActive = filters.anos.length + filters.dias.length + filters.horarios.length +
-    filters.rodadas.length + filters.times.length + filters.concorrencia.length;
+    filters.rodadas.length + filters.times.length + (filters.detentores?.length ?? 0) + filters.concorrencia.length;
 
   return (
     <div onClick={() => setTooltip(null)}>
       {/* Controls row */}
       <div className="flex items-center gap-3 mb-4 flex-wrap">
-        {detentor ? (
-          <>
-            <FilterDialog state={filters} onChange={setFilters} options={filterOptions} />
-            {totalActive > 0 && (
-              <button onClick={() => setFilters({ anos: [], dias: [], horarios: [], rodadas: [], times: [], concorrencia: [] })}
-                className="text-xs text-white/30 hover:text-white/50 transition-colors">
-                Limpar filtros
-              </button>
-            )}
-          </>
-        ) : (
-          <div className="relative flex-1 max-w-sm">
+        <FilterDialog state={filters} onChange={setFilters} options={filterOptions} />
+        {totalActive > 0 && (
+          <button onClick={() => setFilters({ anos: [], dias: [], horarios: [], rodadas: [], times: [], detentores: [], concorrencia: [] })}
+            className="text-xs text-white/30 hover:text-white/50 transition-colors">
+            Limpar filtros
+          </button>
+        )}
+        {!detentor && (
+          <div className="relative flex-1 max-w-sm min-w-[180px]">
             <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/25" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
-            <input type="text" placeholder="Buscar por time, rodada, data..."
+            <input type="text" placeholder="Buscar por time, detentor, rodada, data..."
               value={search} onChange={(e) => setSearch(e.target.value)}
               className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-blue-500/50 transition-colors" />
           </div>
@@ -283,13 +295,13 @@ export default function GamesTable({ games, allGames, detentor, showDeltas = tru
             <table className="w-full text-sm border-collapse">
               <thead className="sticky top-0 z-10" style={{ background: "rgba(12,14,24,0.95)", backdropFilter: "blur(12px)" }}>
                 <tr className="text-white/30 text-xs uppercase tracking-wider">
-                  {!detentor && <th className="px-4 py-3 text-left font-medium">Detentor</th>}
-                  <th className="px-4 py-3 text-left font-medium">Temp.</th>
+                  {!detentor && <SortTh label="Detentor" sortKey="detentor" current={sortKey} dir={sortDir} onSort={handleSort} />}
+                  <SortTh label="Temp." sortKey="ano" current={sortKey} dir={sortDir} onSort={handleSort} />
                   <SortTh label="Rod." sortKey="rodada" current={sortKey} dir={sortDir} onSort={handleSort} />
                   <SortTh label="Data" sortKey="data" current={sortKey} dir={sortDir} onSort={handleSort} />
-                  <th className="px-4 py-3 text-left font-medium">Dia</th>
-                  <th className="px-4 py-3 text-left font-medium">Horário</th>
-                  <th className="px-4 py-3 text-center font-medium">Jogo</th>
+                  <SortTh label="Dia" sortKey="dia" current={sortKey} dir={sortDir} onSort={handleSort} />
+                  <SortTh label="Horário" sortKey="horario" current={sortKey} dir={sortDir} onSort={handleSort} />
+                  <SortTh label="Jogo" sortKey="jogo" current={sortKey} dir={sortDir} onSort={handleSort} center />
                   <SortTh label="Audiência" sortKey="metric" current={sortKey} dir={sortDir} onSort={handleSort} right />
                   <SortTh label="Conc." sortKey="concorrentes" current={sortKey} dir={sortDir} onSort={handleSort} />
                   {isAmazon && (
@@ -576,14 +588,14 @@ export default function GamesTable({ games, allGames, detentor, showDeltas = tru
   );
 }
 
-function SortTh({ label, sortKey, current, dir, onSort, right, accent }: {
+function SortTh({ label, sortKey, current, dir, onSort, right, center, accent }: {
   label: string; sortKey: SortKey; current: SortKey; dir: "asc" | "desc";
-  onSort: (k: SortKey) => void; right?: boolean; accent?: string;
+  onSort: (k: SortKey) => void; right?: boolean; center?: boolean; accent?: string;
 }) {
   const isActive = current === sortKey;
   return (
     <th
-      className={`px-4 py-3 font-medium cursor-pointer select-none transition-colors whitespace-nowrap ${right ? "text-right" : "text-left"}`}
+      className={`px-4 py-3 font-medium cursor-pointer select-none transition-colors whitespace-nowrap ${center ? "text-center" : right ? "text-right" : "text-left"}`}
       style={{ color: accent ?? undefined }}
       onClick={() => onSort(sortKey)}>
       {label}
