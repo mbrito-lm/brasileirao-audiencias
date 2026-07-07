@@ -37,9 +37,22 @@ export default function Nav() {
             target="_blank"
             rel="noopener noreferrer"
             title="Abrir o projeto de análise no Claude (nova aba)"
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#D97757] hover:bg-[#c96442] transition-colors shadow-sm"
-            style={{ boxShadow: "0 1px 8px rgba(217,119,87,0.35)" }}>
-            <span className="text-sm leading-none">✨</span>
+            className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#D97757] hover:bg-[#c96442] transition-colors"
+            style={{ fontFamily: "var(--font-claude), sans-serif", boxShadow: "0 1px 8px rgba(217,119,87,0.35)" }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+              <line x1="15" y1="12" x2="21.5" y2="12" />
+              <line x1="14.6" y1="13.5" x2="20.2" y2="16.75" />
+              <line x1="13.5" y1="14.6" x2="16.75" y2="20.2" />
+              <line x1="12" y1="15" x2="12" y2="21.5" />
+              <line x1="10.5" y1="14.6" x2="7.25" y2="20.2" />
+              <line x1="9.4" y1="13.5" x2="3.8" y2="16.75" />
+              <line x1="9" y1="12" x2="2.5" y2="12" />
+              <line x1="9.4" y1="10.5" x2="3.8" y2="7.25" />
+              <line x1="10.5" y1="9.4" x2="7.25" y2="3.8" />
+              <line x1="12" y1="9" x2="12" y2="2.5" />
+              <line x1="13.5" y1="9.4" x2="16.75" y2="3.8" />
+              <line x1="14.6" y1="10.5" x2="20.2" y2="7.25" />
+            </svg>
             Analisar no Claude
           </a>
           <form action={logout}>
