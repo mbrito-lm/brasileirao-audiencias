@@ -137,6 +137,8 @@ export default function AudienciaBarChart({ data, isPnt, onDotHover, onDotClick,
   const [activeIdx, setActiveIdx] = useState<number | null>(null);
   const [hoverDot, setHoverDot] = useState<{ val: number; color: string } | null>(null);
   const [chartMode, setChartMode] = useState<"line" | "bar">("line");
+  const [showAvg, setShowAvg] = useState(true);
+  const [showOutliers, setShowOutliers] = useState(true);
 
   // Cálculos pesados memoizados: só recomputam quando os dados ou as séries
   // visíveis mudam — não a cada hover/mousemove (evita travamento).
@@ -257,6 +259,18 @@ export default function AudienciaBarChart({ data, isPnt, onDotHover, onDotClick,
         );
       })}
       <button
+        onClick={() => setShowAvg((v) => !v)}
+        className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${showAvg ? "border-white/20 text-white/70 bg-white/5" : "border-white/10 text-white/25"}`}
+      >
+        Médias
+      </button>
+      <button
+        onClick={() => setShowOutliers((v) => !v)}
+        className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${showOutliers ? "border-white/20 text-white/70 bg-white/5" : "border-white/10 text-white/25"}`}
+      >
+        Outliers
+      </button>
+      <button
         onClick={() => setChartMode((m) => m === "line" ? "bar" : "line")}
         className="px-3 py-1.5 rounded-lg text-xs font-medium border border-white/10 text-white/50 hover:text-white/70 transition-all ml-1"
       >
@@ -294,9 +308,9 @@ export default function AudienciaBarChart({ data, isPnt, onDotHover, onDotClick,
             <rect x={x} y={y} width={width} height={Math.max(1, height)}
               fill={fill} fillOpacity={active ? 1 : 0.82} rx={2} ry={2} />
           )}
-          {isOut && (
-            <text x={x + width / 2} y={(y ?? 0) - 5} textAnchor="middle"
-              fill="rgba(255,255,255,0.55)" fontSize={9} fontWeight="bold">!</text>
+          {isOut && showOutliers && (
+            <text x={x + width / 2} y={(y ?? 0) - 6} textAnchor="middle"
+              fill={SEASON_COLORS[season]} fontSize={16} fontWeight="bold">!</text>
           )}
         </g>
       );
@@ -354,12 +368,12 @@ export default function AudienciaBarChart({ data, isPnt, onDotHover, onDotClick,
             />
 
             {/* Average reference lines */}
-            {show25 && avg25 > 0 && (
+            {showAvg && show25 && avg25 > 0 && (
               <ReferenceLine y={avg25} stroke={SEASON_COLORS[2025]}
                 strokeDasharray="5 4" strokeWidth={1.5} strokeOpacity={0.45}
                 label={{ value: "méd 25", position: "insideTopRight", fill: SEASON_COLORS[2025], fontSize: 10, opacity: 0.6 }} />
             )}
-            {show26 && avg26 > 0 && (
+            {showAvg && show26 && avg26 > 0 && (
               <ReferenceLine y={avg26} stroke={SEASON_COLORS[2026]}
                 strokeDasharray="5 4" strokeWidth={1.5} strokeOpacity={0.45}
                 label={{ value: "méd 26", position: "insideTopRight", fill: SEASON_COLORS[2026], fontSize: 10, opacity: 0.6, dy: 14 }} />
@@ -425,12 +439,12 @@ export default function AudienciaBarChart({ data, isPnt, onDotHover, onDotClick,
           ))}
 
           {/* Average reference lines */}
-          {show25 && avg25 > 0 && (
+          {showAvg && show25 && avg25 > 0 && (
             <ReferenceLine y={avg25} stroke={SEASON_COLORS[2025]}
               strokeDasharray="5 4" strokeWidth={1.5} strokeOpacity={0.45}
               label={{ value: "méd 25", position: "insideTopRight", fill: SEASON_COLORS[2025], fontSize: 10, opacity: 0.6 }} />
           )}
-          {show26 && avg26 > 0 && (
+          {showAvg && show26 && avg26 > 0 && (
             <ReferenceLine y={avg26} stroke={SEASON_COLORS[2026]}
               strokeDasharray="5 4" strokeWidth={1.5} strokeOpacity={0.45}
               label={{ value: "méd 26", position: "insideTopRight", fill: SEASON_COLORS[2026], fontSize: 10, opacity: 0.6, dy: 14 }} />
@@ -558,7 +572,7 @@ export default function AudienciaBarChart({ data, isPnt, onDotHover, onDotClick,
                       onDotClick?.({ rodada, season, val: pt.val!, teams, isOutlier: isOut });
                     }}
                   >
-                    {isOut && (
+                    {isOut && showOutliers && (
                       <circle cx={cx} cy={cy} r={isActive ? 10 : 9}
                         fill="none" stroke={color} strokeWidth={1.5}
                         strokeDasharray="3 2" opacity={isLockedSeason ? 1 : 0.75} />
