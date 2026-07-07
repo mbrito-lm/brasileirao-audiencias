@@ -415,7 +415,18 @@ export default function GamesTable({ games, allGames, detentor, showDeltas = tru
                   filtered.map((g, i) => (
                     <tr key={i} className="border-t border-white/[0.04] hover:bg-white/[0.025] transition-colors">
                       {!detentor && (
-                        <td className="px-4 py-3 text-xs text-white/40 font-medium">{g.detentor}</td>
+                        <td className="px-4 py-3 text-xs text-white/40 font-medium">
+                          <div className="flex items-center gap-2">
+                            {LOGOS[g.detentor] && (
+                              <span className="w-5 h-5 rounded flex items-center justify-center shrink-0"
+                                style={{ background: DETENTOR_COLORS[g.detentor] || "#444" }}>
+                                <img src={LOGOS[g.detentor]} alt={g.detentor}
+                                  style={{ width: 12, height: 12, objectFit: "contain", filter: "brightness(0) invert(1)", opacity: 0.9 }} />
+                              </span>
+                            )}
+                            <span>{g.detentor}</span>
+                          </div>
+                        </td>
                       )}
                       <td className="px-4 py-3 text-xs font-semibold tabular-nums" style={{ color: SEASON_COLORS[g.ano] || "rgba(255,255,255,0.30)" }}>{g.ano}</td>
                       <td className="px-4 py-3 text-xs text-white/40 tabular-nums">{g.rodada}</td>

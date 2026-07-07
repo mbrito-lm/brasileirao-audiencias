@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { games, DETENTORES, DETENTOR_COLORS, SEASON_COLORS } from "@/data/games";
+import { games, DETENTORES, DETENTOR_COLORS, SEASON_COLORS, AMAZON_EXTRA_METRICS, YOUTUBE_EXTRA_METRICS, RECORD_EXTRA_METRICS, GLOBO_EXTRA_METRICS, globoKey } from "@/data/games";
 import { LOGOS } from "@/data/logos";
 import { getChartData, mediaDetentor, formatMetric, metricLabel, getMetric, PNT_DETENTORES, TOGGLE_DETENTORES, MetricMode, normalizeHorario } from "@/lib/stats";
 import AudienciaBarChart, { LockedDot, RodadaHoverData } from "@/components/AudienciaBarChart";
@@ -97,9 +97,17 @@ export default function DetentoresPage() {
           }))
         : [];
 
+      const extraMetrics =
+        g.detentor === "Amazon" ? (AMAZON_EXTRA_METRICS[g.data] ?? null)
+        : g.detentor === "YouTube" ? (YOUTUBE_EXTRA_METRICS[g.data] ?? null)
+        : g.detentor === "Record" ? (RECORD_EXTRA_METRICS[g.data] ?? null)
+        : g.detentor === "Globo" ? (GLOBO_EXTRA_METRICS[globoKey(g)] ?? null)
+        : null;
+
       return {
         temporada: g.ano,
         rodada: g.rodada,
+        fase: g.fase,
         data: g.data,
         dia: g.dia,
         horario: horNorm,
@@ -108,7 +116,10 @@ export default function DetentoresPage() {
         detentor: g.detentor,
         audiencia_raw: metric,
         audiencia_formatada: formatMetric(g.detentor, metric),
+        audiencia_pessoas: g.audiencia,
+        pnt_pontos: g.pnt,
         metrica_tipo: PNT_DETENTORES.has(g.detentor) ? "PNT (pontos)" : "Audiência (mil)",
+        extra_metrics: extraMetrics,
         concorrentes_simultaneos: concorrentes,
         total_concorrentes: concorrentes.length,
       };
@@ -125,8 +136,11 @@ export default function DetentoresPage() {
       total_jogos: sorted.length,
       detentores: DETENTORES,
       notas: [
-        "audiencia_raw: valor numérico bruto (null se dado indisponível)",
-        "metrica_tipo: 'PNT' para Record e SBT (pontos de audiência IBOPE), 'Audiência (mil)' para os demais",
+        "audiencia_raw: métrica principal bruta (pontos PNT p/ TV, espectadores p/ streaming; null se indisponível)",
+        "audiencia_pessoas: audiência absoluta em espectadores (quando disponível)",
+        "pnt_pontos: pontos de audiência PNT (quando disponível)",
+        "metrica_tipo: 'PNT (pontos)' para Record/Premiere/SporTV, 'Audiência (mil)' para os demais",
+        "extra_metrics: métricas detalhadas por detentor — Amazon (peak/streams/liveMinutes/totalViewers), YouTube (peak/alcance), Record (pontos por praça), Globo (pontos domiciliar/individual por praça)",
         "concorrentes_simultaneos: jogos no mesmo dia com início dentro de 120 minutos de diferença",
         "detentores de cada concorrente refletem os direitos de transmissão conforme o calendário",
       ],
