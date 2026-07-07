@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   ComposedChart, Line, XAxis, YAxis, CartesianGrid,
   ResponsiveContainer, ReferenceArea, ReferenceLine, Customized,
@@ -138,6 +138,33 @@ export default function AudienciaBarChart({ data, isPnt, onDotHover, onDotClick,
   const [hoverDot, setHoverDot] = useState<{ val: number; color: string } | null>(null);
   const [chartMode, setChartMode] = useState<"line" | "bar">("line");
 
+  // Cálculos pesados memoizados: só recomputam quando os dados ou as séries
+  // visíveis mudam — não a cada hover/mousemove (evita travamento).
+  const {
+    show25, show26, avg25, avg26, allRods, rodToIdx, maxIdx,
+    missingSet, offset25, offset26, data25, data26, segs25, segs26, midTicks,
+  } = useMemo(() => {
+    const show25 = !hidden.has("2025");
+    const show26 = !hidden.has("2026");
+    const avg25 = data[0]?.avg2025 ?? 0;
+    const avg26 = data[0]?.avg2026 ?? 0;
+    const allRods = data.map((d) => d.rodada);
+    const rodToIdx = new Map(allRods.map((r, i) => [r, i]));
+    const maxIdx = allRods.length - 1;
+    const missingSet = new Set<number>(
+      data.filter((d) => d["2025"] === null && d["2026"] === null).map((d) => d.rodada)
+    );
+    const bothVisible = show25 && show26;
+    const offset25 = bothVisible ? 0 : OFFSET / 2;
+    const offset26 = bothVisible ? OFFSET : OFFSET / 2;
+    const data25 = data.map((d) => ({ rod: rodToIdx.get(d.rodada)! + offset25, val: d["2025"] }));
+    const data26 = data.map((d) => ({ rod: rodToIdx.get(d.rodada)! + offset26, val: d["2026"] }));
+    const segs25 = show25 ? buildBridgeSegs(data25, SEASON_COLORS[2025]) : [];
+    const segs26 = show26 ? buildBridgeSegs(data26, SEASON_COLORS[2026]) : [];
+    const midTicks = allRods.map((_, i) => i + OFFSET / 2);
+    return { show25, show26, avg25, avg26, allRods, rodToIdx, maxIdx, missingSet, offset25, offset26, data25, data26, segs25, segs26, midTicks };
+  }, [data, hidden]);
+
   if (!data.length) return (
     <div className="h-64 flex items-center justify-center text-white/20 text-sm">
       Sem dados disponíveis
@@ -146,31 +173,6 @@ export default function AudienciaBarChart({ data, isPnt, onDotHover, onDotClick,
 
   const toggle = (key: string) =>
     setHidden((prev) => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n; });
-
-  const show25 = !hidden.has("2025");
-  const show26 = !hidden.has("2026");
-  const avg25 = data[0]?.avg2025 ?? 0;
-  const avg26 = data[0]?.avg2026 ?? 0;
-
-  const allRods = data.map((d) => d.rodada);
-  const rodToIdx = new Map(allRods.map((r, i) => [r, i]));
-  const maxIdx = allRods.length - 1;
-
-  const missingSet = new Set<number>(
-    data.filter((d) => d["2025"] === null && d["2026"] === null).map((d) => d.rodada)
-  );
-
-  const bothVisible = show25 && show26;
-  const offset25 = bothVisible ? 0 : OFFSET / 2;
-  const offset26 = bothVisible ? OFFSET : OFFSET / 2;
-
-  const data25 = data.map((d) => ({ rod: rodToIdx.get(d.rodada)! + offset25, val: d["2025"] }));
-  const data26 = data.map((d) => ({ rod: rodToIdx.get(d.rodada)! + offset26, val: d["2026"] }));
-
-  const segs25 = show25 ? buildBridgeSegs(data25, SEASON_COLORS[2025]) : [];
-  const segs26 = show26 ? buildBridgeSegs(data26, SEASON_COLORS[2026]) : [];
-
-  const midTicks = allRods.map((_, i) => i + OFFSET / 2);
 
   const lockedRodadaIdxs = lockedDots
     .map((ld) => rodToIdx.get(ld.rodada) ?? null)
@@ -188,10 +190,9 @@ export default function AudienciaBarChart({ data, isPnt, onDotHover, onDotClick,
     if (!chartState?.activeLabel) return;
     const idx = Math.round((chartState.activeLabel as number) - OFFSET / 2);
     if (idx < 0 || idx >= allRods.length) return;
-    if (idx !== activeIdx) {
-      setHoverDot(null);
-      onDotHover?.(null);
-    }
+    if (idx === activeIdx) return; // mesma rodada — evita atualizar a cada pixel
+    setHoverDot(null);
+    onDotHover?.(null);
     setActiveIdx(idx);
     const pt = data[idx];
     if (pt) {
@@ -218,6 +219,7 @@ export default function AudienciaBarChart({ data, isPnt, onDotHover, onDotClick,
     if (!chartState?.activeLabel) return;
     const rodada = Number(chartState.activeLabel);
     const idx = rodToIdx.get(rodada) ?? null;
+    if (idx === activeIdx) return; // mesma rodada — o hover por barra cuida do 2025/2026
     setActiveIdx(idx);
     if (idx !== null && data[idx]) {
       const pt = data[idx];
@@ -231,7 +233,7 @@ export default function AudienciaBarChart({ data, isPnt, onDotHover, onDotClick,
         avg2026: pt.avg2026,
       });
     }
-  }, [rodToIdx, data, onRodadaHover]);
+  }, [rodToIdx, data, onRodadaHover, activeIdx]);
 
   const toolbar = (
     <div className="flex gap-4 mb-4 justify-end items-center">
