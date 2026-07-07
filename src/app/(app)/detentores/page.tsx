@@ -254,15 +254,19 @@ export default function DetentoresPage() {
       {canToggle && (
         <div className="flex items-center gap-2 mb-5">
           <span className="text-xs text-white/30 uppercase tracking-widest mr-1">Visualização</span>
-          {(["pontos", "espectadores"] as MetricMode[]).map((m) => (
-            <button key={m} onClick={() => setMode(m)}
-              className="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all"
-              style={mode === m
-                ? { background: "rgba(18,55,215,0.70)", border: "1px solid rgba(60,100,255,0.55)", color: "white" }
-                : { border: "1px solid rgba(255,255,255,0.10)", color: "rgba(255,255,255,0.45)" }}>
-              {m === "pontos" ? "Pontos (PNT)" : "Espectadores"}
+          <div className="relative grid grid-cols-2 rounded-full border border-white/[0.10] bg-white/[0.04] p-0.5 text-xs font-semibold">
+            <span aria-hidden
+              className="absolute top-0.5 bottom-0.5 w-[calc(50%-2px)] rounded-full transition-transform duration-200 ease-out"
+              style={{ background: "rgba(18,55,215,0.85)", left: 2, transform: mode === "pontos" ? "translateX(0)" : "translateX(100%)" }} />
+            <button onClick={() => setMode("pontos")}
+              className={`relative z-10 px-3.5 py-1.5 rounded-full text-center transition-colors ${mode === "pontos" ? "text-white" : "text-white/45 hover:text-white/70"}`}>
+              Pontos (PNT)
             </button>
-          ))}
+            <button onClick={() => setMode("espectadores")}
+              className={`relative z-10 px-3.5 py-1.5 rounded-full text-center transition-colors ${mode === "espectadores" ? "text-white" : "text-white/45 hover:text-white/70"}`}>
+              Espectadores
+            </button>
+          </div>
         </div>
       )}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-8">
