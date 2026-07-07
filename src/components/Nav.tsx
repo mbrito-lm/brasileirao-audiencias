@@ -41,18 +41,18 @@ export default function Nav() {
             style={{ fontFamily: "var(--font-claude), sans-serif", boxShadow: "0 1px 8px rgba(217,119,87,0.35)" }}>
             <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
               <g stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" fill="none">
-                <line x1="12" y1="12" x2="22" y2="12" />
+                <line x1="12" y1="12" x2="21" y2="12" />
                 <line x1="12" y1="12" x2="18.06" y2="15.5" />
-                <line x1="12" y1="12" x2="16.75" y2="20.2" />
+                <line x1="12" y1="12" x2="17" y2="20.66" />
                 <line x1="12" y1="12" x2="12" y2="18.5" />
-                <line x1="12" y1="12" x2="7" y2="20.66" />
-                <line x1="12" y1="12" x2="5.5" y2="15.75" />
-                <line x1="12" y1="12" x2="2" y2="12" />
-                <line x1="12" y1="12" x2="6.37" y2="8.75" />
-                <line x1="12" y1="12" x2="7.25" y2="3.77" />
-                <line x1="12" y1="12" x2="12" y2="5" />
-                <line x1="12" y1="12" x2="17" y2="3.34" />
-                <line x1="12" y1="12" x2="18.5" y2="8.25" />
+                <line x1="12" y1="12" x2="7.75" y2="19.36" />
+                <line x1="12" y1="12" x2="2.91" y2="17.25" />
+                <line x1="12" y1="12" x2="4.5" y2="12" />
+                <line x1="12" y1="12" x2="3.77" y2="7.25" />
+                <line x1="12" y1="12" x2="9" y2="6.8" />
+                <line x1="12" y1="12" x2="12" y2="2" />
+                <line x1="12" y1="12" x2="16" y2="5.07" />
+                <line x1="12" y1="12" x2="18.06" y2="8.5" />
               </g>
               <circle cx="12" cy="12" r="2.2" fill="currentColor" />
             </svg>
