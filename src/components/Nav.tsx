@@ -37,10 +37,9 @@ export default function Nav() {
             target="_blank"
             rel="noopener noreferrer"
             title="Abrir o projeto de análise no Claude (nova aba)"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border border-white/[0.10] text-white/60 hover:text-white hover:bg-white/[0.06]">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 3l1.9 5.8L20 10.7l-4.9 3.6L17 20l-5-3.6L7 20l1.9-5.7L4 10.7l6.1-1.9z" />
-            </svg>
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#D97757] hover:bg-[#c96442] transition-colors shadow-sm"
+            style={{ boxShadow: "0 1px 8px rgba(217,119,87,0.35)" }}>
+            <span className="text-sm leading-none">✨</span>
             Analisar no Claude
           </a>
           <form action={logout}>
