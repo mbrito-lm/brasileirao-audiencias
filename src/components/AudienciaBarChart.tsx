@@ -279,13 +279,14 @@ export default function AudienciaBarChart({ data, isPnt, onDotHover, onDotClick,
             if (value == null) return;
             const pt = data.find((d) => d.rodada === rodada);
             if (!pt) return;
+            setHoverDot({ val: value as number, color: fill });
             onDotHover?.({
               rodada, season, val: value,
               teams: season === 2025 ? pt.teams25 : pt.teams26,
               isOutlier: isOut,
             });
           }}
-          onMouseLeave={() => { if (value != null) onDotHover?.(null); }}
+          onMouseLeave={() => { if (value != null) { setHoverDot(null); onDotHover?.(null); } }}
         >
           {height > 0 && (
             <rect x={x} y={y} width={width} height={Math.max(1, height)}
@@ -360,6 +361,12 @@ export default function AudienciaBarChart({ data, isPnt, onDotHover, onDotClick,
               <ReferenceLine y={avg26} stroke={SEASON_COLORS[2026]}
                 strokeDasharray="5 4" strokeWidth={1.5} strokeOpacity={0.45}
                 label={{ value: "méd 26", position: "insideTopRight", fill: SEASON_COLORS[2026], fontSize: 10, opacity: 0.6, dy: 14 }} />
+            )}
+
+            {/* Linha horizontal ao passar sobre uma coluna */}
+            {hoverDot && (
+              <ReferenceLine y={hoverDot.val} stroke={hoverDot.color}
+                strokeDasharray="3 4" strokeWidth={1} strokeOpacity={0.55} />
             )}
 
             {show25 && (

@@ -1,5 +1,6 @@
 "use client";
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
+import { getStoredFilters, saveFilters, getStoredSearch, saveSearch } from "@/lib/filterStore";
 import { Game } from "@/data/games";
 import {
   mediaDetentor, mediaDiaHorario, mediaTimes,
@@ -40,13 +41,20 @@ const DELTA_TIPS: Record<string, string> = {
 
 const DIA_ORDER = ["seg.", "ter.", "qua.", "qui.", "sex.", "sáb.", "dom."];
 
+const FILTER_STORE_KEY = "gamesTable";
+
 interface Props { games: Game[]; allGames: Game[]; detentor: string | null; showDeltas?: boolean; mode?: MetricMode }
 
 export default function GamesTable({ games, allGames, detentor, showDeltas = true, mode }: Props) {
-  const [filters, setFilters] = useState<FilterState>({
-    anos: [], dias: [], horarios: [], rodadas: [], times: [], detentores: [], concorrencia: [],
-  });
-  const [search, setSearch] = useState("");
+  const [filters, setFilters] = useState<FilterState>(() =>
+    getStoredFilters(FILTER_STORE_KEY) ?? {
+      anos: [], dias: [], horarios: [], rodadas: [], times: [], detentores: [], concorrencia: [],
+    }
+  );
+  const [search, setSearch] = useState(() => getStoredSearch(FILTER_STORE_KEY));
+  // Persiste em memória para sobreviver à navegação entre páginas (zera no F5).
+  useEffect(() => { saveFilters(FILTER_STORE_KEY, filters); }, [filters]);
+  useEffect(() => { saveSearch(FILTER_STORE_KEY, search); }, [search]);
   const [sortKey, setSortKey] = useState<SortKey>("data");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [tooltip, setTooltip] = useState<{ key: string; x: number; y: number } | null>(null);

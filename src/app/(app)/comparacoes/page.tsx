@@ -1,5 +1,6 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { getStoredFilters, saveFilters } from "@/lib/filterStore";
 import { games, DETENTORES, DETENTOR_COLORS, SEASON_COLORS } from "@/data/games";
 import { LOGOS } from "@/data/logos";
 import { getMetric, formatMetric, formatAudiencia, parseDate, avg, normalizeHorario, PNT_DETENTORES } from "@/lib/stats";
@@ -70,7 +71,8 @@ export default function ComparacoesPage() {
 }
 
 function ComparePanel({ label, accentColor }: { label: string; accentColor: string }) {
-  const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS);
+  const [filters, setFilters] = useState<FilterState>(() => getStoredFilters("comparacoes") ?? EMPTY_FILTERS);
+  useEffect(() => { saveFilters("comparacoes", filters); }, [filters]);
   const [sortKey, setSortKey] = useState<SortKey>("metric");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 

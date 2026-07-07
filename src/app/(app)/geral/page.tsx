@@ -63,14 +63,25 @@ function SeasonFilter({ value, onChange, nullLabel = "Todas" }: {
 }) {
   return (
     <div className="flex gap-1">
-      {([null, 2025, 2026] as (number | null)[]).map((v) => (
-        <button key={v ?? "all"} onClick={() => onChange(v)}
-          className={`px-2 py-1 rounded-lg text-[10px] font-semibold transition-all border ${
-            value === v ? "border-white/25 bg-white/10 text-white" : "border-white/[0.07] text-white/30 hover:text-white/50"
-          }`}>
-          {v == null ? nullLabel : v}
-        </button>
-      ))}
+      {([null, 2025, 2026] as (number | null)[]).map((v) => {
+        const active = value === v;
+        const col = v != null ? SEASON_COLORS[v] : null;
+        return (
+          <button key={v ?? "all"} onClick={() => onChange(v)}
+            className="px-2 py-1 rounded-lg text-[10px] font-semibold transition-all border"
+            style={
+              col
+                ? (active
+                    ? { color: col, background: col + "22", borderColor: col + "66" }
+                    : { color: col, opacity: 0.5, borderColor: "rgba(255,255,255,0.07)" })
+                : (active
+                    ? { color: "#fff", background: "rgba(255,255,255,0.10)", borderColor: "rgba(255,255,255,0.25)" }
+                    : { color: "rgba(255,255,255,0.3)", borderColor: "rgba(255,255,255,0.07)" })
+            }>
+            {v == null ? nullLabel : v}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -83,7 +94,7 @@ function SeasonToggle({ value, onChange }: { value: 2025 | 2026; onChange: (s: 2
           className="px-3.5 py-1.5 rounded-full text-xs font-bold transition-all duration-200"
           style={value === yr
             ? { background: SEASON_COLORS[yr] + "35", color: SEASON_COLORS[yr], boxShadow: `0 0 10px ${SEASON_COLORS[yr]}30` }
-            : { color: "rgba(255,255,255,0.3)" }}>
+            : { color: SEASON_COLORS[yr], opacity: 0.5 }}>
           {yr}
         </button>
       ))}
