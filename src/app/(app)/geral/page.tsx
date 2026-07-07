@@ -2,8 +2,13 @@
 import { useRef, useEffect, useMemo, useState } from "react";
 import { games, DETENTORES, DETENTOR_COLORS, SEASON_COLORS, Game } from "@/data/games";
 import { LOGOS } from "@/data/logos";
-import { getMetric, formatMetric, avg, normalizeHorario, parseDate } from "@/lib/stats";
+import { getMetric as getMetricBase, formatMetric as formatMetricBase, avg, normalizeHorario, parseDate } from "@/lib/stats";
 import TeamLogo from "@/components/TeamLogo";
+
+// Na página Geral, a Globo é exibida em pontos PNT por padrão (como as demais
+// emissoras de TV). Amazon/YouTube seguem em espectadores.
+const getMetric = (g: Game) => getMetricBase(g, "pontos");
+const formatMetric = (d: string, v: number | null) => formatMetricBase(d, v, "pontos");
 
 const WEEK_DAYS = ["dom.", "seg.", "ter.", "qua.", "qui.", "sex.", "sáb."];
 
