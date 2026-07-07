@@ -37,21 +37,21 @@ export default function Nav() {
             target="_blank"
             rel="noopener noreferrer"
             title="Abrir o projeto de análise no Claude (nova aba)"
-            className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#D97757] hover:bg-[#c96442] transition-colors"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white bg-[#D97757] hover:bg-[#c96442] transition-colors"
             style={{ fontFamily: "var(--font-claude), sans-serif", boxShadow: "0 1px 8px rgba(217,119,87,0.35)" }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-              <line x1="12" y1="12" x2="21.5" y2="12" />
-              <line x1="12" y1="12" x2="17.63" y2="15.25" />
-              <line x1="12" y1="12" x2="16" y2="18.93" />
-              <line x1="12" y1="12" x2="12" y2="18" />
-              <line x1="12" y1="12" x2="7.5" y2="19.79" />
-              <line x1="12" y1="12" x2="5.94" y2="15.5" />
-              <line x1="12" y1="12" x2="2.5" y2="12" />
-              <line x1="12" y1="12" x2="6.8" y2="9" />
-              <line x1="12" y1="12" x2="7.75" y2="4.64" />
-              <line x1="12" y1="12" x2="12" y2="5.5" />
-              <line x1="12" y1="12" x2="16.5" y2="4.21" />
-              <line x1="12" y1="12" x2="18.06" y2="8.5" />
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <line x1="12" y1="12" x2="20.5" y2="12" />
+              <line x1="12" y1="12" x2="16.76" y2="14.75" />
+              <line x1="12" y1="12" x2="15.75" y2="18.5" />
+              <line x1="12" y1="12" x2="12" y2="17" />
+              <line x1="12" y1="12" x2="8" y2="18.93" />
+              <line x1="12" y1="12" x2="6.8" y2="15" />
+              <line x1="12" y1="12" x2="3.5" y2="12" />
+              <line x1="12" y1="12" x2="7.67" y2="9.5" />
+              <line x1="12" y1="12" x2="8.25" y2="5.5" />
+              <line x1="12" y1="12" x2="12" y2="6.5" />
+              <line x1="12" y1="12" x2="16" y2="5.07" />
+              <line x1="12" y1="12" x2="17.2" y2="9" />
             </svg>
             Analisar no Claude
           </a>
