@@ -238,7 +238,8 @@ export default function AudienciaBarChart({ data, isPnt, onDotHover, onDotClick,
   }, [rodToIdx, data, onRodadaHover, activeIdx]);
 
   const toolbar = (
-    <div className="flex gap-4 mb-4 justify-end items-center">
+    <div className="flex flex-col gap-2 mb-4 items-end">
+      <div className="flex gap-4 items-center">
       {[2025, 2026].map((yr) => {
         const off = hidden.has(yr.toString());
         const aval = yr === 2025 ? avg25 : avg26;
@@ -258,6 +259,8 @@ export default function AudienciaBarChart({ data, isPnt, onDotHover, onDotClick,
           </button>
         );
       })}
+      </div>
+      <div className="flex gap-2 items-center">
       <button
         onClick={() => setShowAvg((v) => !v)}
         className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${showAvg ? "border-white/20 text-white/70 bg-white/5" : "border-white/10 text-white/25"}`}
@@ -276,6 +279,7 @@ export default function AudienciaBarChart({ data, isPnt, onDotHover, onDotClick,
       >
         {chartMode === "line" ? "▐▌ Barras" : "━━ Linha"}
       </button>
+      </div>
     </div>
   );
 
