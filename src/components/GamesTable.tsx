@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect, memo } from "react";
 import { getStoredFilters, saveFilters, getStoredSearch, saveSearch } from "@/lib/filterStore";
 import { Game } from "@/data/games";
 import {
@@ -45,7 +45,7 @@ const FILTER_STORE_KEY = "gamesTable";
 
 interface Props { games: Game[]; allGames: Game[]; detentor: string | null; showDeltas?: boolean; mode?: MetricMode }
 
-export default function GamesTable({ games, allGames, detentor, showDeltas = true, mode }: Props) {
+function GamesTable({ games, allGames, detentor, showDeltas = true, mode }: Props) {
   const [filters, setFilters] = useState<FilterState>(() =>
     getStoredFilters(FILTER_STORE_KEY) ?? {
       anos: [], dias: [], horarios: [], rodadas: [], times: [], detentores: [], concorrencia: [],
@@ -670,3 +670,5 @@ function DeltaCell({ value }: { value: number | null }) {
     </td>
   );
 }
+
+export default memo(GamesTable);

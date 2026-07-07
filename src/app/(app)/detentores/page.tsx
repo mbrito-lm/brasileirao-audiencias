@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { games, DETENTORES, DETENTOR_COLORS, SEASON_COLORS, AMAZON_EXTRA_METRICS, YOUTUBE_EXTRA_METRICS, RECORD_EXTRA_METRICS, GLOBO_EXTRA_METRICS, globoKey } from "@/data/games";
 import { LOGOS } from "@/data/logos";
 import { getChartData, mediaDetentor, formatMetric, metricLabel, getMetric, PNT_DETENTORES, TOGGLE_DETENTORES, MetricMode, normalizeHorario } from "@/lib/stats";
@@ -29,16 +29,17 @@ export default function DetentoresPage() {
   // Modo (pontos/espectadores) só se aplica às emissoras com toggle.
   const canToggle = detentor ? TOGGLE_DETENTORES.has(detentor) : false;
   const effMode: MetricMode | undefined = canToggle ? mode : undefined;
-  const filteredGames = detentor ? games.filter((g) => g.detentor === detentor) : games;
-  const chartData = detentor ? getChartData(games, detentor, effMode) : [];
   const isPnt = canToggle ? mode === "pontos" : (detentor ? PNT_DETENTORES.has(detentor) : false);
 
-  const gamesWithMetric = filteredGames.filter((g) => getMetric(g, effMode) !== null);
-  const globalAvg = detentor ? mediaDetentor(games, detentor, effMode) : null;
-  const maxGame = gamesWithMetric.reduce(
+  // Memoizados para não recalcular a cada hover no gráfico (evita travamento).
+  const filteredGames = useMemo(() => detentor ? games.filter((g) => g.detentor === detentor) : games, [detentor]);
+  const chartData = useMemo(() => detentor ? getChartData(games, detentor, effMode) : [], [detentor, effMode]);
+  const gamesWithMetric = useMemo(() => filteredGames.filter((g) => getMetric(g, effMode) !== null), [filteredGames, effMode]);
+  const globalAvg = useMemo(() => detentor ? mediaDetentor(games, detentor, effMode) : null, [detentor, effMode]);
+  const maxGame = useMemo(() => gamesWithMetric.reduce(
     (best, g) => (!best || (getMetric(g, effMode) ?? 0) > (getMetric(best, effMode) ?? 0) ? g : best),
     null as typeof gamesWithMetric[0] | null
-  );
+  ), [gamesWithMetric, effMode]);
 
   function getGameInfo(rodada: number, season: number, teams?: { mandante: string; visitante: string }[]) {
     const candidates = filteredGames.filter((g) => g.rodada === rodada && g.ano === season);
