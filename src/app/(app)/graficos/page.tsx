@@ -213,6 +213,46 @@ export default function GraficosPage() {
   const [lockedPositions, setLockedPositions] = useState<number[]>([]);
   const [editingLabelId, setEditingLabelId] = useState<string | null>(null);
   const [editingLabelText, setEditingLabelText] = useState("");
+  const [capturing, setCapturing] = useState(false);
+
+  // Gera um "print" da tela via API de captura (pega os pixels renderizados,
+  // incluindo escudos de outros domínios — sem problema de CORS).
+  const handlePrint = useCallback(async () => {
+    if (capturing) return;
+    const md = navigator.mediaDevices as MediaDevices | undefined;
+    if (!md || !md.getDisplayMedia) {
+      alert("Seu navegador não suporta captura de tela. Use o Chrome ou o Edge.");
+      return;
+    }
+    setCapturing(true);
+    try {
+      const stream = await md.getDisplayMedia({
+        video: { displaySurface: "browser" },
+        audio: false,
+        preferCurrentTab: true,
+      } as unknown as MediaStreamConstraints);
+      const video = document.createElement("video");
+      video.muted = true;
+      video.srcObject = stream;
+      await video.play();
+      await new Promise((r) => setTimeout(r, 250)); // garante um frame pintado
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext("2d");
+      if (ctx) ctx.drawImage(video, 0, 0);
+      stream.getTracks().forEach((t) => t.stop());
+      const url = canvas.toDataURL("image/png");
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "graficos-audiencias.png";
+      a.click();
+    } catch (e) {
+      if (e instanceof Error && e.name !== "NotAllowedError") console.error(e);
+    } finally {
+      setCapturing(false);
+    }
+  }, [capturing]);
 
   const unifiedGames = useMemo<UnifiedGame[]>(() => {
     const all = seriesList.flatMap((s) =>
@@ -492,10 +532,20 @@ export default function GraficosPage() {
                     </div>
                   )}
                 </div>
-                <button onClick={() => setChartMode((m) => m === "line" ? "bar" : "line")}
-                  className="px-3 py-1.5 rounded-lg text-xs font-medium border border-white/10 text-white/50 hover:text-white/70 transition-all ml-4 shrink-0">
-                  {chartMode === "line" ? "▐▌ Barras" : "━━ Linha"}
-                </button>
+                <div className="flex gap-2 items-center ml-4 shrink-0">
+                  <button onClick={handlePrint} disabled={capturing} title="Gerar um print da tela (PNG)"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-white/10 text-white/60 hover:text-white hover:bg-white/[0.06] transition-all disabled:opacity-40">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                      <circle cx="12" cy="13" r="4"/>
+                    </svg>
+                    {capturing ? "Capturando…" : "Gerar print"}
+                  </button>
+                  <button onClick={() => setChartMode((m) => m === "line" ? "bar" : "line")}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium border border-white/10 text-white/50 hover:text-white/70 transition-all">
+                    {chartMode === "line" ? "▐▌ Barras" : "━━ Linha"}
+                  </button>
+                </div>
               </div>
 
               <div style={{ height: 56, marginBottom: 10, display: "flex", flexDirection: "column", gap: 4, overflow: "hidden" }}>
