@@ -1,0 +1,19 @@
+<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <rect width="32" height="32" rx="7" fill="#08090f"/>
+  <!-- multidão ao fundo -->
+  <g fill="none" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="4.8" cy="11" r="2"/>
+    <path d="M1.3 16.5 a3.5 3.5 0 0 1 7 0"/>
+    <circle cx="27.2" cy="11" r="2"/>
+    <path d="M23.7 16.5 a3.5 3.5 0 0 1 7 0"/>
+  </g>
+  <!-- a lupa cobre a multidão atrás dela -->
+  <circle cx="14" cy="13" r="8.4" fill="#08090f"/>
+  <g fill="none" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="14" cy="13" r="7.6"/>
+    <circle cx="14" cy="10.6" r="2.1"/>
+    <path d="M10.3 16.9 a3.7 3.7 0 0 1 7.4 0"/>
+    <line x1="19.5" y1="18.5" x2="23.2" y2="22.2"/>
+    <line x1="23" y1="21.4" x2="27" y2="25.4" stroke-width="2.6"/>
+  </g>
+</svg>
