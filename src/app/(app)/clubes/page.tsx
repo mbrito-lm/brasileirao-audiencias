@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { games, SEASON_COLORS } from "@/data/games";
 import { teamColor } from "@/data/teamColors";
 import TeamLogo from "@/components/TeamLogo";
@@ -29,29 +29,34 @@ export default function ClubesPage() {
         </p>
       </div>
 
-      <div className="flex flex-col gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {seasons.map(({ ano, clubs }) => (
           <div key={ano} className="glass rounded-2xl p-6">
             <div className="flex items-center gap-2 mb-5">
               <span className="text-lg font-bold tabular-nums" style={{ color: SEASON_COLORS[ano] }}>{ano}</span>
               <span className="text-xs text-white/30">· {clubs.length} clubes</span>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {clubs.map((club) => {
-                const col = teamColor(club);
-                return (
-                  <Link key={club} href={`/clubes/${encodeURIComponent(club)}`}
-                    className="glass rounded-xl px-3 py-3 flex items-center gap-2.5 hover:bg-white/[0.06] transition-colors border-l-2 min-w-0"
-                    style={{ borderLeftColor: col }}>
-                    <TeamLogo team={club} size={26} />
-                    <span className="text-sm font-semibold text-white/85 truncate">{club}</span>
-                  </Link>
-                );
-              })}
+            <div className="grid grid-cols-4 gap-2.5">
+              {clubs.map((club) => <ClubButton key={club} club={club} />)}
             </div>
           </div>
         ))}
       </div>
     </div>
+  );
+}
+
+function ClubButton({ club }: { club: string }) {
+  const [hover, setHover] = useState(false);
+  const col = teamColor(club);
+  return (
+    <Link href={`/clubes/${encodeURIComponent(club)}`}
+      title={club}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      className="glass rounded-xl aspect-square flex items-center justify-center transition-colors"
+      style={hover ? { background: col + "22", borderColor: col + "99" } : undefined}>
+      <TeamLogo team={club} size={44} />
+    </Link>
   );
 }

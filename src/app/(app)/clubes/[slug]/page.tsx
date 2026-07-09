@@ -139,10 +139,10 @@ export default function ClubePage() {
             <span className="text-[10px] uppercase tracking-wider text-white/30">Detentor</span>
             {detentores.map((d) => (
               <button key={d} type="button" onClick={() => setSelDetState(d)} title={d}
-                className="h-8 px-2.5 rounded-lg flex items-center transition-all"
+                className="h-8 px-2.5 rounded-lg flex items-center border transition-colors"
                 style={selDet === d
-                  ? { background: (DETENTOR_COLORS[d] || "#666"), boxShadow: `0 0 12px ${(DETENTOR_COLORS[d] || "#666")}66` }
-                  : { background: "rgba(var(--ink-c),0.05)", border: "1px solid rgba(var(--ink-c),0.08)" }}>
+                  ? { background: (DETENTOR_COLORS[d] || "#666"), borderColor: (DETENTOR_COLORS[d] || "#666"), boxShadow: `0 0 12px ${(DETENTOR_COLORS[d] || "#666")}66` }
+                  : { background: "rgba(var(--ink-c),0.05)", borderColor: "rgba(var(--ink-c),0.08)" }}>
                 {LOGOS[d]
                   ? <img src={LOGOS[d]} alt={d} style={{ height: 15, width: "auto", objectFit: "contain", filter: selDet === d ? "brightness(0) invert(1)" : "var(--logo-filter-inactive)", maxWidth: 46 }} />
                   : <span className="text-[10px] font-semibold text-white/70">{d}</span>}
@@ -188,7 +188,7 @@ export default function ClubePage() {
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-3 ml-auto">
           <Kpi label="Jogos (total)" value={String(seasonClubGames.length)} accent={detColor} />
           <Kpi label={selDet ? `Jogos · ${selDet}` : "Jogos"} value={String(detGames.length)} accent={detColor} />
           <Kpi label="Média" value={selDet ? formatMetric(selDet, media) : "—"} accent={detColor} />
