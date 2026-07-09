@@ -78,6 +78,10 @@ export default function FilterDialog({ state, onChange, options, singleDetentor 
   const totalActive = state.anos.length + state.dias.length + state.horarios.length +
     state.rodadas.length + state.times.length + (state.detentores?.length ?? 0) + state.concorrencia.length;
 
+  // Colunas visíveis = categorias que têm opções (permite reduzir o diálogo).
+  const visibleCols = [options.anos, options.dias, options.horarios, options.rodadas, options.concorrencia, options.times]
+    .filter((a) => (a?.length ?? 0) > 0).length || 1;
+
   function startDrag(key: keyof FilterState, idx: number, displayItems: any[]) {
     const arr = state[key] as any[];
     const val = displayItems[idx];
@@ -159,7 +163,7 @@ export default function FilterDialog({ state, onChange, options, singleDetentor 
           style={{ background: "rgba(0,0,0,0.70)", backdropFilter: "blur(8px)" }}
           onClick={() => setOpen(false)}>
           <div className="glass-strong rounded-3xl w-full max-w-5xl shadow-2xl overflow-hidden flex flex-col"
-            style={{ height: "82vh" }}
+            style={{ height: "82vh", maxWidth: Math.min(1024, 210 * visibleCols + 140) }}
             onClick={(e) => e.stopPropagation()}>
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-5 border-b border-white/[0.07]">
@@ -212,8 +216,9 @@ export default function FilterDialog({ state, onChange, options, singleDetentor 
             )}
 
             {/* Columns — flex-1 fills remaining modal height, overflow hidden so each column scrolls independently */}
-            <div className="grid grid-cols-6 divide-x divide-white/[0.06] flex-1 min-h-0" style={{ overflow: "hidden" }}>
+            <div className="grid divide-x divide-white/[0.06] flex-1 min-h-0" style={{ overflow: "hidden", gridTemplateColumns: `repeat(${visibleCols}, minmax(0, 1fr))` }}>
               {/* Temporada */}
+              {options.anos.length > 0 && (
               <ColSection title="Temporada" count={state.anos.length} onClear={() => clearKey("anos")}>
                 <div className="space-y-1 px-4 py-3">
                   {options.anos.map((a, i) => (
@@ -227,8 +232,10 @@ export default function FilterDialog({ state, onChange, options, singleDetentor 
                   ))}
                 </div>
               </ColSection>
+              )}
 
               {/* Dia */}
+              {options.dias.length > 0 && (
               <ColSection title="Dia" count={state.dias.length} onClear={() => clearKey("dias")}>
                 <div className="space-y-1 px-4 py-3">
                   {options.dias.map((d, i) => (
@@ -242,8 +249,10 @@ export default function FilterDialog({ state, onChange, options, singleDetentor 
                   ))}
                 </div>
               </ColSection>
+              )}
 
               {/* Horário */}
+              {options.horarios.length > 0 && (
               <ColSection title="Horário" count={state.horarios.length} onClear={() => clearKey("horarios")}>
                 <div className="space-y-1 px-4 py-3">
                   {options.horarios.map((h, i) => (
@@ -257,8 +266,10 @@ export default function FilterDialog({ state, onChange, options, singleDetentor 
                   ))}
                 </div>
               </ColSection>
+              )}
 
               {/* Rodada */}
+              {options.rodadas.length > 0 && (
               <ColSection title="Rodada" count={state.rodadas.length} onClear={() => clearKey("rodadas")}>
                 <div className="px-4 py-3 flex flex-wrap gap-1.5">
                   {options.rodadas.map((r, i) => (
@@ -276,8 +287,10 @@ export default function FilterDialog({ state, onChange, options, singleDetentor 
                   ))}
                 </div>
               </ColSection>
+              )}
 
               {/* Concorrência */}
+              {options.concorrencia.length > 0 && (
               <ColSection title="Concorrência" count={state.concorrencia.length} onClear={() => clearKey("concorrencia")}>
                 <div className="space-y-1 px-4 py-3">
                   {options.concorrencia.map((n, i) => (
@@ -295,8 +308,10 @@ export default function FilterDialog({ state, onChange, options, singleDetentor 
                   )}
                 </div>
               </ColSection>
+              )}
 
               {/* Times */}
+              {options.times.length > 0 && (
               <ColSection title="Time" count={state.times.length} onClear={() => clearKey("times")}>
                 <div className="px-4 pb-1">
                   <input
@@ -323,6 +338,7 @@ export default function FilterDialog({ state, onChange, options, singleDetentor 
                   )}
                 </div>
               </ColSection>
+              )}
             </div>
 
             {/* Footer */}

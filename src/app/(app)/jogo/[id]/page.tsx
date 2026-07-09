@@ -15,6 +15,7 @@ import { teamColor } from "@/data/teamColors";
 import { getMetric, formatMetric, formatAudiencia, normalizeHorario } from "@/lib/stats";
 import { parseMatchSlug, matchHref } from "@/lib/gameLink";
 import TeamLogo from "@/components/TeamLogo";
+import FilterDialog, { FilterState } from "@/components/FilterDialog";
 
 const PNT_TV = new Set(["Globo", "Record", "SporTV", "Premiere"]);
 const fmtInt = (n: number) => n.toLocaleString("pt-BR");
@@ -63,52 +64,6 @@ function ExtraScroll({ children }: { children: ReactNode }) {
     return () => { el.removeEventListener("wheel", onWheel); if (raf !== null) cancelAnimationFrame(raf); };
   }, []);
   return <div ref={ref} className="no-scrollbar overflow-x-auto flex-1 min-w-0">{children}</div>;
-}
-
-function HistCat({ label, opts, isActive, onToggle, colorize, logos }: {
-  label: string;
-  opts: (string | number)[];
-  isActive: (v: string | number) => boolean;
-  onToggle: (v: string | number) => void;
-  colorize?: (v: string | number) => string;
-  logos?: boolean;
-}) {
-  return (
-    <div className="flex flex-col min-w-0">
-      <div className="px-3 pt-3 pb-2 border-b border-white/[0.06]">
-        <p className="text-[10px] font-semibold text-white/40 uppercase tracking-widest">{label}</p>
-      </div>
-      <div className="p-2.5 flex flex-col gap-1.5 overflow-y-auto no-scrollbar" style={{ maxHeight: 300 }}>
-        {opts.length === 0 ? (
-          <span className="text-[11px] text-white/20 px-1">—</span>
-        ) : opts.map((v) => {
-          const on = isActive(v);
-          if (logos) {
-            const det = String(v);
-            const c = DETENTOR_COLORS[det] || "#666";
-            return (
-              <button key={det} type="button" onClick={() => onToggle(v)} title={det}
-                className="flex items-center gap-2 px-2 py-1.5 rounded-lg border transition-all"
-                style={on ? { borderColor: c + "99", background: c + "22" } : { borderColor: "rgba(255,255,255,0.08)", opacity: 0.5 }}>
-                <DetLogo det={det} size={18} />
-                <span className="text-xs text-white/70 truncate">{det}</span>
-              </button>
-            );
-          }
-          const col = colorize?.(v);
-          return (
-            <button key={String(v)} type="button" onClick={() => onToggle(v)}
-              className="px-2.5 py-1.5 rounded-lg text-sm font-medium text-left border transition-all capitalize whitespace-nowrap"
-              style={on
-                ? { color: col ?? "#cfe0ff", background: (col ?? "#3b82f6") + "22", borderColor: (col ?? "#3b82f6") + "55" }
-                : { color: "rgba(255,255,255,0.5)", borderColor: "rgba(255,255,255,0.08)" }}>
-              {String(v)}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
 }
 
 function Matchup({ m, v, size = 20 }: { m: string; v: string; size?: number }) {
@@ -212,18 +167,7 @@ export default function JogoPage() {
     return n;
   });
 
-  const [histOpen, setHistOpen] = useState(false);
-  const [hf, setHf] = useState<{ anos: Set<number>; dias: Set<string>; horarios: Set<string>; detentores: Set<string> }>(
-    { anos: new Set(), dias: new Set(), horarios: new Set(), detentores: new Set() }
-  );
-  const toggleHf = (cat: "anos" | "dias" | "horarios" | "detentores", val: string | number) =>
-    setHf((prev) => {
-      const s = new Set<string | number>(prev[cat] as Set<string | number>);
-      if (s.has(val)) s.delete(val); else s.add(val);
-      return { ...prev, [cat]: s };
-    });
-  const histActiveCount = hf.anos.size + hf.dias.size + hf.horarios.size + hf.detentores.size;
-  const clearHf = () => setHf({ anos: new Set(), dias: new Set(), horarios: new Set(), detentores: new Set() });
+  const [histFilters, setHistFilters] = useState<FilterState>({ anos: [], dias: [], horarios: [], rodadas: [], times: [], detentores: [], concorrencia: [] });
 
   const concurrent = useMemo(() => {
     if (!rows.length) return [];
@@ -243,18 +187,20 @@ export default function JogoPage() {
       .sort((a, b) => a.ano - b.ano || a.rodada - b.rodada);
   }, [key]);
 
-  const histOpts = useMemo(() => ({
+  const histOptions = useMemo(() => ({
     anos: Array.from(new Set(historyLines.map((g) => g.ano))).sort((a, b) => a - b),
     dias: DIA_ORDER.filter((d) => historyLines.some((g) => g.dia === d)),
     horarios: Array.from(new Set(historyLines.map((g) => normalizeHorario(g.horario.substring(0, 5))))).sort(),
+    rodadas: [] as number[], times: [] as string[], concorrencia: [] as number[],
     detentores: Array.from(new Set(historyLines.map((g) => g.detentor))),
   }), [historyLines]);
-  const shownHistory = useMemo(() => historyLines.filter((g) =>
-    (hf.anos.size === 0 || hf.anos.has(g.ano)) &&
-    (hf.dias.size === 0 || hf.dias.has(g.dia)) &&
-    (hf.horarios.size === 0 || hf.horarios.has(normalizeHorario(g.horario.substring(0, 5)))) &&
-    (hf.detentores.size === 0 || hf.detentores.has(g.detentor))
-  ), [historyLines, hf]);
+  const shownHistory = useMemo(() => historyLines.filter((g) => {
+    const f = histFilters;
+    return (!f.anos.length || f.anos.includes(g.ano)) &&
+      (!f.dias.length || f.dias.includes(g.dia)) &&
+      (!f.horarios.length || f.horarios.includes(normalizeHorario(g.horario.substring(0, 5)))) &&
+      (!(f.detentores?.length) || f.detentores!.includes(g.detentor));
+  }), [historyLines, histFilters]);
 
   // Ranking por clube — sempre 5 jogos; encaixa o jogo atual mesmo em outra temporada.
   const rankings = useMemo(() => {
@@ -440,41 +386,7 @@ export default function JogoPage() {
           <div className="glass rounded-2xl p-5">
             <div className="flex items-center justify-between gap-2 mb-3">
               <h2 className="text-sm font-semibold text-white/50 uppercase tracking-widest">Histórico do confronto</h2>
-              <>
-                <button type="button" onClick={() => setHistOpen(true)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${histActiveCount > 0 ? "bg-blue-600/20 text-blue-300 border-blue-500/40" : "border-white/10 text-white/50 hover:text-white/70"}`}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 4h18l-7 8v6l-4 2v-8z"/></svg>
-                  Filtros{histActiveCount > 0 ? ` (${histActiveCount})` : ""}
-                </button>
-                {histOpen && (
-                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-                    style={{ background: "rgba(0,0,0,0.70)", backdropFilter: "blur(8px)" }}
-                    onClick={() => setHistOpen(false)}>
-                    <div className="glass-strong rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center justify-between px-6 py-5 border-b border-white/[0.07]">
-                        <h2 className="text-base font-semibold text-white">Filtros do histórico</h2>
-                        <div className="flex items-center gap-3">
-                          {histActiveCount > 0 && (
-                            <button type="button" onClick={clearHf} className="text-sm text-blue-400 hover:text-blue-300 transition-colors">Limpar tudo ({histActiveCount})</button>
-                          )}
-                          <button type="button" onClick={() => setHistOpen(false)}
-                            className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/[0.06] hover:bg-white/10 transition-colors text-white/50 hover:text-white">✕</button>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-4 divide-x divide-white/[0.06]">
-                        <HistCat label="Temporada" opts={histOpts.anos} isActive={(v) => hf.anos.has(v as number)} onToggle={(v) => toggleHf("anos", v)} colorize={(v) => SEASON_COLORS[v as number]} />
-                        <HistCat label="Dia" opts={histOpts.dias} isActive={(v) => hf.dias.has(v as string)} onToggle={(v) => toggleHf("dias", v)} />
-                        <HistCat label="Horário" opts={histOpts.horarios} isActive={(v) => hf.horarios.has(v as string)} onToggle={(v) => toggleHf("horarios", v)} />
-                        <HistCat label="Detentor" opts={histOpts.detentores} isActive={(v) => hf.detentores.has(v as string)} onToggle={(v) => toggleHf("detentores", v)} logos />
-                      </div>
-                      <div className="flex justify-end px-6 py-4 border-t border-white/[0.07]">
-                        <button type="button" onClick={() => setHistOpen(false)}
-                          className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-xl transition-colors">Aplicar</button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </>
+              <FilterDialog state={histFilters} onChange={setHistFilters} options={histOptions} />
             </div>
             {shownHistory.length === 0 ? (
               <p className="text-sm text-white/30">Sem registros para o filtro selecionado.</p>
