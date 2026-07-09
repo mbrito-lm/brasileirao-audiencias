@@ -89,7 +89,7 @@ function ExtraBox({ g, flex }: { g: G; flex: number }) {
   useEffect(() => { ref.current?.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 240, easing: "ease-out" }); }, []);
   return (
     <div ref={ref} style={{ flex }}
-      className={`glass rounded-2xl px-4 py-2 min-h-0 overflow-y-auto no-scrollbar flex flex-col ${items.length <= 4 ? "justify-center" : "justify-start"}`}>
+      className="glass rounded-2xl px-4 py-2 min-h-0 overflow-y-auto no-scrollbar flex flex-col justify-start">
       {items.map((it) => (
         <div key={it.label} className="flex items-baseline justify-between gap-3 py-[3px] border-b border-white/[0.05] last:border-0">
           <span className="text-[11px] uppercase tracking-wider text-white/40 truncate">{it.label}</span>
@@ -296,6 +296,9 @@ export default function JogoPage() {
               </div>
             </div>
           </div>
+
+          {/* linha separando os boxes do jogo dos jogos concorrentes */}
+          <div className="h-px bg-white/[0.08]" />
 
           {/* Jogos concorrentes (sem box envoltório) */}
           <div>
