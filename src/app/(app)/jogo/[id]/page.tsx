@@ -65,27 +65,43 @@ function ExtraScroll({ children }: { children: ReactNode }) {
   return <div ref={ref} className="no-scrollbar overflow-x-auto flex-1 min-w-0">{children}</div>;
 }
 
-function HistCat({ label, opts, isActive, onToggle, colorize }: {
+function HistCat({ label, opts, isActive, onToggle, colorize, logos }: {
   label: string;
   opts: (string | number)[];
   isActive: (v: string | number) => boolean;
   onToggle: (v: string | number) => void;
   colorize?: (v: string | number) => string;
+  logos?: boolean;
 }) {
-  if (!opts.length) return null;
   return (
-    <div>
-      <p className="text-[10px] uppercase tracking-wider text-white/30 mb-1.5">{label}</p>
-      <div className="flex flex-wrap gap-1.5">
-        {opts.map((v) => {
+    <div className="flex flex-col min-w-0">
+      <div className="px-3 pt-3 pb-2 border-b border-white/[0.06]">
+        <p className="text-[10px] font-semibold text-white/40 uppercase tracking-widest">{label}</p>
+      </div>
+      <div className="p-2.5 flex flex-col gap-1.5 overflow-y-auto no-scrollbar" style={{ maxHeight: 300 }}>
+        {opts.length === 0 ? (
+          <span className="text-[11px] text-white/20 px-1">—</span>
+        ) : opts.map((v) => {
           const on = isActive(v);
-          const c = colorize?.(v);
+          if (logos) {
+            const det = String(v);
+            const c = DETENTOR_COLORS[det] || "#666";
+            return (
+              <button key={det} type="button" onClick={() => onToggle(v)} title={det}
+                className="flex items-center gap-2 px-2 py-1.5 rounded-lg border transition-all"
+                style={on ? { borderColor: c + "99", background: c + "22" } : { borderColor: "rgba(255,255,255,0.08)", opacity: 0.5 }}>
+                <DetLogo det={det} size={18} />
+                <span className="text-xs text-white/70 truncate">{det}</span>
+              </button>
+            );
+          }
+          const col = colorize?.(v);
           return (
             <button key={String(v)} type="button" onClick={() => onToggle(v)}
-              className="px-2 py-1 rounded-md text-[11px] font-semibold border transition-all capitalize"
+              className="px-2.5 py-1.5 rounded-lg text-sm font-medium text-left border transition-all capitalize whitespace-nowrap"
               style={on
-                ? { color: c ?? "#93c5fd", borderColor: (c ?? "#3b82f6") + "66", background: (c ?? "#3b82f6") + "22" }
-                : { color: "rgba(255,255,255,0.4)", borderColor: "rgba(255,255,255,0.1)" }}>
+                ? { color: col ?? "#cfe0ff", background: (col ?? "#3b82f6") + "22", borderColor: (col ?? "#3b82f6") + "55" }
+                : { color: "rgba(255,255,255,0.5)", borderColor: "rgba(255,255,255,0.08)" }}>
               {String(v)}
             </button>
           );
@@ -434,7 +450,7 @@ export default function JogoPage() {
                   <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
                     style={{ background: "rgba(0,0,0,0.70)", backdropFilter: "blur(8px)" }}
                     onClick={() => setHistOpen(false)}>
-                    <div className="glass-strong rounded-3xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+                    <div className="glass-strong rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-between px-6 py-5 border-b border-white/[0.07]">
                         <h2 className="text-base font-semibold text-white">Filtros do histórico</h2>
                         <div className="flex items-center gap-3">
@@ -445,11 +461,11 @@ export default function JogoPage() {
                             className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/[0.06] hover:bg-white/10 transition-colors text-white/50 hover:text-white">✕</button>
                         </div>
                       </div>
-                      <div className="px-6 py-5 flex flex-col gap-4 max-h-[65vh] overflow-y-auto">
+                      <div className="grid grid-cols-4 divide-x divide-white/[0.06]">
                         <HistCat label="Temporada" opts={histOpts.anos} isActive={(v) => hf.anos.has(v as number)} onToggle={(v) => toggleHf("anos", v)} colorize={(v) => SEASON_COLORS[v as number]} />
                         <HistCat label="Dia" opts={histOpts.dias} isActive={(v) => hf.dias.has(v as string)} onToggle={(v) => toggleHf("dias", v)} />
                         <HistCat label="Horário" opts={histOpts.horarios} isActive={(v) => hf.horarios.has(v as string)} onToggle={(v) => toggleHf("horarios", v)} />
-                        <HistCat label="Detentor" opts={histOpts.detentores} isActive={(v) => hf.detentores.has(v as string)} onToggle={(v) => toggleHf("detentores", v)} />
+                        <HistCat label="Detentor" opts={histOpts.detentores} isActive={(v) => hf.detentores.has(v as string)} onToggle={(v) => toggleHf("detentores", v)} logos />
                       </div>
                       <div className="flex justify-end px-6 py-4 border-t border-white/[0.07]">
                         <button type="button" onClick={() => setHistOpen(false)}
