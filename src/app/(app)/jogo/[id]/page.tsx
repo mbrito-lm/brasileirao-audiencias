@@ -158,7 +158,7 @@ function DetExpanded({ g, onClose }: { g: G; onClose?: () => void }) {
   // YouTube: extras em linha única, à direita, logo abaixo da métrica principal.
   const rightExtras = g.detentor === "YouTube";
   return (
-    <div className="glass rounded-2xl p-4 flex-1 min-h-0 relative flex flex-col justify-center">
+    <div className="glass rounded-2xl p-4 flex-1 min-h-0 relative flex flex-col justify-center overflow-hidden">
       {onClose && (
         <button type="button" onClick={onClose} title="Fechar"
           className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center rounded-lg bg-white/[0.06] hover:bg-white/12 text-white/45 hover:text-white text-xs leading-none transition-colors">✕</button>
@@ -166,18 +166,15 @@ function DetExpanded({ g, onClose }: { g: G; onClose?: () => void }) {
       <div className="flex items-center gap-3 pr-6">
         <DetLogo det={g.detentor} size={26} />
         <span className="text-white/80 font-semibold text-base">{g.detentor}</span>
-        <div className="ml-auto text-right flex flex-col items-end gap-2">
-          <div>
-            <div className="text-2xl font-bold text-white tabular-nums leading-none">{formatMetric(g.detentor, primary, "pontos")}</div>
-            {esp != null && <div className="text-xs text-white/40 tabular-nums mt-1">{formatAudiencia(esp)} esp.</div>}
-          </div>
-          {rightExtras && hasExtra(g) && <ExtraStrip g={g} />}
+        <div className="ml-auto text-right">
+          <div className="text-2xl font-bold text-white tabular-nums leading-none">{formatMetric(g.detentor, primary, "pontos")}</div>
+          {esp != null && <div className="text-xs text-white/40 tabular-nums mt-1">{formatAudiencia(esp)} esp.</div>}
         </div>
       </div>
-      {!rightExtras && hasExtra(g) && (
-        <div className="mt-3 overflow-hidden">
-          <ExtraScroll><ExtraStrip g={g} /></ExtraScroll>
-        </div>
+      {hasExtra(g) && (
+        rightExtras
+          ? <div className="mt-3 flex justify-end"><ExtraStrip g={g} /></div>
+          : <div className="mt-3 overflow-hidden"><ExtraScroll><ExtraStrip g={g} /></ExtraScroll></div>
       )}
     </div>
   );
@@ -289,7 +286,7 @@ export default function JogoPage() {
         Voltar
       </button>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
         {/* ─── ESQUERDA ─── */}
         <div className="flex flex-col gap-4">
           {/* Jogo + detentores na mesma linha (detentores dividem a altura do box do jogo) */}
@@ -321,11 +318,14 @@ export default function JogoPage() {
               </div>
             </div>
 
-            {/* Detentores: colapsados dividem a altura; ao clicar, expande e mostra extra metrics */}
-            <div className="flex-1 min-w-0 flex flex-col gap-2">
-              {expandedRow
-                ? <DetExpanded g={expandedRow} onClose={singleDet ? undefined : () => setExpanded(null)} />
-                : rows.map((g) => <DetCollapsed key={g.detentor} g={g} onClick={() => setExpanded(g.detentor)} />)}
+            {/* Detentores: travados na altura do box do jogo (via absolute) para não
+                esticar a linha quando as extra metrics forem grandes (Globo/Record). */}
+            <div className="flex-1 min-w-0 relative">
+              <div className="absolute inset-0 flex flex-col gap-2">
+                {expandedRow
+                  ? <DetExpanded g={expandedRow} onClose={singleDet ? undefined : () => setExpanded(null)} />
+                  : rows.map((g) => <DetCollapsed key={g.detentor} g={g} onClick={() => setExpanded(g.detentor)} />)}
+              </div>
             </div>
           </div>
 
@@ -380,11 +380,10 @@ export default function JogoPage() {
           </div>
         </div>
 
-        {/* ─── DIREITA ─── */}
-        <div className="flex flex-col gap-4">
-          {/* Ranking por clube */}
-          <div className="glass rounded-2xl p-5">
-            <h2 className="text-sm font-semibold text-white/50 uppercase tracking-widest">Ranking por clube</h2>
+        {/* ─── DIREITA ─── (linha vertical separando da esquerda) */}
+        <div className="lg:border-l lg:border-white/[0.08] lg:pl-6">
+          {/* Ranking por clube (sem box envoltório) */}
+          <h2 className="text-sm font-semibold text-white/50 uppercase tracking-widest">Ranking por clube</h2>
             <div className="flex items-center gap-4 flex-wrap mt-3 mb-4">
               <div className="flex items-center gap-1.5">
                 <span className="text-[10px] uppercase tracking-wider text-white/30">Temporadas</span>
@@ -416,7 +415,7 @@ export default function JogoPage() {
               )}
             </div>
 
-            <div className="flex flex-col gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-6">
               {rankings.map(({ club, total, currentPos, win }) => {
                 const col = teamColor(club);
                 return (
@@ -431,13 +430,13 @@ export default function JogoPage() {
                   ) : (
                     <div className="flex flex-col gap-1.5">
                       {win.map(({ g, pos, current }) => (
-                        <div key={`${g.ano}-${g.rodada}-${g.mandante}`} className="flex items-center gap-2 px-3 py-2 rounded-lg"
+                        <div key={`${g.ano}-${g.rodada}-${g.mandante}`} className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg"
                           style={current ? { background: `${col}22`, border: `1px solid ${col}66` } : { border: "1px solid rgba(255,255,255,0.05)" }}>
-                          <span className="w-7 shrink-0 tabular-nums font-bold text-sm" style={{ color: current ? col : "rgba(255,255,255,0.4)" }}>{pos}º</span>
-                          <span className="text-xs font-bold tabular-nums shrink-0 w-9" style={{ color: SEASON_COLORS[g.ano] }}>{g.ano}</span>
-                          <Matchup m={g.mandante} v={g.visitante} />
-                          <span className="text-white/40 tabular-nums text-xs ml-1 whitespace-nowrap capitalize">{g.dia} {normalizeHorario(g.horario.substring(0, 5))}</span>
-                          <span className="ml-auto font-bold text-white tabular-nums text-sm whitespace-nowrap">{formatMetric(g.detentor, getMetric(g, "pontos"), "pontos")}</span>
+                          <span className="w-5 shrink-0 tabular-nums font-bold text-xs" style={{ color: current ? col : "rgba(255,255,255,0.4)" }}>{pos}º</span>
+                          <span className="text-[11px] font-bold tabular-nums shrink-0 w-8" style={{ color: SEASON_COLORS[g.ano] }}>{g.ano}</span>
+                          <Matchup m={g.mandante} v={g.visitante} size={18} />
+                          <span className="text-white/40 tabular-nums text-[11px] ml-1 min-w-0 truncate capitalize">{g.dia} {normalizeHorario(g.horario.substring(0, 5))}</span>
+                          <span className="ml-auto font-bold text-white tabular-nums text-xs whitespace-nowrap shrink-0">{formatMetric(g.detentor, getMetric(g, "pontos"), "pontos")}</span>
                         </div>
                       ))}
                     </div>
@@ -446,7 +445,6 @@ export default function JogoPage() {
                 );
               })}
             </div>
-          </div>
         </div>
       </div>
     </div>
