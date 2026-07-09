@@ -63,6 +63,16 @@ function ExtraScroll({ children }: { children: ReactNode }) {
   return <div ref={ref} className="no-scrollbar overflow-x-auto flex-1 min-w-0">{children}</div>;
 }
 
+function Matchup({ m, v, size = 20 }: { m: string; v: string; size?: number }) {
+  return (
+    <div className="flex items-center gap-2 shrink-0">
+      <TeamLogo team={m} size={size} />
+      <span className="text-white/20 text-xs">×</span>
+      <TeamLogo team={v} size={size} />
+    </div>
+  );
+}
+
 function SChip({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
     <div className="flex flex-col items-center justify-center gap-0.5 px-2.5 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.07] shrink-0 min-w-[54px]">
@@ -79,7 +89,7 @@ function ExtraStrip({ g }: { g: G }) {
     const e = AMAZON_EXTRA_METRICS[g.data];
     if (!e) return null;
     return (
-      <div className="flex gap-2 w-max">
+      <div className="flex gap-2 w-max px-1">
         <SChip label="Pico" value={fmtInt(e.peak)} />
         <SChip label="Streams" value={fmtInt(e.streams)} />
         <SChip label="Min/stream" value={e.liveMinutes.toFixed(2).replace(".", ",")} />
@@ -91,7 +101,7 @@ function ExtraStrip({ g }: { g: G }) {
     const e = YOUTUBE_EXTRA_METRICS[g.data];
     if (!e) return null;
     return (
-      <div className="flex gap-2 w-max">
+      <div className="flex gap-2 w-max px-1">
         <SChip label="Pico" value={fmtInt(e.peak)} />
         {e.alcance != null && <SChip label="Alcance" value={fmtInt(e.alcance)} />}
       </div>
@@ -102,14 +112,14 @@ function ExtraStrip({ g }: { g: G }) {
     if (!e) return null;
     const items = RECORD_PRACAS.filter((p) => e[p] != null);
     if (!items.length) return null;
-    return <div className="flex gap-2 w-max">{items.map((p) => <SChip key={p} label={p} value={e[p]!.toFixed(1).replace(".", ",")} />)}</div>;
+    return <div className="flex gap-2 w-max px-1">{items.map((p) => <SChip key={p} label={p} value={e[p]!.toFixed(1).replace(".", ",")} />)}</div>;
   }
   if (det === "Globo") {
     const e = GLOBO_EXTRA_METRICS[globoKey(g)];
     if (!e) return null;
     const items = GLOBO_PRACAS.filter((p) => e[p]);
     if (!items.length) return null;
-    return <div className="flex gap-2 w-max">{items.map((p) => { const c = e[p]!; return <SChip key={p} label={p} value={c.dom.toFixed(1).replace(".", ",")} sub={c.ind.toFixed(1).replace(".", ",")} />; })}</div>;
+    return <div className="flex gap-2 w-max px-1">{items.map((p) => { const c = e[p]!; return <SChip key={p} label={p} value={c.dom.toFixed(1).replace(".", ",")} />; })}</div>;
   }
   return null;
 }
@@ -144,6 +154,13 @@ export default function JogoPage() {
     return n;
   });
 
+  const [histFilter, setHistFilter] = useState<Set<string>>(new Set()); // vazio = todos
+  const toggleHistDet = (d: string) => setHistFilter((prev) => {
+    const n = new Set(prev);
+    if (n.has(d)) n.delete(d); else n.add(d);
+    return n;
+  });
+
   const concurrent = useMemo(() => {
     if (!rows.length) return [];
     const info = rows[0];
@@ -161,6 +178,9 @@ export default function JogoPage() {
         !isSame(g, key) && getMetric(g, "pontos") != null)
       .sort((a, b) => a.ano - b.ano || a.rodada - b.rodada);
   }, [key]);
+
+  const historyDetentores = useMemo(() => Array.from(new Set(historyLines.map((g) => g.detentor))), [historyLines]);
+  const shownHistory = useMemo(() => (histFilter.size === 0 ? historyLines : historyLines.filter((g) => histFilter.has(g.detentor))), [historyLines, histFilter]);
 
   // Ranking por clube — sempre 5 jogos; encaixa o jogo atual mesmo em outra temporada.
   const rankings = useMemo(() => {
@@ -202,7 +222,7 @@ export default function JogoPage() {
         {/* ─── ESQUERDA ─── */}
         <div className="flex flex-col gap-4">
           {/* Box do jogo */}
-          <div className="glass rounded-2xl p-6" style={{ border: "1px solid rgba(255,255,255,0.14)" }}>
+          <div className="glass rounded-2xl p-6" style={{ border: `1.5px solid ${SEASON_COLORS[info.ano]}` }}>
             {/* topo: temporada + rodada */}
             <div className="flex items-center justify-center gap-2 mb-4 text-xs">
               <span className="font-bold tabular-nums" style={{ color: SEASON_COLORS[info.ano] }}>{info.ano}</span>
@@ -238,8 +258,8 @@ export default function JogoPage() {
               return (
                 <div key={i} className="glass rounded-2xl p-4 flex items-center gap-4" style={{ minHeight: 84 }}>
                   <DetLogo det={g.detentor} size={24} />
-                  <span className="text-white/70 font-semibold text-sm w-20 shrink-0 truncate">{g.detentor}</span>
-                  <div className="shrink-0 text-right" style={{ minWidth: 100 }}>
+                  <span className="text-white/70 font-semibold text-sm w-16 shrink-0 truncate">{g.detentor}</span>
+                  <div className="shrink-0 text-right" style={{ minWidth: 88 }}>
                     <div className="text-xl font-bold text-white tabular-nums leading-none">{formatMetric(g.detentor, primary, "pontos")}</div>
                     {esp != null && <div className="text-[11px] text-white/40 tabular-nums mt-0.5">{formatAudiencia(esp)} esp.</div>}
                   </div>
@@ -260,9 +280,7 @@ export default function JogoPage() {
                 {concurrent.map((sg, i) => (
                   <div key={i} className="flex items-center gap-2.5 p-2.5 rounded-xl border border-white/[0.06]">
                     <span className={`w-12 shrink-0 text-center text-[10px] font-bold py-0.5 rounded ${sg.liga === "FFU" ? "bg-blue-500/25 text-blue-300" : "bg-white/10 text-white/45"}`}>{sg.liga}</span>
-                    <TeamLogo team={sg.mandante} size={20} />
-                    <span className="text-white/20 text-xs">×</span>
-                    <TeamLogo team={sg.visitante} size={20} />
+                    <Matchup m={sg.mandante} v={sg.visitante} />
                     <div className="flex gap-1 ml-auto">{sg.detentores.map((d) => <DetLogo key={d} det={d} size={16} />)}</div>
                     <span className="text-white/45 text-sm tabular-nums w-11 text-right">{sg.hora}</span>
                   </div>
@@ -325,11 +343,7 @@ export default function JogoPage() {
                           style={current ? { background: "rgba(59,130,246,0.14)", border: "1px solid rgba(59,130,246,0.4)" } : { border: "1px solid rgba(255,255,255,0.05)" }}>
                           <span className="w-7 shrink-0 tabular-nums font-bold text-sm" style={{ color: current ? "#93c5fd" : "rgba(255,255,255,0.4)" }}>{pos}º</span>
                           <span className="text-xs font-bold tabular-nums shrink-0 w-9" style={{ color: SEASON_COLORS[g.ano] }}>{g.ano}</span>
-                          <div className="flex items-center gap-1 shrink-0">
-                            <TeamLogo team={g.mandante} size={18} />
-                            <span className="text-white/20 text-[10px]">×</span>
-                            <TeamLogo team={g.visitante} size={18} />
-                          </div>
+                          <Matchup m={g.mandante} v={g.visitante} />
                           <span className="text-white/40 tabular-nums text-xs ml-1 whitespace-nowrap capitalize">{g.dia} {normalizeHorario(g.horario.substring(0, 5))}</span>
                           <span className="ml-auto font-bold text-white tabular-nums text-sm whitespace-nowrap">{formatMetric(g.detentor, getMetric(g, "pontos"), "pontos")}</span>
                         </div>
@@ -343,19 +357,33 @@ export default function JogoPage() {
 
           {/* Histórico do confronto — uma linha por detentor */}
           <div className="glass rounded-2xl p-5">
-            <h2 className="text-sm font-semibold text-white/50 uppercase tracking-widest mb-3">Histórico do confronto</h2>
-            {historyLines.length === 0 ? (
-              <p className="text-sm text-white/30">Sem outros registros deste confronto.</p>
+            <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+              <h2 className="text-sm font-semibold text-white/50 uppercase tracking-widest">Histórico do confronto</h2>
+              {historyDetentores.length > 1 && (
+                <div className="flex items-center gap-1.5">
+                  {historyDetentores.map((d) => {
+                    const active = histFilter.size === 0 || histFilter.has(d);
+                    return (
+                      <button key={d} type="button" onClick={() => toggleHistDet(d)} title={`Filtrar: ${d}`}
+                        className="transition-opacity" style={{ opacity: active ? 1 : 0.3 }}>
+                        <DetLogo det={d} size={15} />
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            {shownHistory.length === 0 ? (
+              <p className="text-sm text-white/30">Sem registros para o filtro selecionado.</p>
             ) : (
               <div className="flex flex-col gap-1.5">
-                {historyLines.map((g, i) => (
+                {shownHistory.map((g, i) => (
                   <Link key={i} href={matchHref(g, g.detentor)}
-                    className="flex items-center gap-3 p-2.5 rounded-xl border border-white/[0.06] hover:bg-white/[0.03] transition-colors">
+                    className="flex items-center gap-2.5 p-2.5 rounded-xl border border-white/[0.06] hover:bg-white/[0.03] transition-colors">
                     <span className="text-sm font-bold tabular-nums w-10 shrink-0" style={{ color: SEASON_COLORS[g.ano] }}>{g.ano}</span>
-                    <span className="text-xs text-white/35 w-12 shrink-0">Rod {g.rodada}</span>
-                    <TeamLogo team={g.mandante} size={18} />
-                    <span className="text-white/20 text-[10px]">×</span>
-                    <TeamLogo team={g.visitante} size={18} />
+                    <span className="text-[11px] text-white/35 shrink-0">Rod {g.rodada}</span>
+                    <Matchup m={g.mandante} v={g.visitante} />
+                    <span className="text-[11px] text-white/35 tabular-nums whitespace-nowrap capitalize ml-1">{g.dia} {normalizeHorario(g.horario.substring(0, 5))}</span>
                     <span className="ml-auto text-sm font-bold text-white tabular-nums whitespace-nowrap">{formatMetric(g.detentor, getMetric(g, "pontos"), "pontos")}</span>
                     <DetLogo det={g.detentor} size={18} />
                   </Link>
