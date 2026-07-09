@@ -12,6 +12,10 @@ const config: Config = {
         bg: "#0a0e1a",
         surface: "#111827",
         border: "#1f2937",
+        // "white" passa a ser a cor de tinta temática: no escuro = branco,
+        // no claro = tinta escura. Faz todos os text-white/bg-white/border-white
+        // virarem temáticos automaticamente.
+        white: "rgb(var(--ink) / <alpha-value>)",
       },
     },
   },

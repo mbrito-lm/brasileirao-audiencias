@@ -418,10 +418,10 @@ export default function GraficosPage() {
                 <TeamLogo team={entry.visitante} size={dynamicShieldSize} />
               </div>
             </foreignObject>
-            <text textAnchor="middle" dy={shieldH + 10} fill="rgba(255,255,255,0.15)" fontSize={9}>{pos + 1}</text>
+            <text textAnchor="middle" dy={shieldH + 10} fill="rgba(var(--ink-c),0.15)" fontSize={9}>{pos + 1}</text>
           </>
         ) : (
-          <text textAnchor="middle" dy={10} fill="rgba(255,255,255,0.20)" fontSize={10}>{pos + 1}</text>
+          <text textAnchor="middle" dy={10} fill="rgba(var(--ink-c),0.20)" fontSize={10}>{pos + 1}</text>
         )}
       </g>
     );
@@ -430,7 +430,7 @@ export default function GraficosPage() {
   return (
     <div
       className={fullscreen ? "overflow-auto" : "py-6"}
-      style={fullscreen ? { position: "fixed", top: 56, left: 0, right: 0, bottom: 0, zIndex: 40, background: "#08090f", padding: "14px 22px" } : undefined}
+      style={fullscreen ? { position: "fixed", top: 56, left: 0, right: 0, bottom: 0, zIndex: 40, background: "var(--page-bg)", padding: "14px 22px" } : undefined}
     >
       {!fullscreen && (
         <div className="mb-8">
@@ -645,13 +645,13 @@ export default function GraficosPage() {
                   onClick={handleClick}
                   style={{ cursor: "pointer" }}
                 >
-                  <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.04)" vertical={false} />
+                  <CartesianGrid strokeDasharray="2 4" stroke="rgba(var(--ink-c),0.04)" vertical={false} />
 
                   {hoveredPos !== null && !lockedPositions.includes(hoveredPos) && (
-                    <ReferenceArea x1={hoveredPos - 0.45} x2={hoveredPos + 0.45} fill="rgba(255,255,255,0.05)" stroke="none" />
+                    <ReferenceArea x1={hoveredPos - 0.45} x2={hoveredPos + 0.45} fill="rgba(var(--ink-c),0.05)" stroke="none" />
                   )}
                   {lockedPositions.map((lp) => (
-                    <ReferenceArea key={lp} x1={lp - 0.45} x2={lp + 0.45} fill="rgba(255,255,255,0.07)" stroke="none" />
+                    <ReferenceArea key={lp} x1={lp - 0.45} x2={lp + 0.45} fill="rgba(var(--ink-c),0.07)" stroke="none" />
                   ))}
 
                   <XAxis
@@ -666,7 +666,7 @@ export default function GraficosPage() {
                   />
                   <YAxis
                     tickFormatter={fmtY}
-                    tick={{ fill: "rgba(255,255,255,0.25)", fontSize: 11 }}
+                    tick={{ fill: "rgba(var(--ink-c),0.25)", fontSize: 11 }}
                     axisLine={false} tickLine={false} width={52}
                     domain={[(d: number) => Math.max(0, d * 0.92), (d: number) => d * 1.08]}
                   />
@@ -687,7 +687,7 @@ export default function GraficosPage() {
                             if (value == null) return null;
                             return (
                               <text x={(x ?? 0) + (width ?? 0) / 2} y={(y ?? 0) - 4}
-                                textAnchor="middle" fill="rgba(255,255,255,0.92)"
+                                textAnchor="middle" fill="rgba(var(--ink-c),0.92)"
                                 fontSize={dynamicFontSize} fontWeight="bold">
                                 {fmtLabel(value)}
                               </text>
@@ -712,11 +712,11 @@ export default function GraficosPage() {
                           return (
                             <g key={key}>
                               <circle cx={cx} cy={cy} r={isActive ? 5 : 3.5}
-                                fill={isActive ? s.color : "#08090f"}
+                                fill={isActive ? s.color : "var(--page-bg)"}
                                 stroke={s.color} strokeWidth={isActive ? 2.5 : 2} />
                               {showLabels && (
                                 <text x={cx} y={cy - 9} textAnchor="middle"
-                                  fill="rgba(255,255,255,0.92)" fontSize={dynamicFontSize} fontWeight="bold">
+                                  fill="rgba(var(--ink-c),0.92)" fontSize={dynamicFontSize} fontWeight="bold">
                                   {fmtLabel(payload[s.id])}
                                 </text>
                               )}

@@ -61,7 +61,7 @@ export default function ComparacoesPage() {
           <ComparePanel label="Lista A" accentColor="#3b82f6" />
         </div>
         {/* Thin vertical separator */}
-        <div className="w-px self-stretch mx-6" style={{ background: "rgba(255,255,255,0.06)" }} />
+        <div className="w-px self-stretch mx-6" style={{ background: "rgba(var(--ink-c),0.06)" }} />
         <div className="flex-1 min-w-0">
           <ComparePanel label="Lista B" accentColor="#a855f7" />
         </div>
@@ -203,7 +203,7 @@ function ComparePanel({ label, accentColor }: { label: string; accentColor: stri
           <div style={{ maxHeight: 520, overflowY: "auto" }}>
             <table className="w-full text-sm border-collapse">
               <thead className="sticky top-0 z-10"
-                style={{ background: "rgba(12,14,24,0.95)", backdropFilter: "blur(12px)" }}>
+                style={{ background: "var(--panel-bg)", backdropFilter: "blur(12px)" }}>
                 <tr className="text-white/30 text-xs uppercase tracking-wider">
                   <th className="px-3 py-3 text-left font-medium">Detentor</th>
                   <th className="px-3 py-3 text-left font-medium">Temp.</th>
@@ -230,7 +230,7 @@ function ComparePanel({ label, accentColor }: { label: string; accentColor: stri
                       }
                     </td>
                     <td className="px-3 py-2.5 text-xs font-semibold tabular-nums"
-                      style={{ color: SEASON_COLORS[g.ano] || "rgba(255,255,255,0.30)" }}>
+                      style={{ color: SEASON_COLORS[g.ano] || "rgba(var(--ink-c),0.30)" }}>
                       {g.ano}
                     </td>
                     <td className="px-3 py-2.5 text-xs text-white/40 tabular-nums">{g.rodada}</td>

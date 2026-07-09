@@ -112,7 +112,7 @@ function DetCollapsed({ g, onClick, boxRef, active }: {
   return (
     <button ref={boxRef} type="button" disabled={!clickable} onClick={(e) => onClick(e.currentTarget)}
       className={`glass rounded-2xl px-4 flex-1 min-h-0 w-full flex items-center gap-3 text-left transition-colors ${clickable ? "hover:bg-white/[0.06] cursor-pointer" : "cursor-default"}`}
-      style={active ? { boxShadow: "inset 0 0 0 1.5px rgba(255,255,255,0.16)" } : undefined}>
+      style={active ? { boxShadow: "inset 0 0 0 1.5px rgba(var(--ink-c),0.16)" } : undefined}>
       <DetLogo det={g.detentor} size={22} />
       <span className="text-white/80 font-semibold text-base truncate">{g.detentor}</span>
       <span className="ml-auto text-2xl font-bold text-white tabular-nums whitespace-nowrap">{formatMetric(g.detentor, primary, "pontos")}</span>
@@ -334,7 +334,7 @@ export default function JogoPage() {
                     className="px-2 py-1 rounded-lg text-[11px] font-bold border transition-all"
                     style={rankSeasons.has(a)
                       ? { color: SEASON_COLORS[a], borderColor: SEASON_COLORS[a] + "66", background: SEASON_COLORS[a] + "1a" }
-                      : { color: "rgba(255,255,255,0.3)", borderColor: "rgba(255,255,255,0.1)" }}>
+                      : { color: "rgba(var(--ink-c),0.3)", borderColor: "rgba(var(--ink-c),0.1)" }}>
                     {a}
                   </button>
                 ))}
@@ -347,7 +347,7 @@ export default function JogoPage() {
                       className="w-8 h-8 rounded-lg flex items-center justify-center transition-all"
                       style={selDet === r.detentor
                         ? { background: (DETENTOR_COLORS[r.detentor] || "#666"), boxShadow: `0 0 12px ${(DETENTOR_COLORS[r.detentor] || "#666")}66` }
-                        : { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                        : { background: "rgba(var(--ink-c),0.05)", border: "1px solid rgba(var(--ink-c),0.08)" }}>
                       {LOGOS[r.detentor]
                         ? <img src={LOGOS[r.detentor]} alt={r.detentor} style={{ height: 18, width: "auto", objectFit: "contain", filter: "brightness(0) invert(1)", opacity: selDet === r.detentor ? 1 : 0.5, maxWidth: 26 }} />
                         : <span className="text-[9px] text-white/70">{r.detentor}</span>}
@@ -373,8 +373,8 @@ export default function JogoPage() {
                     <div className="flex flex-col gap-1.5">
                       {win.map(({ g, pos, current }) => (
                         <div key={`${g.ano}-${g.rodada}-${g.mandante}`} className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg"
-                          style={current ? { background: `${col}22`, border: `1px solid ${col}66` } : { border: "1px solid rgba(255,255,255,0.05)" }}>
-                          <span className="w-5 shrink-0 tabular-nums font-bold text-xs" style={{ color: current ? col : "rgba(255,255,255,0.4)" }}>{pos}º</span>
+                          style={current ? { background: `${col}22`, border: `1px solid ${col}66` } : { border: "1px solid rgba(var(--ink-c),0.05)" }}>
+                          <span className="w-5 shrink-0 tabular-nums font-bold text-xs" style={{ color: current ? col : "rgba(var(--ink-c),0.4)" }}>{pos}º</span>
                           <span className="text-[11px] font-bold tabular-nums shrink-0 w-8" style={{ color: SEASON_COLORS[g.ano] }}>{g.ano}</span>
                           <Matchup m={g.mandante} v={g.visitante} size={18} />
                           <span className="text-white/40 tabular-nums text-[11px] ml-1 min-w-0 truncate capitalize">{g.dia} {normalizeHorario(g.horario.substring(0, 5))}</span>

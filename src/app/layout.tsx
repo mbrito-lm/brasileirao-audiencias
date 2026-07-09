@@ -16,9 +16,15 @@ export const metadata: Metadata = {
   description: "Dashboard de audiências do Brasileirão",
 };
 
+// Aplica o tema salvo antes da primeira pintura (evita "flash").
+const THEME_INIT = `try{if(localStorage.getItem('theme')==='light')document.documentElement.dataset.theme='light';}catch(e){}`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR" className={claudeFont.variable}>
+    <html lang="pt-BR" className={claudeFont.variable} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
+      </head>
       <body className="min-h-screen">
         {children}
       </body>

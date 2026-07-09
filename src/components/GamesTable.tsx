@@ -304,7 +304,7 @@ function GamesTable({ games, allGames, detentor, showDeltas = true, mode }: Prop
         <div className="overflow-x-auto">
           <div style={{ maxHeight: 520, overflowY: "auto" }}>
             <table className="w-full text-sm border-collapse">
-              <thead className="sticky top-0 z-10" style={{ background: "rgba(12,14,24,0.95)", backdropFilter: "blur(12px)" }}>
+              <thead className="sticky top-0 z-10" style={{ background: "var(--panel-bg)", backdropFilter: "blur(12px)" }}>
                 <tr className="text-white/30 text-xs uppercase tracking-wider">
                   {!detentor && <SortTh label="Detentor" sortKey="detentor" current={sortKey} dir={sortDir} onSort={handleSort} />}
                   <SortTh label="Temp." sortKey="ano" current={sortKey} dir={sortDir} onSort={handleSort} />
@@ -321,7 +321,7 @@ function GamesTable({ games, allGames, detentor, showDeltas = true, mode }: Prop
                         onClick={() => setShowAmazonExtras((v) => !v)}
                         title={showAmazonExtras ? "Ocultar métricas" : "Ver métricas Amazon"}
                         className="w-5 h-5 flex items-center justify-center mx-auto transition-colors"
-                        style={{ color: "rgba(255,255,255,0.70)" }}>
+                        style={{ color: "rgba(var(--ink-c),0.70)" }}>
                         <svg viewBox="0 0 10 14" width="8" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           {showAmazonExtras
                             ? <polyline points="8,2 2,7 8,12" />
@@ -342,7 +342,7 @@ function GamesTable({ games, allGames, detentor, showDeltas = true, mode }: Prop
                         onClick={() => setShowYoutubeExtras((v) => !v)}
                         title={showYoutubeExtras ? "Ocultar pico" : "Ver pico individual"}
                         className="w-5 h-5 flex items-center justify-center mx-auto transition-colors"
-                        style={{ color: "rgba(255,255,255,0.70)" }}>
+                        style={{ color: "rgba(var(--ink-c),0.70)" }}>
                         <svg viewBox="0 0 10 14" width="8" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           {showYoutubeExtras
                             ? <polyline points="8,2 2,7 8,12" />
@@ -361,7 +361,7 @@ function GamesTable({ games, allGames, detentor, showDeltas = true, mode }: Prop
                         onClick={() => setShowRecordExtras((v) => !v)}
                         title={showRecordExtras ? "Ocultar praças" : "Ver por praça"}
                         className="w-5 h-5 flex items-center justify-center mx-auto transition-colors"
-                        style={{ color: "rgba(255,255,255,0.70)" }}>
+                        style={{ color: "rgba(var(--ink-c),0.70)" }}>
                         <svg viewBox="0 0 10 14" width="8" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           {showRecordExtras ? <polyline points="8,2 2,7 8,12" /> : <polyline points="2,2 8,7 2,12" />}
                         </svg>
@@ -395,7 +395,7 @@ function GamesTable({ games, allGames, detentor, showDeltas = true, mode }: Prop
                         onClick={() => setShowGloboExtras((v) => !v)}
                         title={showGloboExtras ? "Ocultar praças" : "Ver por praça"}
                         className="w-5 h-5 flex items-center justify-center mx-auto transition-colors"
-                        style={{ color: "rgba(255,255,255,0.70)" }}>
+                        style={{ color: "rgba(var(--ink-c),0.70)" }}>
                         <svg viewBox="0 0 10 14" width="8" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           {showGloboExtras ? <polyline points="8,2 2,7 8,12" /> : <polyline points="2,2 8,7 2,12" />}
                         </svg>
@@ -452,7 +452,7 @@ function GamesTable({ games, allGames, detentor, showDeltas = true, mode }: Prop
                           </div>
                         </td>
                       )}
-                      <td className="px-4 py-3 text-xs font-semibold tabular-nums" style={{ color: SEASON_COLORS[g.ano] || "rgba(255,255,255,0.30)" }}>{g.ano}</td>
+                      <td className="px-4 py-3 text-xs font-semibold tabular-nums" style={{ color: SEASON_COLORS[g.ano] || "rgba(var(--ink-c),0.30)" }}>{g.ano}</td>
                       <td className="px-4 py-3 text-xs text-white/40 tabular-nums">{g.rodada}</td>
                       <td className="px-4 py-3 text-white/40 whitespace-nowrap text-xs tabular-nums">{g.data.substring(0, 5)}</td>
                       <td className="px-4 py-3 text-white/40 text-xs capitalize">{g.dia}</td>
@@ -563,7 +563,7 @@ function GamesTable({ games, allGames, detentor, showDeltas = true, mode }: Prop
       {concPopup && (
         <div
           className="fixed z-50 rounded-xl p-3 shadow-2xl pointer-events-none"
-          style={{ left: concPopup.x, top: concPopup.y - 8, transform: "translate(-50%, -100%)", minWidth: 280, maxWidth: 380, background: "rgb(12,14,28)", border: "1px solid rgba(255,255,255,0.10)" }}
+          style={{ left: concPopup.x, top: concPopup.y - 8, transform: "translate(-50%, -100%)", minWidth: 280, maxWidth: 380, background: "var(--panel-bg)", border: "1px solid rgba(var(--ink-c),0.10)" }}
         >
           <p className="text-white/40 text-[10px] uppercase tracking-widest mb-2.5">Concorrentes</p>
           <div className="flex flex-col gap-2">

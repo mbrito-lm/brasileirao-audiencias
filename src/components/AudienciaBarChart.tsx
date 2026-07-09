@@ -49,7 +49,7 @@ interface Props {
   lockedDots?: LockedDot[];
 }
 
-const BG = "#08090f";
+const BG = "var(--page-bg)";
 const OFFSET = 0.38;
 const OUTLIER_THRESHOLD = 0.65;
 
@@ -122,8 +122,8 @@ function CustomTick({ x, y, payload, allRods, missingSet, activeIdx, lockedIdxSe
       <text x={0} y={0} dy={14}
         fill={
           isMissing
-            ? (dimmed ? "rgba(255,255,255,0.07)" : "rgba(255,255,255,0.18)")
-            : (dimmed ? "rgba(255,255,255,0.925)" : "rgba(255,255,255,0.85)")
+            ? (dimmed ? "rgba(var(--ink-c),0.07)" : "rgba(var(--ink-c),0.18)")
+            : (dimmed ? "rgba(var(--ink-c),0.925)" : "rgba(var(--ink-c),0.85)")
         }
         fontSize={11} textAnchor="middle">
         {rodada ?? ""}
@@ -331,7 +331,7 @@ export default function AudienciaBarChart({ data, isPnt, onDotHover, onDotClick,
             onMouseLeave={handleMouseLeave}
             style={{ cursor: "pointer" }}
           >
-            <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.04)" vertical={false} />
+            <CartesianGrid strokeDasharray="2 4" stroke="rgba(var(--ink-c),0.04)" vertical={false} />
 
             {/* Column highlights */}
             <Customized
@@ -341,9 +341,9 @@ export default function AudienciaBarChart({ data, isPnt, onDotHover, onDotClick,
                 if (!xAxis?.scale || !yAxis) return null;
                 const bw = typeof xAxis.scale.bandwidth === "function" ? xAxis.scale.bandwidth() : 0;
                 const rects: { rodada: number; color: string }[] = [];
-                lockedRodadas.forEach((r) => rects.push({ rodada: r, color: "rgba(255,255,255,0.07)" }));
+                lockedRodadas.forEach((r) => rects.push({ rodada: r, color: "rgba(var(--ink-c),0.07)" }));
                 if (activeRodada !== null && !lockedRodadas.has(activeRodada))
-                  rects.push({ rodada: activeRodada, color: "rgba(255,255,255,0.04)" });
+                  rects.push({ rodada: activeRodada, color: "rgba(var(--ink-c),0.04)" });
                 return (
                   <g>
                     {rects.map(({ rodada, color }) => {
@@ -359,13 +359,13 @@ export default function AudienciaBarChart({ data, isPnt, onDotHover, onDotClick,
             <XAxis
               dataKey="rodada"
               type="category"
-              tick={{ fill: "rgba(255,255,255,0.85)", fontSize: 11 }}
+              tick={{ fill: "rgba(var(--ink-c),0.85)", fontSize: 11 }}
               axisLine={false}
               tickLine={false}
             />
             <YAxis
               tickFormatter={(v) => fmtY(v, isPnt)}
-              tick={{ fill: "rgba(255,255,255,0.25)", fontSize: 11 }}
+              tick={{ fill: "rgba(var(--ink-c),0.25)", fontSize: 11 }}
               axisLine={false} tickLine={false}
               width={isPnt ? 34 : 48}
               domain={[(d: number) => Math.max(0, d * 0.92), (d: number) => d * 1.14]}
@@ -431,15 +431,15 @@ export default function AudienciaBarChart({ data, isPnt, onDotHover, onDotClick,
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
         >
-          <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.04)" vertical={false} />
+          <CartesianGrid strokeDasharray="2 4" stroke="rgba(var(--ink-c),0.04)" vertical={false} />
 
           {/* Active column highlight */}
           {activeIdx !== null && (
-            <ReferenceArea {...colBounds(activeIdx)} fill="rgba(255,255,255,0.05)" stroke="none" />
+            <ReferenceArea {...colBounds(activeIdx)} fill="rgba(var(--ink-c),0.05)" stroke="none" />
           )}
           {/* Locked column highlights */}
           {lockedRodadaIdxs.filter(i => i !== activeIdx).map((li) => (
-            <ReferenceArea key={li} {...colBounds(li)} fill="rgba(255,255,255,0.05)" stroke="none" />
+            <ReferenceArea key={li} {...colBounds(li)} fill="rgba(var(--ink-c),0.05)" stroke="none" />
           ))}
 
           {/* Average reference lines */}
@@ -477,7 +477,7 @@ export default function AudienciaBarChart({ data, isPnt, onDotHover, onDotClick,
           />
           <YAxis
             tickFormatter={(v) => fmtY(v, isPnt)}
-            tick={{ fill: "rgba(255,255,255,0.25)", fontSize: 11 }}
+            tick={{ fill: "rgba(var(--ink-c),0.25)", fontSize: 11 }}
             axisLine={false} tickLine={false}
             width={isPnt ? 34 : 48}
             domain={[(d: number) => Math.max(0, d * 0.92), (d: number) => d * 1.14]}

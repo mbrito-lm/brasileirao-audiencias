@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { logout } from "@/app/login/actions";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export default function Nav({ isAdmin = false }: { isAdmin?: boolean }) {
   const pathname = usePathname();
@@ -14,7 +15,7 @@ export default function Nav({ isAdmin = false }: { isAdmin?: boolean }) {
 
   return (
     <header className="sticky top-0 z-50 border-b border-white/[0.06]"
-      style={{ background: "rgba(8, 9, 15, 0.85)", backdropFilter: "blur(24px)" }}>
+      style={{ background: "var(--nav-bg)", backdropFilter: "blur(24px)" }}>
       <div className="max-w-screen-2xl mx-auto px-6 flex items-center gap-8 h-14">
         <span className="font-semibold text-white tracking-tight text-[15px]">
           Brasileirão FFU <span className="text-white/40 font-normal">Audiências</span>
@@ -46,13 +47,14 @@ export default function Nav({ isAdmin = false }: { isAdmin?: boolean }) {
           )}
         </nav>
         <div className="ml-auto flex items-center gap-3">
+          <ThemeToggle />
           <a
             href="https://claude.ai/project/019f3ceb-d1a4-73bb-ac1c-3acd08aeea1a"
             target="_blank"
             rel="noopener noreferrer"
             title="Abrir o projeto de análise no Claude (nova aba)"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#D97757] hover:bg-[#c96442] transition-colors"
-            style={{ fontFamily: "var(--font-claude), sans-serif", boxShadow: "0 1px 8px rgba(217,119,87,0.35)" }}>
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#D97757] hover:bg-[#c96442] transition-colors"
+            style={{ color: "#fff", fontFamily: "var(--font-claude), sans-serif", boxShadow: "0 1px 8px rgba(217,119,87,0.35)" }}>
             <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true">
               <g stroke="currentColor" strokeLinecap="round" fill="none">
                 <line x1="12" y1="12" x2="20.69" y2="9.67" strokeWidth="2.0" />

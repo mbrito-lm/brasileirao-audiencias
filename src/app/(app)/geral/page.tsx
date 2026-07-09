@@ -80,10 +80,10 @@ function SeasonFilter({ value, onChange, nullLabel = "Todas" }: {
               col
                 ? (active
                     ? { color: col, background: col + "22", borderColor: col + "66" }
-                    : { color: col, opacity: 0.5, borderColor: "rgba(255,255,255,0.07)" })
+                    : { color: col, opacity: 0.5, borderColor: "rgba(var(--ink-c),0.07)" })
                 : (active
-                    ? { color: "#fff", background: "rgba(255,255,255,0.10)", borderColor: "rgba(255,255,255,0.25)" }
-                    : { color: "rgba(255,255,255,0.3)", borderColor: "rgba(255,255,255,0.07)" })
+                    ? { color: "rgb(var(--ink))", background: "rgba(var(--ink-c),0.10)", borderColor: "rgba(var(--ink-c),0.25)" }
+                    : { color: "rgba(var(--ink-c),0.3)", borderColor: "rgba(var(--ink-c),0.07)" })
             }>
             {v == null ? nullLabel : v}
           </button>
@@ -222,16 +222,16 @@ function MatchCard({ match }: { match: MatchInDay }) {
         position: "relative",
         borderRadius: 8,
         padding: "8px 10px",
-        border: hovered ? "1px solid rgba(255,255,255,0.22)" : "1px solid rgba(255,255,255,0.07)",
+        border: hovered ? "1px solid rgba(var(--ink-c),0.22)" : "1px solid rgba(var(--ink-c),0.07)",
       }}
     >
       <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-1">
           <TeamLogo team={match.mandante} size={18} />
-          <span style={{ color: "rgba(255,255,255,0.15)", fontSize: 10, margin: "0 2px" }}>×</span>
+          <span style={{ color: "rgba(var(--ink-c),0.15)", fontSize: 10, margin: "0 2px" }}>×</span>
           <TeamLogo team={match.visitante} size={18} />
         </div>
-        <span style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", fontVariantNumeric: "tabular-nums", marginLeft: 6 }}>{match.horario}</span>
+        <span style={{ fontSize: 10, color: "rgba(var(--ink-c),0.35)", fontVariantNumeric: "tabular-nums", marginLeft: 6 }}>{match.horario}</span>
       </div>
       {match.broadcasters.map((b) => (
         <div key={b.detentor} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, marginTop: 4 }}>
@@ -312,15 +312,15 @@ function Timeline({ season, onSeasonChange }: { season: 2025 | 2026; onSeasonCha
           {dayGroups.map((group, gi) => {
             const isLastGroup = gi === dayGroups.length - 1;
             return (
-              <div key={gi} style={{ display: "flex", flexDirection: "column", flexShrink: 0, paddingRight: 14, marginRight: 4, borderRight: !isLastGroup ? "1px solid rgba(255,255,255,0.08)" : "none", overflow: "visible" }}>
+              <div key={gi} style={{ display: "flex", flexDirection: "column", flexShrink: 0, paddingRight: 14, marginRight: 4, borderRight: !isLastGroup ? "1px solid rgba(var(--ink-c),0.08)" : "none", overflow: "visible" }}>
                 {/* Rodada header spanning all days in this group */}
                 <div style={{ height: 28, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 8 }}>
                   {group.rodada !== null ? (
-                    <span style={{ fontSize: 13, fontWeight: 800, color: "rgba(255,255,255,0.50)", textTransform: "uppercase", letterSpacing: "0.10em" }}>
+                    <span style={{ fontSize: 13, fontWeight: 800, color: "rgba(var(--ink-c),0.50)", textTransform: "uppercase", letterSpacing: "0.10em" }}>
                       Rodada {group.rodada}
                     </span>
                   ) : (
-                    <span style={{ fontSize: 11, color: "rgba(255,255,255,0.15)" }}>—</span>
+                    <span style={{ fontSize: 11, color: "rgba(var(--ink-c),0.15)" }}>—</span>
                   )}
                 </div>
                 {/* Days in this group side by side */}
@@ -337,8 +337,8 @@ function Timeline({ season, onSeasonChange }: { season: 2025 | 2026; onSeasonCha
                     });
 
                     return (
-                      <div key={day.date} style={{ width: 148, flexShrink: 0, paddingRight: !isLastDay ? 10 : 0, borderRight: !isLastDay ? "1px solid rgba(255,255,255,0.04)" : "none", overflow: "visible" }}>
-                        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.30)", paddingLeft: 4, marginBottom: 8, fontVariantNumeric: "tabular-nums" }}>
+                      <div key={day.date} style={{ width: 148, flexShrink: 0, paddingRight: !isLastDay ? 10 : 0, borderRight: !isLastDay ? "1px solid rgba(var(--ink-c),0.04)" : "none", overflow: "visible" }}>
+                        <div style={{ fontSize: 11, color: "rgba(var(--ink-c),0.30)", paddingLeft: 4, marginBottom: 8, fontVariantNumeric: "tabular-nums" }}>
                           <span style={{ textTransform: "capitalize" }}>{day.weekday.slice(0, 3)}</span>
                           <span style={{ marginLeft: 4 }}>{day.display}</span>
                         </div>
@@ -346,7 +346,7 @@ function Timeline({ season, onSeasonChange }: { season: 2025 | 2026; onSeasonCha
                           {hasMultipleRodadas
                             ? Array.from(matchesByRodada.entries()).map(([rod, matches]) => (
                                 <div key={rod} style={{ overflow: "visible" }}>
-                                  <div style={{ fontSize: 9, color: "rgba(255,255,255,0.20)", paddingLeft: 4, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                                  <div style={{ fontSize: 9, color: "rgba(var(--ink-c),0.20)", paddingLeft: 4, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.06em" }}>
                                     Rod. {rod}
                                   </div>
                                   {matches.map((match) => (
@@ -434,7 +434,7 @@ function DetentorTabs({ available, selected, onSelect }: {
             className="flex items-center justify-center rounded-xl transition-all duration-200"
             style={isActive
               ? { ...detentorBoxStyle(DETENTOR_COLORS[d] || "#3b82f6"), boxShadow: `0 0 18px ${hexToRgba(DETENTOR_COLORS[d] || "#3b82f6", 0.40)}` }
-              : { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: "5px 10px" }}>
+              : { background: "rgba(var(--ink-c),0.03)", border: "1px solid rgba(var(--ink-c),0.06)", borderRadius: 10, padding: "5px 10px" }}>
             {logo ? (
               isActive
                 ? <BrandedLogo detentor={d} src={logo} className="h-6 w-auto object-contain"

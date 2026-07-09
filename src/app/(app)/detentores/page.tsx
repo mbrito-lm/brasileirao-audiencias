@@ -228,7 +228,7 @@ export default function DetentoresPage() {
             background: "rgba(18, 55, 215, 0.70)",
             border: "1px solid rgba(60, 100, 255, 0.55)",
             color: "white",
-          } : { border: "1px solid transparent", color: "rgba(255,255,255,0.35)" }}>
+          } : { border: "1px solid transparent", color: "rgba(var(--ink-c),0.35)" }}>
           Lista Completa
         </button>
       </div>

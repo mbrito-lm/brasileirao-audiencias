@@ -72,14 +72,14 @@ function BreakdownTable({ title, rows, detentor, mode }: {
   const hasMore = sorted.length > 10;
 
   function colColor(col: SortCol): string {
-    if (col === "geral") return "#ffffff";
-    return SEASON_COLORS[col as number] || "#ffffff";
+    if (col === "geral") return "rgb(var(--ink))";
+    return SEASON_COLORS[col as number] || "rgb(var(--ink))";
   }
 
   const ColHeader = ({ col, label }: { col: SortCol; label: string }) => {
     const active = sortCol === col;
     // Season columns always use their season color; Geral is bright when active
-    const baseColor = col === "geral" ? (active ? "#ffffff" : "rgba(255,255,255,0.30)") : SEASON_COLORS[col as number] || "#ffffff";
+    const baseColor = col === "geral" ? (active ? "rgb(var(--ink))" : "rgba(var(--ink-c),0.30)") : SEASON_COLORS[col as number] || "rgb(var(--ink))";
     const arrow = sortDir === "desc" ? " ↓" : sortDir === "asc" ? " ↑" : "";
     return (
       <th
@@ -99,7 +99,7 @@ function BreakdownTable({ title, rows, detentor, mode }: {
       </div>
       <div style={{ maxHeight: hasMore ? 310 : undefined, overflowY: hasMore ? "auto" : undefined }}>
         <table className="w-full text-xs border-collapse">
-          <thead className="sticky top-0 z-10" style={{ background: "rgba(12,14,24,0.95)", backdropFilter: "blur(8px)" }}>
+          <thead className="sticky top-0 z-10" style={{ background: "var(--panel-bg)", backdropFilter: "blur(8px)" }}>
             <tr>
               <th className="px-4 py-2.5 text-left font-medium text-white/25"></th>
               <ColHeader col="geral" label="Geral" />
@@ -117,7 +117,7 @@ function BreakdownTable({ title, rows, detentor, mode }: {
                 </td>
                 {ANOS.map((a) => (
                   <td key={a} className="px-3 py-2.5 text-right tabular-nums whitespace-nowrap font-bold">
-                    <span style={{ color: vals[a] !== null ? "#ffffff" : "rgba(255,255,255,0.12)" }}>
+                    <span style={{ color: vals[a] !== null ? "rgb(var(--ink))" : "rgba(var(--ink-c),0.12)" }}>
                       {vals[a] !== null ? formatMetric(detentor, vals[a], mode) : "—"}
                     </span>
                   </td>
