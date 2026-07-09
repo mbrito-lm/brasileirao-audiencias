@@ -61,8 +61,7 @@ export default function ClubePage() {
     return new Set(valid.length ? valid : clubSeasons);
   }, [rankSeasons, clubSeasons]);
   const toggleSeason = (a: number) => setRankSeasons(() => {
-    const cur = clubSeasons.filter((s) => activeSeasons.has(s));
-    const n = new Set(cur);
+    const n = new Set(clubSeasons.filter((s) => activeSeasons.has(s)));
     if (n.has(a)) { if (n.size > 1) n.delete(a); } else n.add(a);
     return n;
   });
@@ -133,8 +132,45 @@ export default function ClubePage() {
         Clubes
       </Link>
 
-      {/* Cabeçalho (esquerda) + recortes e KPIs (direita, mesma faixa) */}
-      <div className="flex flex-col lg:flex-row lg:items-center gap-4 mb-6">
+      {/* Recortes: detentor | temporadas — numa linha à direita, acima dos KPIs */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 justify-end mb-4">
+        {detentores.length > 0 && (
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] uppercase tracking-wider text-white/30">Detentor</span>
+            {detentores.map((d) => (
+              <button key={d} type="button" onClick={() => setSelDetState(d)} title={d}
+                className="h-8 px-2.5 rounded-lg flex items-center transition-all"
+                style={selDet === d
+                  ? { background: (DETENTOR_COLORS[d] || "#666"), boxShadow: `0 0 12px ${(DETENTOR_COLORS[d] || "#666")}66` }
+                  : { background: "rgba(var(--ink-c),0.05)", border: "1px solid rgba(var(--ink-c),0.08)" }}>
+                {LOGOS[d]
+                  ? <img src={LOGOS[d]} alt={d} style={{ height: 15, width: "auto", objectFit: "contain", filter: selDet === d ? "brightness(0) invert(1)" : "var(--logo-filter-inactive)", maxWidth: 46 }} />
+                  : <span className="text-[10px] font-semibold text-white/70">{d}</span>}
+              </button>
+            ))}
+          </div>
+        )}
+        {detentores.length > 0 && clubSeasons.length > 1 && (
+          <div className="w-px h-7 bg-white/[0.12]" />
+        )}
+        {clubSeasons.length > 1 && (
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] uppercase tracking-wider text-white/30">Temporadas</span>
+            {clubSeasons.map((a) => (
+              <button key={a} type="button" onClick={() => toggleSeason(a)}
+                className="px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all"
+                style={activeSeasons.has(a)
+                  ? { color: SEASON_COLORS[a], borderColor: SEASON_COLORS[a] + "66", background: SEASON_COLORS[a] + "1a" }
+                  : { color: "rgba(var(--ink-c),0.3)", borderColor: "rgba(var(--ink-c),0.1)" }}>
+                {a}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Cabeçalho + KPIs — centralizados verticalmente na mesma faixa */}
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-4 mb-6">
         <div className="flex items-center gap-4 shrink-0">
           <div className="rounded-2xl p-3 shrink-0" style={{ background: col + "22", border: `1px solid ${col}55` }}>
             <TeamLogo team={club} size={48} />
@@ -152,51 +188,11 @@ export default function ClubePage() {
           </div>
         </div>
 
-        <div className="lg:flex-1 min-w-0 flex flex-col gap-3">
-          {/* Recortes: detentor | temporadas — à direita */}
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 lg:justify-end">
-            {detentores.length > 0 && (
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] uppercase tracking-wider text-white/30">Detentor</span>
-                {detentores.map((d) => (
-                  <button key={d} type="button" onClick={() => setSelDetState(d)} title={d}
-                    className="h-8 px-2.5 rounded-lg flex items-center transition-all"
-                    style={selDet === d
-                      ? { background: (DETENTOR_COLORS[d] || "#666"), boxShadow: `0 0 12px ${(DETENTOR_COLORS[d] || "#666")}66` }
-                      : { background: "rgba(var(--ink-c),0.05)", border: "1px solid rgba(var(--ink-c),0.08)" }}>
-                    {LOGOS[d]
-                      ? <img src={LOGOS[d]} alt={d} style={{ height: 15, width: "auto", objectFit: "contain", filter: selDet === d ? "brightness(0) invert(1)" : "var(--logo-filter-inactive)", maxWidth: 46 }} />
-                      : <span className="text-[10px] font-semibold text-white/70">{d}</span>}
-                  </button>
-                ))}
-              </div>
-            )}
-            {detentores.length > 0 && clubSeasons.length > 1 && (
-              <div className="w-px h-7 bg-white/[0.12]" />
-            )}
-            {clubSeasons.length > 1 && (
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] uppercase tracking-wider text-white/30">Temporadas</span>
-                {clubSeasons.map((a) => (
-                  <button key={a} type="button" onClick={() => toggleSeason(a)}
-                    className="px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all"
-                    style={activeSeasons.has(a)
-                      ? { color: SEASON_COLORS[a], borderColor: SEASON_COLORS[a] + "66", background: SEASON_COLORS[a] + "1a" }
-                      : { color: "rgba(var(--ink-c),0.3)", borderColor: "rgba(var(--ink-c),0.1)" }}>
-                    {a}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* KPIs (do recorte selecionado) */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <Kpi label="Jogos (total)" value={String(seasonClubGames.length)} accent={detColor} />
-            <Kpi label={selDet ? `Jogos · ${selDet}` : "Jogos"} value={String(detGames.length)} accent={detColor} />
-            <Kpi label="Média" value={selDet ? formatMetric(selDet, media) : "—"} accent={detColor} />
-            <LastGameKpi g={lastGame} accent={detColor} />
-          </div>
+        <div className="flex flex-wrap gap-3">
+          <Kpi label="Jogos (total)" value={String(seasonClubGames.length)} accent={detColor} />
+          <Kpi label={selDet ? `Jogos · ${selDet}` : "Jogos"} value={String(detGames.length)} accent={detColor} />
+          <Kpi label="Média" value={selDet ? formatMetric(selDet, media) : "—"} accent={detColor} />
+          <LastGameKpi g={lastGame} accent={detColor} />
         </div>
       </div>
 
@@ -224,7 +220,7 @@ export default function ClubePage() {
 
 function Kpi({ label, value, accent }: { label: string; value: string; accent?: string }) {
   return (
-    <div className="glass rounded-2xl p-4" style={accent ? { border: `1px solid ${accent}` } : undefined}>
+    <div className="glass rounded-2xl p-4 w-40 shrink-0" style={accent ? { border: `1px solid ${accent}` } : undefined}>
       <p className="text-[10px] text-white/35 uppercase tracking-widest mb-1 truncate">{label}</p>
       <p className="text-2xl font-bold text-white tabular-nums leading-none">{value}</p>
     </div>
@@ -233,20 +229,22 @@ function Kpi({ label, value, accent }: { label: string; value: string; accent?: 
 
 function LastGameKpi({ g, accent }: { g: Game | null; accent?: string }) {
   return (
-    <div className="glass rounded-2xl p-4" style={accent ? { border: `1px solid ${accent}` } : undefined}>
-      <p className="text-[10px] text-white/35 uppercase tracking-widest mb-1.5 truncate">Último jogo</p>
+    <div className="glass rounded-2xl p-4 w-60 shrink-0" style={accent ? { border: `1px solid ${accent}` } : undefined}>
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <p className="text-[10px] text-white/35 uppercase tracking-widest">Mais recente</p>
+        {g && <p className="text-[10px] text-white/40 tabular-nums whitespace-nowrap">Rod {g.rodada} · {g.data.substring(0, 5)}</p>}
+      </div>
       {!g ? (
-        <p className="text-2xl font-bold text-white tabular-nums leading-none">—</p>
+        <p className="text-2xl font-bold text-white leading-none">—</p>
       ) : (
-        <>
-          <div className="flex items-center gap-2">
-            <TeamLogo team={g.mandante} size={18} />
-            <span className="text-white/25 text-xs">×</span>
-            <TeamLogo team={g.visitante} size={18} />
-            <span className="ml-auto text-lg font-bold text-white tabular-nums whitespace-nowrap">{formatMetric(g.detentor, getMetric(g))}</span>
-          </div>
-          <p className="text-[11px] text-white/40 mt-1.5 tabular-nums">Rod {g.rodada} · {g.data.substring(0, 5)}</p>
-        </>
+        <div className="flex items-center gap-2">
+          <TeamLogo team={g.mandante} size={18} />
+          <span className="text-white/25 text-xs">×</span>
+          <TeamLogo team={g.visitante} size={18} />
+          <span className="ml-auto text-lg font-bold text-white tabular-nums whitespace-nowrap">
+            {formatMetric(g.detentor, getMetric(g, "pontos"), "pontos")}
+          </span>
+        </div>
       )}
     </div>
   );
@@ -259,12 +257,12 @@ function RankCard({ title, items }: { title: string; items: RankItem[] }) {
       {items.length === 0 ? (
         <p className="text-xs text-white/25">Sem dados</p>
       ) : (
-        <div className="no-scrollbar overflow-y-auto flex flex-col gap-1.5" style={{ maxHeight: 128 }}>
+        <div className="no-scrollbar overflow-y-auto flex flex-col gap-1.5" style={{ maxHeight: 132 }}>
           {items.map((r, i) => (
             <div key={r.id} className="flex items-center gap-2 text-sm">
               <span className="w-4 shrink-0 text-white/30 tabular-nums text-xs">{i + 1}</span>
               <span className={`text-white/75 truncate ${r.cap ? "capitalize" : ""}`}>{r.left}</span>
-              <span className="ml-auto font-bold text-white tabular-nums text-xs whitespace-nowrap">{r.right}</span>
+              <span className="ml-auto font-bold text-white tabular-nums text-sm whitespace-nowrap">{r.right}</span>
               {r.meta && <span className="text-white/25 text-[10px] tabular-nums w-7 text-right shrink-0">{r.meta}</span>}
             </div>
           ))}
@@ -281,16 +279,16 @@ function AudRankCard({ title, rows }: { title: string; rows: Game[] }) {
       {rows.length === 0 ? (
         <p className="text-xs text-white/25">Sem dados</p>
       ) : (
-        <div className="no-scrollbar overflow-y-auto flex flex-col gap-1.5" style={{ maxHeight: 128 }}>
+        <div className="no-scrollbar overflow-y-auto flex flex-col gap-1.5" style={{ maxHeight: 132 }}>
           {rows.map((g, i) => (
             <Link key={`${g.ano}-${g.rodada}-${g.mandante}-${g.visitante}`} href={matchHref(g, g.detentor)}
-              className="flex items-center gap-1.5 text-sm rounded-md px-1 -mx-1 hover:bg-white/[0.04] transition-colors">
+              className="flex items-center gap-1.5 rounded-md px-1 -mx-1 hover:bg-white/[0.04] transition-colors">
               <span className="w-4 shrink-0 text-white/30 tabular-nums text-xs">{i + 1}</span>
               <TeamLogo team={g.mandante} size={14} />
               <span className="text-white/20 text-[10px]">×</span>
               <TeamLogo team={g.visitante} size={14} />
               <span className="text-white/40 text-[10px] tabular-nums ml-1 capitalize truncate">{g.dia} {normalizeHorario(g.horario.substring(0, 5))}</span>
-              <span className="ml-auto font-bold text-white tabular-nums text-xs whitespace-nowrap">{formatMetric(g.detentor, getMetric(g))}</span>
+              <span className="ml-auto font-bold text-white tabular-nums text-sm whitespace-nowrap">{formatMetric(g.detentor, getMetric(g))}</span>
             </Link>
           ))}
         </div>
