@@ -216,7 +216,7 @@ export default function DetentoresPage() {
                 <img src={logo} alt={tab} className="h-8 w-auto object-contain"
                   style={{ filter: isActive ? "brightness(0) invert(1)" : "grayscale(1) opacity(0.45)" }} />
               ) : (
-                <span className={`text-xs font-semibold px-1 ${isActive ? "text-white" : "text-white/35"}`}>{tab}</span>
+                <span className={`text-xs font-semibold px-1 ${isActive ? "text-[#fff]" : "text-white/35"}`}>{tab}</span>
               )}
             </button>
           );
@@ -264,11 +264,11 @@ export default function DetentoresPage() {
               className="absolute top-0.5 bottom-0.5 w-[calc(50%-2px)] rounded-full transition-transform duration-200 ease-out"
               style={{ background: "rgba(18,55,215,0.85)", left: 2, transform: mode === "pontos" ? "translateX(0)" : "translateX(100%)" }} />
             <button onClick={() => setMode("pontos")}
-              className={`relative z-10 px-3.5 py-1.5 rounded-full text-center transition-colors ${mode === "pontos" ? "text-white" : "text-white/45 hover:text-white/70"}`}>
+              className={`relative z-10 px-3.5 py-1.5 rounded-full text-center transition-colors ${mode === "pontos" ? "text-[#fff]" : "text-white/45 hover:text-white/70"}`}>
               Pontos (PNT)
             </button>
             <button onClick={() => setMode("espectadores")}
-              className={`relative z-10 px-3.5 py-1.5 rounded-full text-center transition-colors ${mode === "espectadores" ? "text-white" : "text-white/45 hover:text-white/70"}`}>
+              className={`relative z-10 px-3.5 py-1.5 rounded-full text-center transition-colors ${mode === "espectadores" ? "text-[#fff]" : "text-white/45 hover:text-white/70"}`}>
               Espectadores
             </button>
           </div>

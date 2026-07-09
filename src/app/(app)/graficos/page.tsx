@@ -50,7 +50,7 @@ function RailToggle({ on, disabled, title, onClick, children }: {
     <button type="button" title={title} onClick={onClick} disabled={disabled}
       className={`w-9 h-9 rounded-lg flex items-center justify-center border transition-all ${
         disabled ? "opacity-30 cursor-not-allowed border-white/10 text-white/30"
-          : on ? "bg-blue-600/25 border-blue-500/40 text-blue-200"
+          : on ? "bg-blue-600/25 border-blue-500/40 text-[var(--accent-fg)]"
           : "border-white/10 text-white/40 hover:text-white/70"}`}>
       {children}
     </button>
@@ -454,7 +454,7 @@ export default function GraficosPage() {
               ))}
               <button type="button" title="Adicionar série"
                 onClick={() => setModalState({ open: true, editId: null, filters: EMPTY_FILTERS })}
-                className="w-9 h-9 rounded-lg flex items-center justify-center bg-blue-600/20 text-blue-300 border border-blue-500/35 text-lg leading-none">+</button>
+                className="w-9 h-9 rounded-lg flex items-center justify-center bg-blue-600/20 text-[var(--accent-fg)] border border-blue-500/35 text-lg leading-none">+</button>
             </div>
             <div className="glass rounded-2xl p-2 flex flex-col gap-2 items-center w-full">
               <RailToggle on={showAvgs} title="Mostrar médias" onClick={() => setShowAvgs((v) => !v)}>
@@ -524,7 +524,7 @@ export default function GraficosPage() {
           </div>
 
           <button onClick={() => setModalState({ open: true, editId: null, filters: EMPTY_FILTERS })}
-            className="w-full py-2.5 rounded-2xl text-xs font-semibold bg-blue-600/20 text-blue-300 border border-blue-500/35 hover:bg-blue-600/30 transition-colors">
+            className="w-full py-2.5 rounded-2xl text-xs font-semibold bg-blue-600/20 text-[var(--accent-fg)] border border-blue-500/35 hover:bg-blue-600/30 transition-colors">
             + Adicionar série
           </button>
 

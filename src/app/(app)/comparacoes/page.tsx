@@ -274,7 +274,7 @@ function SortTh({ label, k, cur, dir, onSort, right }: {
       onClick={() => onSort(k)}>
       {label}
       {cur === k
-        ? <span className="ml-1 text-blue-400">{dir === "desc" ? "↓" : "↑"}</span>
+        ? <span className="ml-1 text-[var(--accent-fg)]">{dir === "desc" ? "↓" : "↑"}</span>
         : <span className="ml-1 text-white/15">↕</span>}
     </th>
   );

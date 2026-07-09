@@ -22,6 +22,13 @@
   --nav-bg: rgba(8, 9, 15, 0.85);
   --scroll-thumb: rgba(255, 255, 255, 0.10);
   --scroll-thumb-hover: rgba(255, 255, 255, 0.20);
+  /* texto de destaque (azul) legível sobre fundo pálido/neutro */
+  --accent-fg: #93c5fd;
+  /* filtro para logos monocromáticos em superfícies neutras */
+  --logo-filter: brightness(0) invert(1);
+  /* tiles do calendário (Geral) */
+  --card-bg: rgba(18, 22, 42, 0.50);
+  --card-bg-hover: rgba(10, 13, 28, 0.98);
 }
 
 [data-theme="light"] {
@@ -38,6 +45,10 @@
   --nav-bg: rgba(248, 250, 253, 0.82);
   --scroll-thumb: rgba(0, 0, 0, 0.18);
   --scroll-thumb-hover: rgba(0, 0, 0, 0.32);
+  --accent-fg: #1d4ed8;
+  --logo-filter: brightness(0);
+  --card-bg: rgba(255, 255, 255, 0.55);
+  --card-bg-hover: rgba(255, 255, 255, 0.97);
 }
 
 * {

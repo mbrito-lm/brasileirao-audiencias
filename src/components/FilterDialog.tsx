@@ -153,7 +153,7 @@ export default function FilterDialog({ state: applied, onChange: onApply, option
       <button onClick={openDialog}
         className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all border ${
           appliedActive > 0
-            ? "bg-blue-600/20 text-blue-300 border-blue-500/40"
+            ? "bg-blue-600/20 text-[var(--accent-fg)] border-blue-500/40"
             : "bg-white/[0.05] text-white/50 border-white/[0.08] hover:text-white/70 hover:bg-white/[0.08]"
         }`}>
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -161,7 +161,7 @@ export default function FilterDialog({ state: applied, onChange: onApply, option
         </svg>
         Filtros
         {appliedActive > 0 && (
-          <span className="ml-0.5 bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+          <span className="ml-0.5 bg-blue-500 text-[#fff] text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
             {appliedActive}
           </span>
         )}
@@ -179,7 +179,7 @@ export default function FilterDialog({ state: applied, onChange: onApply, option
               <h2 className="text-base font-semibold text-white">Filtros</h2>
               <div className="flex items-center gap-3">
                 {totalActive > 0 && (
-                  <button onClick={clearAll} className="text-sm text-blue-400 hover:text-blue-300 transition-colors">
+                  <button onClick={clearAll} className="text-sm text-[var(--accent-fg)] hover:text-[var(--accent-fg)] transition-colors">
                     Limpar tudo ({totalActive})
                   </button>
                 )}
@@ -207,14 +207,14 @@ export default function FilterDialog({ state: applied, onChange: onApply, option
                       {LOGOS[d]
                         ? <img src={LOGOS[d]} alt={d} className="h-5 w-auto object-contain"
                             style={{ filter: active ? "none" : "grayscale(1) opacity(0.45)" }} />
-                        : <span className={`text-xs font-medium ${active ? "text-blue-200" : "text-white/40"}`}>{d}</span>
+                        : <span className={`text-xs font-medium ${active ? "text-[var(--accent-fg)]" : "text-white/40"}`}>{d}</span>
                       }
                     </button>
                   );
                 })}
                 {(state.detentores?.length ?? 0) > 0 && (
                   <button onClick={() => onChange({ ...state, detentores: [] })}
-                    className="text-xs text-blue-400/70 hover:text-blue-300 transition-colors ml-1">
+                    className="text-xs text-[var(--accent-fg)] hover:text-[var(--accent-fg)] transition-colors ml-1">
                     Limpar
                   </button>
                 )}
@@ -288,7 +288,7 @@ export default function FilterDialog({ state: applied, onChange: onApply, option
                       onPointerEnter={() => enterDrag("rodadas", i)}
                       className={`w-9 h-9 flex items-center justify-center rounded-lg text-sm font-semibold cursor-pointer select-none transition-all ${
                         state.rodadas.includes(r)
-                          ? "bg-blue-600 text-white"
+                          ? "bg-blue-600 text-[#fff]"
                           : "bg-white/[0.05] text-white/50 hover:text-white/80 hover:bg-white/10"
                       }`}>
                       {r}
@@ -353,7 +353,7 @@ export default function FilterDialog({ state: applied, onChange: onApply, option
             {/* Footer */}
             <div className="flex justify-end px-6 py-4 border-t border-white/[0.07]">
               <button onClick={() => { onApply(draft); setOpen(false); }}
-                className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-xl transition-colors">
+                className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-[#fff] text-sm font-semibold rounded-xl transition-colors">
                 Aplicar
               </button>
             </div>
@@ -372,7 +372,7 @@ function ColSection({ title, count, onClear, children }: {
       <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-white/[0.06] flex-shrink-0">
         <p className="text-xs font-semibold text-white/45 uppercase tracking-widest">{title}</p>
         {count > 0 && (
-          <button onClick={onClear} className="text-xs text-blue-400/80 hover:text-blue-300 transition-colors ml-2 flex-shrink-0">
+          <button onClick={onClear} className="text-xs text-[var(--accent-fg)] hover:text-[var(--accent-fg)] transition-colors ml-2 flex-shrink-0">
             Limpar
           </button>
         )}
@@ -396,7 +396,7 @@ function DragItem({ active, onPointerDown, onPointerEnter, children }: {
       onPointerEnter={onPointerEnter}
       className={`flex items-center gap-2.5 px-3 py-2 rounded-xl cursor-pointer select-none transition-all ${
         active
-          ? "bg-blue-600/25 text-blue-100 border border-blue-500/35"
+          ? "bg-blue-600/25 text-[var(--accent-fg)] border border-blue-500/35"
           : "text-white/50 hover:text-white/75 hover:bg-white/[0.05] border border-transparent"
       }`}>
       {children}

@@ -157,7 +157,8 @@ export default function JogoPage() {
   const expDetName = singleDet ? rows[0]?.detentor : (expanded && rows.some((r) => r.detentor === expanded) ? expanded : null);
   const expandedRow = expDetName ? (rows.find((r) => r.detentor === expDetName) ?? null) : null;
   const detOpen = expandedRow != null && hasExtra(expandedRow);
-  const extraFlex = Math.max(1, rows.length - 1);
+  // Box do detentor sempre 1/3 e extra metrics 2/3 (igual ao caso de 3 detentores).
+  const extraFlex = 2;
 
   // Slide FLIP: o box clicado desliza para a primeira posição.
   const box1Ref = useRef<HTMLButtonElement>(null);
@@ -309,7 +310,7 @@ export default function JogoPage() {
               <div className="flex flex-col gap-1.5">
                 {concurrent.map((sg, i) => (
                   <div key={i} className="glass flex items-center gap-2.5 p-2.5 rounded-xl border border-white/[0.06]">
-                    <span className={`w-12 shrink-0 text-center text-[10px] font-bold py-0.5 rounded ${sg.liga === "FFU" ? "bg-blue-500/25 text-blue-300" : "bg-white/10 text-white/45"}`}>{sg.liga}</span>
+                    <span className={`w-12 shrink-0 text-center text-[10px] font-bold py-0.5 rounded ${sg.liga === "FFU" ? "bg-blue-500/25 text-[var(--accent-fg)]" : "bg-white/10 text-white/45"}`}>{sg.liga}</span>
                     <span className="text-[11px] text-white/35 shrink-0 w-11">Rod {sg.rodada}</span>
                     <Matchup m={sg.mandante} v={sg.visitante} />
                     <span className="text-[11px] text-white/35 tabular-nums whitespace-nowrap ml-1">{sg.hora}</span>
@@ -349,7 +350,7 @@ export default function JogoPage() {
                         ? { background: (DETENTOR_COLORS[r.detentor] || "#666"), boxShadow: `0 0 12px ${(DETENTOR_COLORS[r.detentor] || "#666")}66` }
                         : { background: "rgba(var(--ink-c),0.05)", border: "1px solid rgba(var(--ink-c),0.08)" }}>
                       {LOGOS[r.detentor]
-                        ? <img src={LOGOS[r.detentor]} alt={r.detentor} style={{ height: 18, width: "auto", objectFit: "contain", filter: "brightness(0) invert(1)", opacity: selDet === r.detentor ? 1 : 0.5, maxWidth: 26 }} />
+                        ? <img src={LOGOS[r.detentor]} alt={r.detentor} style={{ height: 18, width: "auto", objectFit: "contain", filter: selDet === r.detentor ? "brightness(0) invert(1)" : "var(--logo-filter)", opacity: selDet === r.detentor ? 1 : 0.5, maxWidth: 26 }} />
                         : <span className="text-[9px] text-white/70">{r.detentor}</span>}
                     </button>
                   ))}

@@ -570,7 +570,7 @@ function GamesTable({ games, allGames, detentor, showDeltas = true, mode }: Prop
             {concPopup.games.map((sg, i) => (
               <div key={i} className="grid items-center gap-x-2" style={{ gridTemplateColumns: "40px 16px 14px 16px 40px 1fr" }}>
                 {/* liga */}
-                <span className={`text-[9px] font-bold text-center py-0.5 rounded ${sg.liga === "FFU" ? "bg-blue-500/25 text-blue-300" : "bg-white/10 text-white/45"}`}>
+                <span className={`text-[9px] font-bold text-center py-0.5 rounded ${sg.liga === "FFU" ? "bg-blue-500/25 text-[var(--accent-fg)]" : "bg-white/10 text-white/45"}`}>
                   {sg.liga}
                 </span>
                 {/* mandante */}
@@ -635,7 +635,7 @@ function DeltaTh({ label, tipKey, sortKey, current, dir, onSort, onTip }: {
       onMouseLeave={() => onTip(null)}>
       <span className="border-b border-dashed border-white/20">{label}</span>
       {current === sortKey ? (
-        <span className="ml-1 text-blue-400">{dir === "desc" ? "↓" : "↑"}</span>
+        <span className="ml-1 text-[var(--accent-fg)]">{dir === "desc" ? "↓" : "↑"}</span>
       ) : (
         <span className="ml-1 text-white/15">↕</span>
       )}

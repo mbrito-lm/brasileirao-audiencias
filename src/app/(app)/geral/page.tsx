@@ -215,7 +215,7 @@ function MatchCard({ match }: { match: MatchInDay }) {
         transformOrigin: "top center",
         transition: "transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease",
         boxShadow: hovered ? "0 10px 32px rgba(0,0,0,0.75)" : undefined,
-        background: hovered ? "rgba(10, 13, 28, 0.98)" : "rgba(18, 22, 42, 0.50)",
+        background: hovered ? "var(--card-bg-hover)" : "var(--card-bg)",
         backdropFilter: hovered ? "none" : "blur(12px)",
         cursor: "pointer",
         zIndex: hovered ? 20 : 1,
@@ -238,12 +238,12 @@ function MatchCard({ match }: { match: MatchInDay }) {
           <div style={{ height: 14, display: "flex", alignItems: "center" }}>
             {LOGOS[b.detentor] ? (
               <img src={LOGOS[b.detentor]} alt={b.detentor}
-                style={{ height: 14, width: "auto", objectFit: "contain", maxWidth: 60, filter: "brightness(0) invert(1)", opacity: 0.7 }} />
+                style={{ height: 14, width: "auto", objectFit: "contain", maxWidth: 60, filter: "var(--logo-filter)", opacity: 0.7 }} />
             ) : (
               <span style={{ fontSize: 10, fontWeight: 600, color: DETENTOR_COLORS[b.detentor] || "#9ca3af" }}>{b.detentor}</span>
             )}
           </div>
-          <span style={{ fontSize: 12, fontWeight: 700, color: "white", fontVariantNumeric: "tabular-nums" }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: "rgb(var(--ink))", fontVariantNumeric: "tabular-nums" }}>
             {formatMetric(b.detentor, b.metric)}
           </span>
         </div>
