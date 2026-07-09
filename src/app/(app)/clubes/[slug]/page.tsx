@@ -14,6 +14,12 @@ import GamesTable from "@/components/GamesTable";
 // Ordem fixa dos botões de detentor (mesmo os sem jogos aparecem, desabilitados).
 const DET_ORDER = ["Record", "YouTube", "Amazon", "Globo", "SporTV", "Premiere"];
 
+// Preposição de cada detentor para o título dos rankings ("... na Amazon").
+const DET_PREP: Record<string, string> = {
+  Amazon: "na", Record: "na", Globo: "na",
+  YouTube: "no", SporTV: "no", Premiere: "no",
+};
+
 interface RankItem { id: string; left: string; right: string; meta?: string; cap?: boolean }
 
 function push(m: Map<string, number[]>, k: string, v: number) {
@@ -220,7 +226,9 @@ export default function ClubePage() {
       <div className="h-px bg-white/[0.08] mb-6" />
 
       {/* Rankings */}
-      <h2 className="text-sm font-semibold text-white/50 uppercase tracking-widest mb-3">Rankings</h2>
+      <h2 className="text-sm font-semibold text-white/50 uppercase tracking-widest mb-3">
+        {selDet ? `Rankings ${club} ${DET_PREP[selDet] ?? "no"} ${selDet}` : "Rankings"}
+      </h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <AudRankCard title="Audiência" rows={audGames} />
         <RankCard title="Dias" items={rankings.dias} />
