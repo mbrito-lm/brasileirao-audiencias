@@ -1,5 +1,6 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
+import { recordAccess } from "@/lib/accessLog";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   secret: process.env.AUTH_SECRET,
@@ -13,7 +14,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   callbacks: {
     async signIn({ user }) {
       const email = user?.email ?? "";
-      return email.endsWith("@livemode.com");
+      if (!email.endsWith("@livemode.com")) return false;
+      await recordAccess(email, user?.name);
+      return true;
     },
     authorized({ auth }) {
       return !!auth?.user;
