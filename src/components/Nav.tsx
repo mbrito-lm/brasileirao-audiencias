@@ -3,13 +3,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { logout } from "@/app/login/actions";
 
-export default function Nav() {
+export default function Nav({ isAdmin = false }: { isAdmin?: boolean }) {
   const pathname = usePathname();
   const links = [
     { href: "/geral", label: "Geral" },
     { href: "/detentores", label: "Detentores" },
     { href: "/comparacoes", label: "Comparações" },
     { href: "/graficos", label: "Gráficos" },
+    ...(isAdmin ? [{ href: "/admin", label: "Admin" }] : []),
   ];
 
   return (
