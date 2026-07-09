@@ -189,7 +189,7 @@ export default function ClubePage() {
         </div>
 
         <div className="flex flex-wrap gap-3 ml-auto">
-          <Kpi label="Jogos (total)" value={String(seasonClubGames.length)} accent={detColor} />
+          <Kpi label="Jogos (total)" value={String(seasonClubGames.length)} />
           <Kpi label={selDet ? `Jogos · ${selDet}` : "Jogos"} value={String(detGames.length)} accent={detColor} />
           <Kpi label="Média" value={selDet ? formatMetric(selDet, media) : "—"} accent={detColor} />
           <LastGameKpi g={lastGame} accent={detColor} />
