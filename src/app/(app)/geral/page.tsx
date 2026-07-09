@@ -6,6 +6,7 @@ import { getMetric as getMetricBase, formatMetric as formatMetricBase, avg, norm
 import Link from "next/link";
 import TeamLogo from "@/components/TeamLogo";
 import { matchHref } from "@/lib/gameLink";
+import { detentoresState } from "@/lib/detentoresState";
 
 // Na página Geral, a Globo é exibida em pontos PNT por padrão (como as demais
 // emissoras de TV). Amazon/YouTube seguem em espectadores.
@@ -129,7 +130,8 @@ function DetentorAvgBar({ season, onSeasonChange }: { season: number | null; onS
       </div>
       <div style={{ display: "flex", gap: 8 }}>
         {stats.map(({ detentor: d, avgVal, count }) => (
-          <div key={d} className="glass rounded-xl border border-white/[0.07] flex items-center gap-3 flex-1 px-3 py-3">
+          <Link key={d} href="/detentores" onClick={() => detentoresState.setTab(d)} title={`Ver ${d}`}
+            className="glass rounded-xl border border-white/[0.07] flex items-center gap-3 flex-1 px-3 py-3 hover:bg-white/[0.05] transition-colors">
             <div style={detentorBoxStyle(DETENTOR_COLORS[d] || "#666")} className="shrink-0">
               {LOGOS[d] ? (
                 <BrandedLogo detentor={d} src={LOGOS[d]} className="h-7 w-auto object-contain"
@@ -143,7 +145,7 @@ function DetentorAvgBar({ season, onSeasonChange }: { season: number | null; onS
               <span className="text-xl font-bold text-white tabular-nums leading-tight">{formatMetric(d, avgVal)}</span>
               <span className="text-[10px] text-white/30 tabular-nums">{count} jogo{count !== 1 ? "s" : ""}</span>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </div>
