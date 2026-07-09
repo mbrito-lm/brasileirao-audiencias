@@ -104,7 +104,7 @@ function ExtraStrip({ g }: { g: G }) {
     const e = YOUTUBE_EXTRA_METRICS[g.data];
     if (!e) return null;
     return (
-      <div className="grid grid-rows-2 grid-flow-col gap-2 w-max px-1">
+      <div className="flex gap-2 w-max">
         <SChip label="Pico" value={fmtInt(e.peak)} />
         {e.alcance != null && <SChip label="Alcance" value={fmtInt(e.alcance)} />}
       </div>
@@ -155,6 +155,8 @@ function DetExpanded({ g, onClose }: { g: G; onClose?: () => void }) {
   const isTv = PNT_TV.has(g.detentor);
   const primary = getMetric(g, "pontos");
   const esp = isTv ? getMetric(g, "espectadores") : null;
+  // YouTube: extras em linha única, à direita, logo abaixo da métrica principal.
+  const rightExtras = g.detentor === "YouTube";
   return (
     <div className="glass rounded-2xl p-4 flex-1 min-h-0 relative flex flex-col justify-center">
       {onClose && (
@@ -164,12 +166,15 @@ function DetExpanded({ g, onClose }: { g: G; onClose?: () => void }) {
       <div className="flex items-center gap-3 pr-6">
         <DetLogo det={g.detentor} size={26} />
         <span className="text-white/80 font-semibold text-base">{g.detentor}</span>
-        <div className="ml-auto text-right">
-          <div className="text-2xl font-bold text-white tabular-nums leading-none">{formatMetric(g.detentor, primary, "pontos")}</div>
-          {esp != null && <div className="text-xs text-white/40 tabular-nums mt-1">{formatAudiencia(esp)} esp.</div>}
+        <div className="ml-auto text-right flex flex-col items-end gap-2">
+          <div>
+            <div className="text-2xl font-bold text-white tabular-nums leading-none">{formatMetric(g.detentor, primary, "pontos")}</div>
+            {esp != null && <div className="text-xs text-white/40 tabular-nums mt-1">{formatAudiencia(esp)} esp.</div>}
+          </div>
+          {rightExtras && hasExtra(g) && <ExtraStrip g={g} />}
         </div>
       </div>
-      {hasExtra(g) && (
+      {!rightExtras && hasExtra(g) && (
         <div className="mt-3 overflow-hidden">
           <ExtraScroll><ExtraStrip g={g} /></ExtraScroll>
         </div>
