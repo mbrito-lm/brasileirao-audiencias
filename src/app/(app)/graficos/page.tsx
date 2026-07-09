@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { games, DETENTORES } from "@/data/games";
 import { getMetric, formatMetric, avg, normalizeHorario, PNT_DETENTORES } from "@/lib/stats";
 import FilterDialog, { FilterState, filterSummaryText } from "@/components/FilterDialog";
@@ -214,6 +214,15 @@ export default function GraficosPage() {
   const [editingLabelId, setEditingLabelId] = useState<string | null>(null);
   const [editingLabelText, setEditingLabelText] = useState("");
   const [capturing, setCapturing] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
+
+  // Esc sai da tela cheia
+  useEffect(() => {
+    if (!fullscreen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setFullscreen(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [fullscreen]);
 
   // Gera um "print" da tela via API de captura (pega os pixels renderizados,
   // incluindo escudos de outros domínios — sem problema de CORS).
@@ -405,11 +414,16 @@ export default function GraficosPage() {
   }, [chartData, showShields, dynamicShieldSize]);
 
   return (
-    <div className="py-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white tracking-tight">Gráficos</h1>
-        <p className="text-white/40 text-sm mt-1.5">Compare séries com filtros personalizados, ordenadas por audiência</p>
-      </div>
+    <div
+      className={fullscreen ? "overflow-auto" : "py-6"}
+      style={fullscreen ? { position: "fixed", top: 56, left: 0, right: 0, bottom: 0, zIndex: 40, background: "#08090f", padding: "14px 22px" } : undefined}
+    >
+      {!fullscreen && (
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-white tracking-tight">Gráficos</h1>
+          <p className="text-white/40 text-sm mt-1.5">Compare séries com filtros personalizados, ordenadas por audiência</p>
+        </div>
+      )}
 
       <div className="flex gap-6 items-start">
         {/* Sidebar */}
@@ -545,6 +559,15 @@ export default function GraficosPage() {
                     className="px-3 py-1.5 rounded-lg text-xs font-medium border border-white/10 text-white/50 hover:text-white/70 transition-all">
                     {chartMode === "line" ? "▐▌ Barras" : "━━ Linha"}
                   </button>
+                  <button onClick={() => setFullscreen((v) => !v)} title={fullscreen ? "Sair da tela cheia (Esc)" : "Tela cheia"}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-white/10 text-white/60 hover:text-white hover:bg-white/[0.06] transition-all">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      {fullscreen
+                        ? <path d="M9 3H5a2 2 0 0 0-2 2v4m18 0V5a2 2 0 0 0-2-2h-4M3 15v4a2 2 0 0 0 2 2h4m6 0h4a2 2 0 0 0 2-2v-4"/>
+                        : <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3m8 0h3a2 2 0 0 0 2-2v-3"/>}
+                    </svg>
+                    {fullscreen ? "Sair" : "Tela cheia"}
+                  </button>
                 </div>
               </div>
 
@@ -565,7 +588,7 @@ export default function GraficosPage() {
                 }
               </div>
 
-              <ResponsiveContainer width="100%" height={330}>
+              <ResponsiveContainer width="100%" height={fullscreen ? 600 : 330}>
                 <ComposedChart
                   data={chartData}
                   margin={{ top: 8, right: 16, left: 0, bottom: showShields && !groupSeries ? 44 : 4 }}
