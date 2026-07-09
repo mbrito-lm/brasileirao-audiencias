@@ -57,9 +57,15 @@ export function filterSummaryText(filters: FilterState): string | null {
   return parts.length ? parts.join("  |  ") : null;
 }
 
-export default function FilterDialog({ state, onChange, options, singleDetentor }: FilterDialogProps) {
+export default function FilterDialog({ state: applied, onChange: onApply, options, singleDetentor }: FilterDialogProps) {
   const [open, setOpen] = useState(false);
   const [teamSearch, setTeamSearch] = useState("");
+  // Rascunho: as mudanças ficam locais e só são aplicadas ao clicar em "Aplicar".
+  // Fechar no X (ou fora) descarta. Reabrir parte sempre do estado aplicado.
+  const [draft, setDraft] = useState<FilterState>(applied);
+  const state = draft;
+  const onChange = setDraft;
+  const openDialog = () => { setDraft(applied); setOpen(true); };
 
   // Drag state
   const isDragging = useRef(false);
@@ -77,6 +83,9 @@ export default function FilterDialog({ state, onChange, options, singleDetentor 
 
   const totalActive = state.anos.length + state.dias.length + state.horarios.length +
     state.rodadas.length + state.times.length + (state.detentores?.length ?? 0) + state.concorrencia.length;
+  // Contagem do estado JÁ aplicado (para o badge do botão que abre o diálogo).
+  const appliedActive = applied.anos.length + applied.dias.length + applied.horarios.length +
+    applied.rodadas.length + applied.times.length + (applied.detentores?.length ?? 0) + applied.concorrencia.length;
 
   // Colunas visíveis = categorias que têm opções (permite reduzir o diálogo).
   const visibleCols = [options.anos, options.dias, options.horarios, options.rodadas, options.concorrencia, options.times]
@@ -141,9 +150,9 @@ export default function FilterDialog({ state, onChange, options, singleDetentor 
 
   return (
     <>
-      <button onClick={() => setOpen(true)}
+      <button onClick={openDialog}
         className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all border ${
-          totalActive > 0
+          appliedActive > 0
             ? "bg-blue-600/20 text-blue-300 border-blue-500/40"
             : "bg-white/[0.05] text-white/50 border-white/[0.08] hover:text-white/70 hover:bg-white/[0.08]"
         }`}>
@@ -151,9 +160,9 @@ export default function FilterDialog({ state, onChange, options, singleDetentor 
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z" />
         </svg>
         Filtros
-        {totalActive > 0 && (
+        {appliedActive > 0 && (
           <span className="ml-0.5 bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
-            {totalActive}
+            {appliedActive}
           </span>
         )}
       </button>
@@ -343,7 +352,7 @@ export default function FilterDialog({ state, onChange, options, singleDetentor 
 
             {/* Footer */}
             <div className="flex justify-end px-6 py-4 border-t border-white/[0.07]">
-              <button onClick={() => setOpen(false)}
+              <button onClick={() => { onApply(draft); setOpen(false); }}
                 className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-xl transition-colors">
                 Aplicar
               </button>
