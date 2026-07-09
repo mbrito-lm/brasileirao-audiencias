@@ -2,11 +2,12 @@
 import { useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { games, DETENTOR_COLORS, SEASON_COLORS } from "@/data/games";
+import { games, DETENTOR_COLORS, SEASON_COLORS, type Game } from "@/data/games";
 import { ALL_SCHEDULE } from "@/data/schedule";
 import { LOGOS } from "@/data/logos";
 import { teamColor } from "@/data/teamColors";
 import { getMetric, formatMetric, normalizeHorario, avg, parseDate } from "@/lib/stats";
+import { matchHref } from "@/lib/gameLink";
 import TeamLogo from "@/components/TeamLogo";
 import GamesTable from "@/components/GamesTable";
 
@@ -42,7 +43,6 @@ export default function ClubePage() {
     [club]
   );
 
-  // Detentores com dados, ordenados por nº de jogos.
   const detentores = useMemo(() => {
     const s = new Map<string, number>();
     clubGames.forEach((g) => {
@@ -53,16 +53,16 @@ export default function ClubePage() {
 
   const [selDetState, setSelDetState] = useState<string | null>(null);
   const selDet = selDetState && detentores.includes(selDetState) ? selDetState : (detentores[0] ?? null);
+  const detColor = selDet ? (DETENTOR_COLORS[selDet] || undefined) : undefined;
 
   const [rankSeasons, setRankSeasons] = useState<Set<number>>(() => new Set(clubSeasons));
   const activeSeasons = useMemo(() => {
     const valid = clubSeasons.filter((a) => rankSeasons.has(a));
     return new Set(valid.length ? valid : clubSeasons);
   }, [rankSeasons, clubSeasons]);
-  const toggleSeason = (a: number) => setRankSeasons((prev) => {
-    // parte do conjunto atual válido (com fallback para todas, se estiver vazio/obsoleto)
-    const cur = clubSeasons.filter((s) => prev.has(s));
-    const n = new Set(cur.length ? cur : clubSeasons);
+  const toggleSeason = (a: number) => setRankSeasons(() => {
+    const cur = clubSeasons.filter((s) => activeSeasons.has(s));
+    const n = new Set(cur);
     if (n.has(a)) { if (n.size > 1) n.delete(a); } else n.add(a);
     return n;
   });
@@ -87,18 +87,11 @@ export default function ClubePage() {
   }, [detGames]);
 
   const det = selDet ?? "";
-  const opponent = (g: typeof games[number]) => (g.mandante === club ? g.visitante : g.mandante);
 
-  const audItems: RankItem[] = useMemo(() =>
-    [...detGames]
-      .sort((a, b) => (getMetric(b) as number) - (getMetric(a) as number))
-      .map((g) => ({
-        id: `${g.ano}-${g.rodada}-${g.mandante}-${g.visitante}`,
-        left: opponent(g),
-        right: formatMetric(g.detentor, getMetric(g)),
-        meta: g.data.substring(0, 5),
-      })),
-    [detGames, club]
+  // Ranking de audiência: jogos do recorte ordenados por audiência (desc).
+  const audGames = useMemo(
+    () => [...detGames].sort((a, b) => (getMetric(b) as number) - (getMetric(a) as number)),
+    [detGames]
   );
 
   const rankings = useMemo(() => {
@@ -140,72 +133,80 @@ export default function ClubePage() {
         Clubes
       </Link>
 
-      {/* Cabeçalho */}
-      <div className="flex items-center gap-4 mb-6">
-        <div className="rounded-2xl p-3 shrink-0" style={{ background: col + "22", border: `1px solid ${col}55` }}>
-          <TeamLogo team={club} size={48} />
+      {/* Cabeçalho (esquerda) + recortes e KPIs (direita, mesma faixa) */}
+      <div className="flex flex-col lg:flex-row lg:items-center gap-4 mb-6">
+        <div className="flex items-center gap-4 shrink-0">
+          <div className="rounded-2xl p-3 shrink-0" style={{ background: col + "22", border: `1px solid ${col}55` }}>
+            <TeamLogo team={club} size={48} />
+          </div>
+          <div className="min-w-0">
+            <h1 className="text-3xl font-bold text-white tracking-tight truncate">{club}</h1>
+            <div className="flex items-center gap-2 mt-1.5">
+              {liga && (
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${liga === "FFU" ? "bg-blue-500/25 text-[var(--accent-fg)]" : "bg-white/10 text-white/55"}`}>
+                  {liga}
+                </span>
+              )}
+              <span className="text-white/30 text-xs">· {clubGames.length} jogos</span>
+            </div>
+          </div>
         </div>
-        <div className="min-w-0">
-          <h1 className="text-3xl font-bold text-white tracking-tight truncate">{club}</h1>
-          <div className="flex items-center gap-2 mt-1.5">
-            {liga && (
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${liga === "FFU" ? "bg-blue-500/25 text-[var(--accent-fg)]" : "bg-white/10 text-white/55"}`}>
-                {liga}
-              </span>
+
+        <div className="lg:flex-1 min-w-0 flex flex-col gap-3">
+          {/* Recortes: detentor | temporadas — à direita */}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 lg:justify-end">
+            {detentores.length > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] uppercase tracking-wider text-white/30">Detentor</span>
+                {detentores.map((d) => (
+                  <button key={d} type="button" onClick={() => setSelDetState(d)} title={d}
+                    className="h-8 px-2.5 rounded-lg flex items-center transition-all"
+                    style={selDet === d
+                      ? { background: (DETENTOR_COLORS[d] || "#666"), boxShadow: `0 0 12px ${(DETENTOR_COLORS[d] || "#666")}66` }
+                      : { background: "rgba(var(--ink-c),0.05)", border: "1px solid rgba(var(--ink-c),0.08)" }}>
+                    {LOGOS[d]
+                      ? <img src={LOGOS[d]} alt={d} style={{ height: 15, width: "auto", objectFit: "contain", filter: selDet === d ? "brightness(0) invert(1)" : "var(--logo-filter-inactive)", maxWidth: 46 }} />
+                      : <span className="text-[10px] font-semibold text-white/70">{d}</span>}
+                  </button>
+                ))}
+              </div>
             )}
-            <span className="text-white/30 text-xs">· {clubGames.length} jogos</span>
+            {detentores.length > 0 && clubSeasons.length > 1 && (
+              <div className="w-px h-7 bg-white/[0.12]" />
+            )}
+            {clubSeasons.length > 1 && (
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] uppercase tracking-wider text-white/30">Temporadas</span>
+                {clubSeasons.map((a) => (
+                  <button key={a} type="button" onClick={() => toggleSeason(a)}
+                    className="px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all"
+                    style={activeSeasons.has(a)
+                      ? { color: SEASON_COLORS[a], borderColor: SEASON_COLORS[a] + "66", background: SEASON_COLORS[a] + "1a" }
+                      : { color: "rgba(var(--ink-c),0.3)", borderColor: "rgba(var(--ink-c),0.1)" }}>
+                    {a}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* KPIs (do recorte selecionado) */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <Kpi label="Jogos (total)" value={String(seasonClubGames.length)} accent={detColor} />
+            <Kpi label={selDet ? `Jogos · ${selDet}` : "Jogos"} value={String(detGames.length)} accent={detColor} />
+            <Kpi label="Média" value={selDet ? formatMetric(selDet, media) : "—"} accent={detColor} />
+            <LastGameKpi g={lastGame} accent={detColor} />
           </div>
         </div>
       </div>
 
-      {/* Recortes: detentor + temporadas */}
-      <div className="flex flex-col gap-3 mb-5">
-        {detentores.length > 0 && (
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[10px] uppercase tracking-wider text-white/30 w-32 shrink-0">Recorte por detentor</span>
-            {detentores.map((d) => (
-              <button key={d} type="button" onClick={() => setSelDetState(d)} title={d}
-                className="h-8 px-2.5 rounded-lg flex items-center transition-all"
-                style={selDet === d
-                  ? { background: (DETENTOR_COLORS[d] || "#666"), boxShadow: `0 0 12px ${(DETENTOR_COLORS[d] || "#666")}66` }
-                  : { background: "rgba(var(--ink-c),0.05)", border: "1px solid rgba(var(--ink-c),0.08)" }}>
-                {LOGOS[d]
-                  ? <img src={LOGOS[d]} alt={d} style={{ height: 15, width: "auto", objectFit: "contain", filter: selDet === d ? "brightness(0) invert(1)" : "var(--logo-filter-inactive)", maxWidth: 46 }} />
-                  : <span className="text-[10px] font-semibold text-white/70">{d}</span>}
-              </button>
-            ))}
-          </div>
-        )}
-        {clubSeasons.length > 1 && (
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[10px] uppercase tracking-wider text-white/30 w-32 shrink-0">Temporadas</span>
-            {clubSeasons.map((a) => (
-              <button key={a} type="button" onClick={() => toggleSeason(a)}
-                className="px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all"
-                style={activeSeasons.has(a)
-                  ? { color: SEASON_COLORS[a], borderColor: SEASON_COLORS[a] + "66", background: SEASON_COLORS[a] + "1a" }
-                  : { color: "rgba(var(--ink-c),0.3)", borderColor: "rgba(var(--ink-c),0.1)" }}>
-                {a}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* KPIs (do recorte selecionado) */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-        <Kpi label="Jogos (total)" value={String(seasonClubGames.length)} />
-        <Kpi label={selDet ? `Jogos · ${selDet}` : "Jogos"} value={String(detGames.length)} />
-        <Kpi label="Média" value={selDet ? formatMetric(selDet, media) : "—"} />
-        <Kpi label="Último jogo"
-          value={lastGame ? formatMetric(lastGame.detentor, getMetric(lastGame)) : "—"}
-          sub={lastGame ? `vs ${opponent(lastGame)} · ${lastGame.data.substring(0, 5)}` : undefined} />
-      </div>
+      {/* linha fina entre KPIs e rankings */}
+      <div className="h-px bg-white/[0.08] mb-6" />
 
       {/* Rankings */}
       <h2 className="text-sm font-semibold text-white/50 uppercase tracking-widest mb-3">Rankings</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <RankCard title="Audiência" items={audItems} />
+        <AudRankCard title="Audiência" rows={audGames} />
         <RankCard title="Dias" items={rankings.dias} />
         <RankCard title="Horários" items={rankings.horarios} />
         <RankCard title="Slots (dia · horário)" items={rankings.slots} />
@@ -221,12 +222,32 @@ export default function ClubePage() {
   );
 }
 
-function Kpi({ label, value, sub }: { label: string; value: string; sub?: string }) {
+function Kpi({ label, value, accent }: { label: string; value: string; accent?: string }) {
   return (
-    <div className="glass rounded-2xl p-4">
+    <div className="glass rounded-2xl p-4" style={accent ? { border: `1px solid ${accent}` } : undefined}>
       <p className="text-[10px] text-white/35 uppercase tracking-widest mb-1 truncate">{label}</p>
       <p className="text-2xl font-bold text-white tabular-nums leading-none">{value}</p>
-      {sub && <p className="text-[11px] text-white/40 mt-1.5 truncate">{sub}</p>}
+    </div>
+  );
+}
+
+function LastGameKpi({ g, accent }: { g: Game | null; accent?: string }) {
+  return (
+    <div className="glass rounded-2xl p-4" style={accent ? { border: `1px solid ${accent}` } : undefined}>
+      <p className="text-[10px] text-white/35 uppercase tracking-widest mb-1.5 truncate">Último jogo</p>
+      {!g ? (
+        <p className="text-2xl font-bold text-white tabular-nums leading-none">—</p>
+      ) : (
+        <>
+          <div className="flex items-center gap-2">
+            <TeamLogo team={g.mandante} size={18} />
+            <span className="text-white/25 text-xs">×</span>
+            <TeamLogo team={g.visitante} size={18} />
+            <span className="ml-auto text-lg font-bold text-white tabular-nums whitespace-nowrap">{formatMetric(g.detentor, getMetric(g))}</span>
+          </div>
+          <p className="text-[11px] text-white/40 mt-1.5 tabular-nums">Rod {g.rodada} · {g.data.substring(0, 5)}</p>
+        </>
+      )}
     </div>
   );
 }
@@ -246,6 +267,31 @@ function RankCard({ title, items }: { title: string; items: RankItem[] }) {
               <span className="ml-auto font-bold text-white tabular-nums text-xs whitespace-nowrap">{r.right}</span>
               {r.meta && <span className="text-white/25 text-[10px] tabular-nums w-7 text-right shrink-0">{r.meta}</span>}
             </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AudRankCard({ title, rows }: { title: string; rows: Game[] }) {
+  return (
+    <div className="glass rounded-2xl p-4">
+      <p className="text-xs font-semibold text-white/50 uppercase tracking-widest mb-3">{title}</p>
+      {rows.length === 0 ? (
+        <p className="text-xs text-white/25">Sem dados</p>
+      ) : (
+        <div className="no-scrollbar overflow-y-auto flex flex-col gap-1.5" style={{ maxHeight: 128 }}>
+          {rows.map((g, i) => (
+            <Link key={`${g.ano}-${g.rodada}-${g.mandante}-${g.visitante}`} href={matchHref(g, g.detentor)}
+              className="flex items-center gap-1.5 text-sm rounded-md px-1 -mx-1 hover:bg-white/[0.04] transition-colors">
+              <span className="w-4 shrink-0 text-white/30 tabular-nums text-xs">{i + 1}</span>
+              <TeamLogo team={g.mandante} size={14} />
+              <span className="text-white/20 text-[10px]">×</span>
+              <TeamLogo team={g.visitante} size={14} />
+              <span className="text-white/40 text-[10px] tabular-nums ml-1 capitalize truncate">{g.dia} {normalizeHorario(g.horario.substring(0, 5))}</span>
+              <span className="ml-auto font-bold text-white tabular-nums text-xs whitespace-nowrap">{formatMetric(g.detentor, getMetric(g))}</span>
+            </Link>
           ))}
         </div>
       )}
