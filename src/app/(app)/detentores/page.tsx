@@ -214,7 +214,7 @@ export default function DetentoresPage() {
               } : { border: "1px solid transparent" }}>
               {logo ? (
                 <img src={logo} alt={tab} className="h-8 w-auto object-contain"
-                  style={{ filter: isActive ? "brightness(0) invert(1)" : "grayscale(1) opacity(0.45)" }} />
+                  style={{ filter: isActive ? "brightness(0) invert(1)" : "var(--logo-filter-inactive)" }} />
               ) : (
                 <span className={`text-xs font-semibold px-1 ${isActive ? "text-[#fff]" : "text-white/35"}`}>{tab}</span>
               )}

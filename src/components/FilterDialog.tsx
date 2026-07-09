@@ -206,7 +206,7 @@ export default function FilterDialog({ state: applied, onChange: onApply, option
                       }`}>
                       {LOGOS[d]
                         ? <img src={LOGOS[d]} alt={d} className="h-5 w-auto object-contain"
-                            style={{ filter: active ? "none" : "grayscale(1) opacity(0.45)" }} />
+                            style={{ filter: active ? "none" : "var(--logo-filter-inactive)" }} />
                         : <span className={`text-xs font-medium ${active ? "text-[var(--accent-fg)]" : "text-white/40"}`}>{d}</span>
                       }
                     </button>

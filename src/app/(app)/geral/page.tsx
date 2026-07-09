@@ -214,7 +214,7 @@ function MatchCard({ match }: { match: MatchInDay }) {
         transform: hovered ? "scale(1.35)" : "scale(1)",
         transformOrigin: "top center",
         transition: "transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease",
-        boxShadow: hovered ? "0 10px 32px rgba(0,0,0,0.75)" : undefined,
+        boxShadow: hovered ? "var(--card-hover-shadow)" : undefined,
         background: hovered ? "var(--card-bg-hover)" : "var(--card-bg)",
         backdropFilter: hovered ? "none" : "blur(12px)",
         cursor: "pointer",
@@ -350,14 +350,14 @@ function Timeline({ season, onSeasonChange }: { season: 2025 | 2026; onSeasonCha
                                     Rod. {rod}
                                   </div>
                                   {matches.map((match) => (
-                                    <div key={match.key} style={{ marginBottom: 4, overflow: "visible", position: "relative", zIndex: 1 }}>
+                                    <div key={match.key} style={{ marginBottom: 4, overflow: "visible" }}>
                                       <MatchCard match={match} />
                                     </div>
                                   ))}
                                 </div>
                               ))
                             : day.matches.map((match) => (
-                                <div key={match.key} style={{ marginBottom: 4, overflow: "visible", position: "relative", zIndex: 1 }}>
+                                <div key={match.key} style={{ marginBottom: 4, overflow: "visible" }}>
                                   <MatchCard match={match} />
                                 </div>
                               ))
@@ -440,7 +440,7 @@ function DetentorTabs({ available, selected, onSelect }: {
                 ? <BrandedLogo detentor={d} src={logo} className="h-6 w-auto object-contain"
                     imgStyle={{ filter: "brightness(0) invert(1)", maxWidth: 64 }} />
                 : <img src={logo} alt={d} className="h-6 w-auto object-contain"
-                    style={{ filter: "grayscale(1) opacity(0.4)", maxWidth: 64 }} />
+                    style={{ filter: "var(--logo-filter-inactive)", maxWidth: 64 }} />
             ) : (
               <span className="text-xs font-semibold" style={{ color: isActive ? "white" : (DETENTOR_COLORS[d] || "#9ca3af") + "99" }}>{d}</span>
             )}

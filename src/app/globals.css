@@ -26,9 +26,12 @@
   --accent-fg: #93c5fd;
   /* filtro para logos monocromáticos em superfícies neutras */
   --logo-filter: brightness(0) invert(1);
+  /* logo de detentor NÃO selecionado (dentro de botões) */
+  --logo-filter-inactive: grayscale(1) opacity(0.45);
   /* tiles do calendário (Geral) */
   --card-bg: rgba(18, 22, 42, 0.50);
   --card-bg-hover: rgba(10, 13, 28, 0.98);
+  --card-hover-shadow: 0 10px 32px rgba(0, 0, 0, 0.75);
 }
 
 [data-theme="light"] {
@@ -47,8 +50,10 @@
   --scroll-thumb-hover: rgba(0, 0, 0, 0.32);
   --accent-fg: #1d4ed8;
   --logo-filter: brightness(0);
+  --logo-filter-inactive: brightness(0) opacity(0.55);
   --card-bg: rgba(255, 255, 255, 0.55);
   --card-bg-hover: rgba(255, 255, 255, 0.97);
+  --card-hover-shadow: none;
 }
 
 * {
