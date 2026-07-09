@@ -23,9 +23,8 @@ export function getMetric(game: Game, mode?: MetricMode): number | null {
   // Modo explícito (página Detentores): alterna pontos ⇄ espectadores.
   if (mode && TOGGLE_DETENTORES.has(game.detentor)) {
     if (mode === "pontos") return game.pnt ?? game.audiencia;
-    // espectadores: Globo/Record já têm o absoluto; SporTV/Premiere derivam do PNT.
-    if (game.detentor === "Globo" || game.detentor === "Record") return game.audiencia;
-    return game.pnt != null ? espectadoresDePontos(game.ano, game.pnt) : null;
+    // espectadores: usa o absoluto quando existe (Globo/Record 2025); senão deriva do PNT.
+    return game.audiencia ?? (game.pnt != null ? espectadoresDePontos(game.ano, game.pnt) : null);
   }
   // Comportamento legado (demais páginas / sem modo).
   if (PNT_DETENTORES.has(game.detentor)) {

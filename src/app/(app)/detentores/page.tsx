@@ -1,5 +1,6 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { detentoresState } from "@/lib/detentoresState";
 import { games, DETENTORES, DETENTOR_COLORS, SEASON_COLORS, AMAZON_EXTRA_METRICS, YOUTUBE_EXTRA_METRICS, RECORD_EXTRA_METRICS, GLOBO_EXTRA_METRICS, globoKey } from "@/data/games";
 import { LOGOS } from "@/data/logos";
 import { getChartData, mediaDetentor, formatMetric, metricLabel, getMetric, PNT_DETENTORES, TOGGLE_DETENTORES, MetricMode, normalizeHorario } from "@/lib/stats";
@@ -18,8 +19,11 @@ function isOutlierVal(val: number, avg: number) {
 const LISTA_COMPLETA = "__lista__";
 
 export default function DetentoresPage() {
-  const [activeTab, setActiveTab] = useState<string>(DETENTORES[0]);
-  const [mode, setMode] = useState<MetricMode>("pontos");
+  const [activeTab, setActiveTab] = useState<string>(() => detentoresState.getTab() ?? DETENTORES[0]);
+  const [mode, setMode] = useState<MetricMode>(() => detentoresState.getMode() ?? "pontos");
+  // Persiste aba/modo para o "voltar" restaurar a seleção (zera no F5).
+  useEffect(() => { detentoresState.setTab(activeTab); }, [activeTab]);
+  useEffect(() => { detentoresState.setMode(mode); }, [mode]);
   const [hoveredDot, setHoveredDot] = useState<LockedDot | null>(null);
   const [lockedDots, setLockedDots] = useState<LockedDot[]>([]);
   const [rodadaHover, setRodadaHover] = useState<RodadaHoverData | null>(null);
