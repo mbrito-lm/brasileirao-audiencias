@@ -3,6 +3,7 @@ import { useRef, useEffect, useMemo, useState } from "react";
 import { games, DETENTORES, DETENTOR_COLORS, SEASON_COLORS, Game } from "@/data/games";
 import { LOGOS } from "@/data/logos";
 import { getMetric as getMetricBase, formatMetric as formatMetricBase, avg, normalizeHorario, parseDate } from "@/lib/stats";
+import Link from "next/link";
 import TeamLogo from "@/components/TeamLogo";
 import { matchHref } from "@/lib/gameLink";
 
@@ -204,7 +205,7 @@ function MatchCard({ match }: { match: MatchInDay }) {
   const [hovered, setHovered] = useState(false);
 
   return (
-    <a
+    <Link
       href={matchHref(match)}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -247,7 +248,7 @@ function MatchCard({ match }: { match: MatchInDay }) {
           </span>
         </div>
       ))}
-    </a>
+    </Link>
   );
 }
 
@@ -485,7 +486,7 @@ function RankingCard({ title, type }: { title: string; type: "top10" | "clubs" |
       ) : type === "top10" ? (
         <ScrollableRows>
           {data.top10.map((g, idx) => (
-            <a key={idx} href={matchHref(g)} className="flex items-center border-t border-white/[0.04] hover:bg-white/[0.04] transition-colors px-4 gap-3 cursor-pointer"
+            <Link key={idx} href={matchHref(g, g.detentor)} className="flex items-center border-t border-white/[0.04] hover:bg-white/[0.04] transition-colors px-4 gap-3 cursor-pointer"
               style={{ minHeight: ROW_H }}>
               <span className="text-sm text-white/25 tabular-nums w-5 shrink-0">{idx + 1}</span>
               <div className="flex-1 min-w-0">
@@ -502,7 +503,7 @@ function RankingCard({ title, type }: { title: string; type: "top10" | "clubs" |
               <span className="text-base font-bold text-white tabular-nums whitespace-nowrap shrink-0">
                 {formatMetric(g.detentor, getMetric(g))}
               </span>
-            </a>
+            </Link>
           ))}
         </ScrollableRows>
       ) : type === "clubs" ? (

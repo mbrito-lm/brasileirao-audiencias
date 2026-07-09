@@ -436,7 +436,7 @@ function GamesTable({ games, allGames, detentor, showDeltas = true, mode }: Prop
                   </tr>
                 ) : (
                   filtered.map((g, i) => (
-                    <tr key={i} onClick={() => router.push(matchHref(g))}
+                    <tr key={i} onClick={() => router.push(matchHref(g, g.detentor))}
                       className="border-t border-white/[0.04] hover:bg-white/[0.05] transition-colors cursor-pointer">
                       {!detentor && (
                         <td className="px-4 py-3 text-xs text-white/40 font-medium">
