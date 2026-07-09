@@ -1,6 +1,8 @@
 "use client";
 import { useState, useMemo, useRef, useEffect, memo } from "react";
+import { useRouter } from "next/navigation";
 import { getStoredFilters, saveFilters, getStoredSearch, saveSearch } from "@/lib/filterStore";
+import { matchHref } from "@/lib/gameLink";
 import { Game } from "@/data/games";
 import {
   mediaDetentor, mediaDiaHorario, mediaTimes,
@@ -46,6 +48,7 @@ const FILTER_STORE_KEY = "gamesTable";
 interface Props { games: Game[]; allGames: Game[]; detentor: string | null; showDeltas?: boolean; mode?: MetricMode }
 
 function GamesTable({ games, allGames, detentor, showDeltas = true, mode }: Props) {
+  const router = useRouter();
   const [filters, setFilters] = useState<FilterState>(() =>
     getStoredFilters(FILTER_STORE_KEY) ?? {
       anos: [], dias: [], horarios: [], rodadas: [], times: [], detentores: [], concorrencia: [],
@@ -433,7 +436,8 @@ function GamesTable({ games, allGames, detentor, showDeltas = true, mode }: Prop
                   </tr>
                 ) : (
                   filtered.map((g, i) => (
-                    <tr key={i} className="border-t border-white/[0.04] hover:bg-white/[0.025] transition-colors">
+                    <tr key={i} onClick={() => router.push(matchHref(g))}
+                      className="border-t border-white/[0.04] hover:bg-white/[0.05] transition-colors cursor-pointer">
                       {!detentor && (
                         <td className="px-4 py-3 text-xs text-white/40 font-medium">
                           <div className="flex items-center gap-2">
