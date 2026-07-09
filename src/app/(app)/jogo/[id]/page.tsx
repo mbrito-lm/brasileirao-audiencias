@@ -156,6 +156,16 @@ function ExtraStrip({ g }: { g: G }) {
   return null;
 }
 
+function hasExtra(g: G): boolean {
+  switch (g.detentor) {
+    case "Amazon": return !!AMAZON_EXTRA_METRICS[g.data];
+    case "YouTube": return !!YOUTUBE_EXTRA_METRICS[g.data];
+    case "Record": { const e = RECORD_EXTRA_METRICS[g.data]; return !!e && RECORD_PRACAS.some((p) => e[p] != null); }
+    case "Globo": { const e = GLOBO_EXTRA_METRICS[globoKey(g)]; return !!e && GLOBO_PRACAS.some((p) => !!e[p]); }
+    default: return false;
+  }
+}
+
 export default function JogoPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -311,8 +321,12 @@ export default function JogoPage() {
                     <div className="text-xl font-bold text-white tabular-nums leading-none">{formatMetric(g.detentor, primary, "pontos")}</div>
                     {esp != null && <div className="text-[11px] text-white/40 tabular-nums mt-0.5">{formatAudiencia(esp)} esp.</div>}
                   </div>
-                  <div className="w-px self-stretch bg-white/[0.10] shrink-0" />
-                  <ExtraScroll><ExtraStrip g={g} /></ExtraScroll>
+                  {hasExtra(g) && (
+                    <>
+                      <div className="w-px self-stretch bg-white/[0.10] shrink-0" />
+                      <ExtraScroll><ExtraStrip g={g} /></ExtraScroll>
+                    </>
+                  )}
                 </div>
               );
             })}
@@ -419,14 +433,19 @@ export default function JogoPage() {
                 {histOpen && (
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setHistOpen(false)} />
-                    <div className="absolute right-0 top-full mt-2 z-50 w-64 max-h-[70vh] overflow-y-auto no-scrollbar glass-strong rounded-xl p-4 flex flex-col gap-3 shadow-2xl">
-                      <HistCat label="Temporada" opts={histOpts.anos} isActive={(v) => hf.anos.has(v as number)} onToggle={(v) => toggleHf("anos", v)} colorize={(v) => SEASON_COLORS[v as number]} />
-                      <HistCat label="Dia" opts={histOpts.dias} isActive={(v) => hf.dias.has(v as string)} onToggle={(v) => toggleHf("dias", v)} />
-                      <HistCat label="Horário" opts={histOpts.horarios} isActive={(v) => hf.horarios.has(v as string)} onToggle={(v) => toggleHf("horarios", v)} />
-                      <HistCat label="Detentor" opts={histOpts.detentores} isActive={(v) => hf.detentores.has(v as string)} onToggle={(v) => toggleHf("detentores", v)} />
-                      {histActiveCount > 0 && (
-                        <button type="button" onClick={clearHf} className="text-xs text-blue-400 hover:text-blue-300 self-start mt-1">Limpar filtros</button>
-                      )}
+                    <div className="absolute right-0 top-full mt-2 z-50 w-72 glass-strong rounded-2xl shadow-2xl overflow-hidden">
+                      <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.07]">
+                        <span className="text-sm font-semibold text-white">Filtros</span>
+                        {histActiveCount > 0 && (
+                          <button type="button" onClick={clearHf} className="text-xs text-blue-400 hover:text-blue-300">Limpar tudo ({histActiveCount})</button>
+                        )}
+                      </div>
+                      <div className="p-4 flex flex-col gap-4 max-h-[56vh] overflow-y-auto no-scrollbar">
+                        <HistCat label="Temporada" opts={histOpts.anos} isActive={(v) => hf.anos.has(v as number)} onToggle={(v) => toggleHf("anos", v)} colorize={(v) => SEASON_COLORS[v as number]} />
+                        <HistCat label="Dia" opts={histOpts.dias} isActive={(v) => hf.dias.has(v as string)} onToggle={(v) => toggleHf("dias", v)} />
+                        <HistCat label="Horário" opts={histOpts.horarios} isActive={(v) => hf.horarios.has(v as string)} onToggle={(v) => toggleHf("horarios", v)} />
+                        <HistCat label="Detentor" opts={histOpts.detentores} isActive={(v) => hf.detentores.has(v as string)} onToggle={(v) => toggleHf("detentores", v)} />
+                      </div>
                     </div>
                   </>
                 )}
