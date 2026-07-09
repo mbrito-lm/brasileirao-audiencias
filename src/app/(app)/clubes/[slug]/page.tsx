@@ -11,6 +11,9 @@ import { matchHref } from "@/lib/gameLink";
 import TeamLogo from "@/components/TeamLogo";
 import GamesTable from "@/components/GamesTable";
 
+// Ordem fixa dos botões de detentor (mesmo os sem jogos aparecem, desabilitados).
+const DET_ORDER = ["Record", "YouTube", "Amazon", "Globo", "SporTV", "Premiere"];
+
 interface RankItem { id: string; left: string; right: string; meta?: string; cap?: boolean }
 
 function push(m: Map<string, number[]>, k: string, v: number) {
@@ -43,16 +46,22 @@ export default function ClubePage() {
     [club]
   );
 
-  const detentores = useMemo(() => {
+  // Contagem de jogos (com dado) por detentor; define disponibilidade e default.
+  const detCount = useMemo(() => {
     const s = new Map<string, number>();
     clubGames.forEach((g) => {
       if (getMetric(g) !== null) s.set(g.detentor, (s.get(g.detentor) ?? 0) + 1);
     });
-    return Array.from(s.entries()).sort((a, b) => b[1] - a[1]).map(([d]) => d);
+    return s;
   }, [clubGames]);
+  const defaultDet = useMemo(() => {
+    let best: string | null = null, n = -1;
+    detCount.forEach((c, d) => { if (c > n) { n = c; best = d; } });
+    return best;
+  }, [detCount]);
 
   const [selDetState, setSelDetState] = useState<string | null>(null);
-  const selDet = selDetState && detentores.includes(selDetState) ? selDetState : (detentores[0] ?? null);
+  const selDet = selDetState && detCount.has(selDetState) ? selDetState : defaultDet;
   const detColor = selDet ? (DETENTOR_COLORS[selDet] || undefined) : undefined;
 
   const [rankSeasons, setRankSeasons] = useState<Set<number>>(() => new Set(clubSeasons));
@@ -134,23 +143,28 @@ export default function ClubePage() {
 
       {/* Recortes: detentor | temporadas — numa linha à direita, acima dos KPIs */}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 justify-end mb-4">
-        {detentores.length > 0 && (
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] uppercase tracking-wider text-white/30">Detentor</span>
-            {detentores.map((d) => (
-              <button key={d} type="button" onClick={() => setSelDetState(d)} title={d}
-                className="h-8 px-2.5 rounded-lg flex items-center border transition-colors"
-                style={selDet === d
-                  ? { background: (DETENTOR_COLORS[d] || "#666"), borderColor: (DETENTOR_COLORS[d] || "#666"), boxShadow: `0 0 12px ${(DETENTOR_COLORS[d] || "#666")}66` }
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] uppercase tracking-wider text-white/30">Detentor</span>
+          {DET_ORDER.map((d) => {
+            const available = detCount.has(d);
+            const isSel = available && selDet === d;
+            const c = DETENTOR_COLORS[d] || "#666";
+            return (
+              <button key={d} type="button" disabled={!available}
+                onClick={available ? () => setSelDetState(d) : undefined}
+                title={available ? d : `${d} — sem jogos`}
+                className={`h-8 px-2.5 rounded-lg flex items-center border transition-colors ${available ? "" : "opacity-35 cursor-not-allowed"}`}
+                style={isSel
+                  ? { background: c, borderColor: c, boxShadow: `0 0 12px ${c}66` }
                   : { background: "rgba(var(--ink-c),0.05)", borderColor: "rgba(var(--ink-c),0.08)" }}>
                 {LOGOS[d]
-                  ? <img src={LOGOS[d]} alt={d} style={{ height: 15, width: "auto", objectFit: "contain", filter: selDet === d ? "brightness(0) invert(1)" : "var(--logo-filter-inactive)", maxWidth: 46 }} />
+                  ? <img src={LOGOS[d]} alt={d} style={{ height: 15, width: "auto", objectFit: "contain", filter: isSel ? "brightness(0) invert(1)" : "var(--logo-filter-inactive)", maxWidth: 46 }} />
                   : <span className="text-[10px] font-semibold text-white/70">{d}</span>}
               </button>
-            ))}
-          </div>
-        )}
-        {detentores.length > 0 && clubSeasons.length > 1 && (
+            );
+          })}
+        </div>
+        {clubSeasons.length > 1 && (
           <div className="w-px h-7 bg-white/[0.12]" />
         )}
         {clubSeasons.length > 1 && (
@@ -229,19 +243,19 @@ function Kpi({ label, value, accent }: { label: string; value: string; accent?: 
 
 function LastGameKpi({ g, accent }: { g: Game | null; accent?: string }) {
   return (
-    <div className="glass rounded-2xl p-4 w-60 shrink-0" style={accent ? { border: `1px solid ${accent}` } : undefined}>
-      <div className="flex items-center justify-between gap-2 mb-2">
+    <div className="glass rounded-2xl p-4 w-64 shrink-0" style={accent ? { border: `1px solid ${accent}` } : undefined}>
+      <div className="flex items-center justify-between gap-2 mb-1">
         <p className="text-[10px] text-white/35 uppercase tracking-widest">Mais recente</p>
         {g && <p className="text-[10px] text-white/40 tabular-nums whitespace-nowrap">Rod {g.rodada} · {g.data.substring(0, 5)}</p>}
       </div>
       {!g ? (
         <p className="text-2xl font-bold text-white leading-none">—</p>
       ) : (
-        <div className="flex items-center gap-2">
-          <TeamLogo team={g.mandante} size={18} />
-          <span className="text-white/25 text-xs">×</span>
-          <TeamLogo team={g.visitante} size={18} />
-          <span className="ml-auto text-lg font-bold text-white tabular-nums whitespace-nowrap">
+        <div className="flex items-center gap-2 h-6">
+          <TeamLogo team={g.mandante} size={24} />
+          <span className="text-white/25 text-sm">×</span>
+          <TeamLogo team={g.visitante} size={24} />
+          <span className="ml-auto text-2xl font-bold text-white tabular-nums leading-none whitespace-nowrap">
             {formatMetric(g.detentor, getMetric(g, "pontos"), "pontos")}
           </span>
         </div>
@@ -284,9 +298,9 @@ function AudRankCard({ title, rows }: { title: string; rows: Game[] }) {
             <Link key={`${g.ano}-${g.rodada}-${g.mandante}-${g.visitante}`} href={matchHref(g, g.detentor)}
               className="flex items-center gap-1.5 rounded-md px-1 -mx-1 hover:bg-white/[0.04] transition-colors">
               <span className="w-4 shrink-0 text-white/30 tabular-nums text-xs">{i + 1}</span>
-              <TeamLogo team={g.mandante} size={14} />
+              <TeamLogo team={g.mandante} size={18} />
               <span className="text-white/20 text-[10px]">×</span>
-              <TeamLogo team={g.visitante} size={14} />
+              <TeamLogo team={g.visitante} size={18} />
               <span className="text-white/40 text-[10px] tabular-nums ml-1 capitalize truncate">{g.dia} {normalizeHorario(g.horario.substring(0, 5))}</span>
               <span className="ml-auto font-bold text-white tabular-nums text-sm whitespace-nowrap">{formatMetric(g.detentor, getMetric(g))}</span>
             </Link>
