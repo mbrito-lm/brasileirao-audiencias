@@ -9,6 +9,7 @@ export default function Nav({ isAdmin = false }: { isAdmin?: boolean }) {
   const links = [
     { href: "/geral", label: "Geral" },
     { href: "/detentores", label: "Detentores" },
+    { href: "/clubes", label: "Clubes" },
     { href: "/comparacoes", label: "Comparações" },
     { href: "/graficos", label: "Gráficos" },
   ];
