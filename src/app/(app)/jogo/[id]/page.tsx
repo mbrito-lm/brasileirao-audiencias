@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState, useRef, useEffect, useLayoutEffect, type Ref } from "react";
+import { useMemo, useState, useRef, useEffect, useLayoutEffect, type Ref, type CSSProperties } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ALL_SCHEDULE } from "@/data/schedule";
@@ -267,15 +267,17 @@ export default function JogoPage() {
               {/* escudos (mais próximos) */}
               <div className="flex items-center justify-center gap-4">
                 <Link href={clubHref(info.mandante)} title={`Ver ${info.mandante}`}
-                  className="group flex flex-col items-center gap-2 hover:opacity-90 transition-opacity" style={{ maxWidth: 120 }}>
+                  className="group flex flex-col items-center gap-2 hover:opacity-90 transition-opacity"
+                  style={{ maxWidth: 120, "--tc": teamColor(info.mandante) } as CSSProperties}>
                   <TeamLogo team={info.mandante} size={52} />
-                  <span className="text-white font-semibold text-center text-sm truncate max-w-full group-hover:text-[var(--accent-fg)] transition-colors">{info.mandante}</span>
+                  <span className="text-white font-semibold text-center text-sm truncate max-w-full group-hover:text-[var(--tc)] transition-colors">{info.mandante}</span>
                 </Link>
                 <span className="text-white/25 text-2xl font-light">×</span>
                 <Link href={clubHref(info.visitante)} title={`Ver ${info.visitante}`}
-                  className="group flex flex-col items-center gap-2 hover:opacity-90 transition-opacity" style={{ maxWidth: 120 }}>
+                  className="group flex flex-col items-center gap-2 hover:opacity-90 transition-opacity"
+                  style={{ maxWidth: 120, "--tc": teamColor(info.visitante) } as CSSProperties}>
                   <TeamLogo team={info.visitante} size={52} />
-                  <span className="text-white font-semibold text-center text-sm truncate max-w-full group-hover:text-[var(--accent-fg)] transition-colors">{info.visitante}</span>
+                  <span className="text-white font-semibold text-center text-sm truncate max-w-full group-hover:text-[var(--tc)] transition-colors">{info.visitante}</span>
                 </Link>
               </div>
               {/* rodapé: DD/MM/AA | Dia · Horário */}

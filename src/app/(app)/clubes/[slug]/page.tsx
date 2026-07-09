@@ -89,10 +89,11 @@ export default function ClubePage() {
     [seasonClubGames, selDet]
   );
 
+  // Jogo mais recente DENTRO do recorte do detentor selecionado.
   const lastGame = useMemo(() => {
-    if (!seasonClubGames.length) return null;
-    return [...seasonClubGames].sort((a, b) => parseDate(b.data) - parseDate(a.data) || b.rodada - a.rodada)[0];
-  }, [seasonClubGames]);
+    if (!detGames.length) return null;
+    return [...detGames].sort((a, b) => parseDate(b.data) - parseDate(a.data) || b.rodada - a.rodada)[0];
+  }, [detGames]);
 
   const media = useMemo(() => {
     const vals = detGames.map((g) => getMetric(g) as number);
@@ -261,7 +262,7 @@ function LastGameKpi({ g, accent }: { g: Game | null; accent?: string }) {
           <span className="text-white/25 text-sm">×</span>
           <TeamLogo team={g.visitante} size={24} />
           <span className="ml-auto text-2xl font-bold text-white tabular-nums leading-none whitespace-nowrap">
-            {formatMetric(g.detentor, getMetric(g, "pontos"), "pontos")}
+            {formatMetric(g.detentor, getMetric(g))}
           </span>
         </div>
       )}
