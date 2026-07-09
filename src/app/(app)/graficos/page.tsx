@@ -43,6 +43,20 @@ function Sep() {
   return <div className="w-px self-stretch bg-white/[0.08] my-[5px] shrink-0" />;
 }
 
+function RailToggle({ on, disabled, title, onClick, children }: {
+  on: boolean; disabled?: boolean; title: string; onClick: () => void; children: React.ReactNode;
+}) {
+  return (
+    <button type="button" title={title} onClick={onClick} disabled={disabled}
+      className={`w-9 h-9 rounded-lg flex items-center justify-center border transition-all ${
+        disabled ? "opacity-30 cursor-not-allowed border-white/10 text-white/30"
+          : on ? "bg-blue-600/25 border-blue-500/40 text-blue-200"
+          : "border-white/10 text-white/40 hover:text-white/70"}`}>
+      {children}
+    </button>
+  );
+}
+
 function buildOptions(base: typeof games, filters: FilterState) {
   function cross(exclude: keyof FilterState) {
     let r = base;
@@ -426,7 +440,40 @@ export default function GraficosPage() {
       )}
 
       <div className="flex gap-6 items-start">
+        {/* Trilho de ícones (tela cheia) */}
+        {fullscreen && (
+          <aside className="w-14 flex-shrink-0 flex flex-col gap-3 items-center">
+            <div className="glass rounded-2xl p-2 flex flex-col gap-2 items-center w-full">
+              {seriesList.map((s) => (
+                <button key={s.id} type="button" title={`Editar: ${s.label}`}
+                  onClick={() => setModalState({ open: true, editId: s.id, filters: s.filters })}
+                  className="w-9 h-9 rounded-lg flex items-center justify-center"
+                  style={{ background: s.color + "22", border: `1px solid ${s.color}55` }}>
+                  <span className="w-2.5 h-2.5 rounded-full" style={{ background: s.color }} />
+                </button>
+              ))}
+              <button type="button" title="Adicionar série"
+                onClick={() => setModalState({ open: true, editId: null, filters: EMPTY_FILTERS })}
+                className="w-9 h-9 rounded-lg flex items-center justify-center bg-blue-600/20 text-blue-300 border border-blue-500/35 text-lg leading-none">+</button>
+            </div>
+            <div className="glass rounded-2xl p-2 flex flex-col gap-2 items-center w-full">
+              <RailToggle on={showAvgs} title="Mostrar médias" onClick={() => setShowAvgs((v) => !v)}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="3" y1="12" x2="21" y2="12" strokeDasharray="4 3"/></svg>
+              </RailToggle>
+              <RailToggle on={groupSeries} title="Agrupar séries" onClick={() => { const nv = !groupSeries; setGroupSeries(nv); if (nv) setShowShields(false); }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="4" width="12" height="12" rx="2"/><path d="M8 20h10a2 2 0 0 0 2-2V8"/></svg>
+              </RailToggle>
+              <RailToggle on={showLabels} title="Mostrar audiências" onClick={() => setShowLabels((v) => !v)}>
+                <span className="text-[10px] font-bold tracking-tight">123</span>
+              </RailToggle>
+              <RailToggle on={showShields} disabled={groupSeries} title="Mostrar jogos" onClick={() => !groupSeries && setShowShields((v) => !v)}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/></svg>
+              </RailToggle>
+            </div>
+          </aside>
+        )}
         {/* Sidebar */}
+        {!fullscreen && (
         <aside className="w-64 flex-shrink-0 flex flex-col gap-4">
           <div className="glass rounded-2xl p-4">
             <p className="text-[10px] font-semibold text-white/35 uppercase tracking-widest mb-3">Séries</p>
@@ -507,6 +554,7 @@ export default function GraficosPage() {
             </div>
           </div>
         </aside>
+        )}
 
         {/* Chart area */}
         <div className="flex-1 min-w-0">
@@ -588,7 +636,7 @@ export default function GraficosPage() {
                 }
               </div>
 
-              <ResponsiveContainer width="100%" height={fullscreen ? 600 : 330}>
+              <ResponsiveContainer width="100%" height={330}>
                 <ComposedChart
                   data={chartData}
                   margin={{ top: 8, right: 16, left: 0, bottom: showShields && !groupSeries ? 44 : 4 }}
