@@ -289,11 +289,16 @@ function Timeline({ season, onSeasonChange }: { season: 2025 | 2026; onSeasonCha
     };
 
     const handler = (e: WheelEvent) => {
-      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-        e.preventDefault();
-        target = Math.max(0, Math.min(el.scrollWidth - el.clientWidth, target + e.deltaY * 1.1));
-        if (rafId === null) rafId = requestAnimationFrame(tick);
-      }
+      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return; // deixa o scroll horizontal nativo
+      const maxScroll = el.scrollWidth - el.clientWidth;
+      const goingRight = e.deltaY > 0;
+      const atRight = target >= maxScroll - 0.5;
+      const atLeft = target <= 0.5;
+      // No fim (direita+baixo ou esquerda+cima): não intercepta → a página rola.
+      if ((goingRight && atRight) || (!goingRight && atLeft)) return;
+      e.preventDefault();
+      target = Math.max(0, Math.min(maxScroll, target + e.deltaY * 1.1));
+      if (rafId === null) rafId = requestAnimationFrame(tick);
     };
 
     el.addEventListener("wheel", handler, { passive: false });
