@@ -240,6 +240,9 @@ export default function JogoPage() {
   }
 
   const info = rows[0];
+  // Link para a página do clube já com o detentor atual selecionado.
+  const clubHref = (team: string) =>
+    `/clubes/${encodeURIComponent(team)}${selDet ? `?det=${encodeURIComponent(selDet)}` : ""}`;
 
   return (
     <div className="py-6">
@@ -263,15 +266,17 @@ export default function JogoPage() {
               </div>
               {/* escudos (mais próximos) */}
               <div className="flex items-center justify-center gap-4">
-                <div className="flex flex-col items-center gap-2" style={{ maxWidth: 120 }}>
+                <Link href={clubHref(info.mandante)} title={`Ver ${info.mandante}`}
+                  className="group flex flex-col items-center gap-2 hover:opacity-90 transition-opacity" style={{ maxWidth: 120 }}>
                   <TeamLogo team={info.mandante} size={52} />
-                  <span className="text-white font-semibold text-center text-sm truncate max-w-full">{info.mandante}</span>
-                </div>
+                  <span className="text-white font-semibold text-center text-sm truncate max-w-full group-hover:text-[var(--accent-fg)] transition-colors">{info.mandante}</span>
+                </Link>
                 <span className="text-white/25 text-2xl font-light">×</span>
-                <div className="flex flex-col items-center gap-2" style={{ maxWidth: 120 }}>
+                <Link href={clubHref(info.visitante)} title={`Ver ${info.visitante}`}
+                  className="group flex flex-col items-center gap-2 hover:opacity-90 transition-opacity" style={{ maxWidth: 120 }}>
                   <TeamLogo team={info.visitante} size={52} />
-                  <span className="text-white font-semibold text-center text-sm truncate max-w-full">{info.visitante}</span>
-                </div>
+                  <span className="text-white font-semibold text-center text-sm truncate max-w-full group-hover:text-[var(--accent-fg)] transition-colors">{info.visitante}</span>
+                </Link>
               </div>
               {/* rodapé: DD/MM/AA | Dia · Horário */}
               <div className="text-center mt-4 text-xs text-white/45">

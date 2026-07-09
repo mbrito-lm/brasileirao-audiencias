@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { games, DETENTOR_COLORS, SEASON_COLORS, type Game } from "@/data/games";
@@ -61,6 +61,11 @@ export default function ClubePage() {
   }, [detCount]);
 
   const [selDetState, setSelDetState] = useState<string | null>(null);
+  // Detentor inicial vindo por ?det= (ao chegar da página de um jogo).
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search).get("det");
+    if (p) setSelDetState(p);
+  }, []);
   const selDet = selDetState && detCount.has(selDetState) ? selDetState : defaultDet;
   const detColor = selDet ? (DETENTOR_COLORS[selDet] || undefined) : undefined;
 
@@ -135,11 +140,11 @@ export default function ClubePage() {
 
   return (
     <div className="py-6">
-      <Link href="/clubes"
+      <button onClick={() => router.back()}
         className="flex items-center gap-2 text-sm text-white/55 hover:text-white transition-colors mb-5">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-        Clubes
-      </Link>
+        Voltar
+      </button>
 
       {/* Recortes: detentor | temporadas — numa linha à direita, acima dos KPIs */}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 justify-end mb-4">
@@ -301,7 +306,8 @@ function AudRankCard({ title, rows }: { title: string; rows: Game[] }) {
               <TeamLogo team={g.mandante} size={18} />
               <span className="text-white/20 text-[10px]">×</span>
               <TeamLogo team={g.visitante} size={18} />
-              <span className="text-white/40 text-[10px] tabular-nums ml-1 capitalize truncate">{g.dia} {normalizeHorario(g.horario.substring(0, 5))}</span>
+              <span className="text-[10px] font-bold tabular-nums shrink-0 ml-1" style={{ color: SEASON_COLORS[g.ano] }}>{g.ano}</span>
+              <span className="text-white/40 text-[10px] tabular-nums capitalize truncate">{g.dia} {normalizeHorario(g.horario.substring(0, 5))}</span>
               <span className="ml-auto font-bold text-white tabular-nums text-sm whitespace-nowrap">{formatMetric(g.detentor, getMetric(g))}</span>
             </Link>
           ))}
