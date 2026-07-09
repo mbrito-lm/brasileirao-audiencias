@@ -424,32 +424,41 @@ export default function JogoPage() {
           <div className="glass rounded-2xl p-5">
             <div className="flex items-center justify-between gap-2 mb-3">
               <h2 className="text-sm font-semibold text-white/50 uppercase tracking-widest">Histórico do confronto</h2>
-              <div className="relative">
-                <button type="button" onClick={() => setHistOpen((o) => !o)}
+              <>
+                <button type="button" onClick={() => setHistOpen(true)}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${histActiveCount > 0 ? "bg-blue-600/20 text-blue-300 border-blue-500/40" : "border-white/10 text-white/50 hover:text-white/70"}`}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 4h18l-7 8v6l-4 2v-8z"/></svg>
                   Filtros{histActiveCount > 0 ? ` (${histActiveCount})` : ""}
                 </button>
                 {histOpen && (
-                  <>
-                    <div className="fixed inset-0 z-40" onClick={() => setHistOpen(false)} />
-                    <div className="absolute right-0 top-full mt-2 z-50 w-72 glass-strong rounded-2xl shadow-2xl overflow-hidden">
-                      <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.07]">
-                        <span className="text-sm font-semibold text-white">Filtros</span>
-                        {histActiveCount > 0 && (
-                          <button type="button" onClick={clearHf} className="text-xs text-blue-400 hover:text-blue-300">Limpar tudo ({histActiveCount})</button>
-                        )}
+                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                    style={{ background: "rgba(0,0,0,0.70)", backdropFilter: "blur(8px)" }}
+                    onClick={() => setHistOpen(false)}>
+                    <div className="glass-strong rounded-3xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center justify-between px-6 py-5 border-b border-white/[0.07]">
+                        <h2 className="text-base font-semibold text-white">Filtros do histórico</h2>
+                        <div className="flex items-center gap-3">
+                          {histActiveCount > 0 && (
+                            <button type="button" onClick={clearHf} className="text-sm text-blue-400 hover:text-blue-300 transition-colors">Limpar tudo ({histActiveCount})</button>
+                          )}
+                          <button type="button" onClick={() => setHistOpen(false)}
+                            className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/[0.06] hover:bg-white/10 transition-colors text-white/50 hover:text-white">✕</button>
+                        </div>
                       </div>
-                      <div className="p-4 flex flex-col gap-4 max-h-[56vh] overflow-y-auto no-scrollbar">
+                      <div className="px-6 py-5 flex flex-col gap-4 max-h-[65vh] overflow-y-auto">
                         <HistCat label="Temporada" opts={histOpts.anos} isActive={(v) => hf.anos.has(v as number)} onToggle={(v) => toggleHf("anos", v)} colorize={(v) => SEASON_COLORS[v as number]} />
                         <HistCat label="Dia" opts={histOpts.dias} isActive={(v) => hf.dias.has(v as string)} onToggle={(v) => toggleHf("dias", v)} />
                         <HistCat label="Horário" opts={histOpts.horarios} isActive={(v) => hf.horarios.has(v as string)} onToggle={(v) => toggleHf("horarios", v)} />
                         <HistCat label="Detentor" opts={histOpts.detentores} isActive={(v) => hf.detentores.has(v as string)} onToggle={(v) => toggleHf("detentores", v)} />
                       </div>
+                      <div className="flex justify-end px-6 py-4 border-t border-white/[0.07]">
+                        <button type="button" onClick={() => setHistOpen(false)}
+                          className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-xl transition-colors">Aplicar</button>
+                      </div>
                     </div>
-                  </>
+                  </div>
                 )}
-              </div>
+              </>
             </div>
             {shownHistory.length === 0 ? (
               <p className="text-sm text-white/30">Sem registros para o filtro selecionado.</p>
