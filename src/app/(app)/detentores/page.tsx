@@ -414,7 +414,7 @@ function GameCard({ dot, detentor, locked, onUnlock, mode }: {
         }
       </div>
       <Sep />
-      <div className="min-w-[52px] flex items-center justify-end shrink-0 font-bold text-white py-1.5 px-2 whitespace-nowrap">
+      <div className="w-[66px] flex items-center justify-end shrink-0 min-w-0 font-bold text-white py-1.5 px-2 whitespace-nowrap">
         {formatMetric(detentor, dot.val, mode)}
       </div>
       <Sep />
