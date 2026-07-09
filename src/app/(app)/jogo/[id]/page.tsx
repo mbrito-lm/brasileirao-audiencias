@@ -41,13 +41,24 @@ function ExtraScroll({ children }: { children: ReactNode }) {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+    let target = el.scrollLeft;
+    let raf: number | null = null;
+    const tick = () => {
+      const diff = target - el.scrollLeft;
+      if (Math.abs(diff) < 0.5) { el.scrollLeft = target; raf = null; return; }
+      el.scrollLeft += diff * 0.18;
+      raf = requestAnimationFrame(tick);
+    };
     const onWheel = (e: WheelEvent) => {
-      if (e.deltaY === 0 || el.scrollWidth <= el.clientWidth) return;
+      if (el.scrollWidth <= el.clientWidth) return;
+      const d = Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+      if (d === 0) return;
       e.preventDefault();
-      el.scrollLeft += e.deltaY;
+      target = Math.max(0, Math.min(el.scrollWidth - el.clientWidth, target + d));
+      if (raf === null) raf = requestAnimationFrame(tick);
     };
     el.addEventListener("wheel", onWheel, { passive: false });
-    return () => el.removeEventListener("wheel", onWheel);
+    return () => { el.removeEventListener("wheel", onWheel); if (raf !== null) cancelAnimationFrame(raf); };
   }, []);
   return <div ref={ref} className="no-scrollbar overflow-x-auto flex-1 min-w-0">{children}</div>;
 }
@@ -191,25 +202,30 @@ export default function JogoPage() {
         {/* ─── ESQUERDA ─── */}
         <div className="flex flex-col gap-4">
           {/* Box do jogo */}
-          <div className="glass rounded-2xl p-6"
-            style={{ background: `radial-gradient(90% 120% at 50% -10%, ${SEASON_COLORS[info.ano]}22, transparent 60%), rgba(255,255,255,0.03)` }}>
-            <div className="flex items-center justify-center gap-5 md:gap-8">
-              <div className="flex flex-col items-center gap-2 flex-1 min-w-0">
+          <div className="glass rounded-2xl p-6" style={{ border: "1px solid rgba(255,255,255,0.14)" }}>
+            {/* topo: temporada + rodada */}
+            <div className="flex items-center justify-center gap-2 mb-4 text-xs">
+              <span className="font-bold tabular-nums" style={{ color: SEASON_COLORS[info.ano] }}>{info.ano}</span>
+              <span className="text-white/20">·</span>
+              <span className="text-white/50">Rodada {info.rodada}</span>
+            </div>
+            {/* escudos (mais próximos) */}
+            <div className="flex items-center justify-center gap-4">
+              <div className="flex flex-col items-center gap-2" style={{ maxWidth: 132 }}>
                 <TeamLogo team={info.mandante} size={56} />
                 <span className="text-white font-semibold text-center text-sm truncate max-w-full">{info.mandante}</span>
               </div>
               <span className="text-white/25 text-2xl font-light">×</span>
-              <div className="flex flex-col items-center gap-2 flex-1 min-w-0">
+              <div className="flex flex-col items-center gap-2" style={{ maxWidth: 132 }}>
                 <TeamLogo team={info.visitante} size={56} />
                 <span className="text-white font-semibold text-center text-sm truncate max-w-full">{info.visitante}</span>
               </div>
             </div>
-            <div className="flex items-center justify-center gap-2 mt-4 text-xs text-white/45 flex-wrap">
-              <span className="font-bold tabular-nums" style={{ color: SEASON_COLORS[info.ano] }}>{info.ano}</span>
-              <span className="text-white/20">·</span><span>Rodada {info.rodada}</span>
-              <span className="text-white/20">·</span><span className="capitalize">{info.dia}</span>
-              <span className="text-white/20">·</span><span className="tabular-nums">{info.data}</span>
-              <span className="text-white/20">·</span><span className="tabular-nums">{normalizeHorario(info.horario.substring(0, 5))}</span>
+            {/* rodapé: DD/MM/AA | Dia · Horário */}
+            <div className="text-center mt-4 text-xs text-white/45">
+              <span className="tabular-nums">{info.data.slice(0, 6)}{info.data.slice(8)}</span>
+              <span className="text-white/20 mx-2">|</span>
+              <span className="capitalize">{info.dia}</span> · <span className="tabular-nums">{normalizeHorario(info.horario.substring(0, 5))}</span>
             </div>
           </div>
 
@@ -247,8 +263,8 @@ export default function JogoPage() {
                     <TeamLogo team={sg.mandante} size={20} />
                     <span className="text-white/20 text-xs">×</span>
                     <TeamLogo team={sg.visitante} size={20} />
-                    <span className="text-white/45 text-sm tabular-nums ml-auto">{sg.hora}</span>
-                    <div className="flex gap-1">{sg.detentores.map((d) => <DetLogo key={d} det={d} size={16} />)}</div>
+                    <div className="flex gap-1 ml-auto">{sg.detentores.map((d) => <DetLogo key={d} det={d} size={16} />)}</div>
+                    <span className="text-white/45 text-sm tabular-nums w-11 text-right">{sg.hora}</span>
                   </div>
                 ))}
               </div>
@@ -279,12 +295,12 @@ export default function JogoPage() {
                   <span className="text-[10px] uppercase tracking-wider text-white/30">Detentor</span>
                   {rows.map((r) => (
                     <button key={r.detentor} type="button" onClick={() => setSelDetState(r.detentor)} title={r.detentor}
-                      className="w-10 h-10 rounded-lg flex items-center justify-center transition-all"
+                      className="w-8 h-8 rounded-lg flex items-center justify-center transition-all"
                       style={selDet === r.detentor
                         ? { background: (DETENTOR_COLORS[r.detentor] || "#666"), boxShadow: `0 0 12px ${(DETENTOR_COLORS[r.detentor] || "#666")}66` }
                         : { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}>
                       {LOGOS[r.detentor]
-                        ? <img src={LOGOS[r.detentor]} alt={r.detentor} style={{ height: 22, width: "auto", objectFit: "contain", filter: "brightness(0) invert(1)", opacity: selDet === r.detentor ? 1 : 0.5, maxWidth: 34 }} />
+                        ? <img src={LOGOS[r.detentor]} alt={r.detentor} style={{ height: 18, width: "auto", objectFit: "contain", filter: "brightness(0) invert(1)", opacity: selDet === r.detentor ? 1 : 0.5, maxWidth: 26 }} />
                         : <span className="text-[9px] text-white/70">{r.detentor}</span>}
                     </button>
                   ))}
