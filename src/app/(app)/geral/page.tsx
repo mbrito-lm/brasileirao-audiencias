@@ -280,6 +280,9 @@ function Timeline({ season, onSeasonChange }: { season: 2025 | 2026; onSeasonCha
     if (!el) return;
     let target = el.scrollLeft;
     let rafId: number | null = null;
+    let lastTime = 0;
+    let mode: "cal" | "page" = "cal"; // decidido no início de cada gesto
+    const IDLE = 180; // ms sem eventos => novo gesto de scroll
 
     const tick = () => {
       const diff = target - el.scrollLeft;
@@ -292,10 +295,16 @@ function Timeline({ season, onSeasonChange }: { season: 2025 | 2026; onSeasonCha
       if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return; // deixa o scroll horizontal nativo
       const maxScroll = el.scrollWidth - el.clientWidth;
       const goingRight = e.deltaY > 0;
-      const atRight = target >= maxScroll - 0.5;
-      const atLeft = target <= 0.5;
-      // No fim (direita+baixo ou esquerda+cima): não intercepta → a página rola.
-      if ((goingRight && atRight) || (!goingRight && atLeft)) return;
+      const atBorder = (goingRight && target >= maxScroll - 0.5) || (!goingRight && target <= 0.5);
+
+      // Novo gesto? (pausa desde o último evento). A decisão vale por todo o gesto:
+      // se começou na borda naquele sentido → deixa a página rolar; senão, controla
+      // o calendário e permanece travado mesmo ao atingir a borda no meio do gesto.
+      const newGesture = e.timeStamp - lastTime > IDLE;
+      lastTime = e.timeStamp;
+      if (newGesture) mode = atBorder ? "page" : "cal";
+
+      if (mode === "page") return; // não intercepta → página rola
       e.preventDefault();
       target = Math.max(0, Math.min(maxScroll, target + e.deltaY * 1.1));
       if (rafId === null) rafId = requestAnimationFrame(tick);
