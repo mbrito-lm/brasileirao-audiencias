@@ -28,7 +28,7 @@ function DetLogo({ det, size = 20 }: { det: string; size?: number }) {
   return (
     <span className="rounded flex items-center justify-center shrink-0" style={{ width: size + 8, height: size + 8, background: bg }}>
       {LOGOS[det]
-        ? <img src={LOGOS[det]} alt={det} style={{ height: size * 0.7, width: "auto", objectFit: "contain", filter: "brightness(0) invert(1)", opacity: .95, maxWidth: size + 20 }} />
+        ? <img src={LOGOS[det]} alt={det} style={{ height: size, width: "auto", objectFit: "contain", filter: "brightness(0) invert(1)", opacity: .95, maxWidth: size + 26 }} />
         : <span className="text-[10px] font-bold text-white">{det}</span>}
     </span>
   );
@@ -243,7 +243,7 @@ export default function JogoPage() {
               <div className="flex flex-col gap-2">
                 {concurrent.map((sg, i) => (
                   <div key={i} className="flex items-center gap-2.5 p-2.5 rounded-xl border border-white/[0.06]">
-                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${sg.liga === "FFU" ? "bg-blue-500/25 text-blue-300" : "bg-white/10 text-white/45"}`}>{sg.liga}</span>
+                    <span className={`w-12 shrink-0 text-center text-[10px] font-bold py-0.5 rounded ${sg.liga === "FFU" ? "bg-blue-500/25 text-blue-300" : "bg-white/10 text-white/45"}`}>{sg.liga}</span>
                     <TeamLogo team={sg.mandante} size={20} />
                     <span className="text-white/20 text-xs">×</span>
                     <TeamLogo team={sg.visitante} size={20} />
@@ -279,12 +279,12 @@ export default function JogoPage() {
                   <span className="text-[10px] uppercase tracking-wider text-white/30">Detentor</span>
                   {rows.map((r) => (
                     <button key={r.detentor} type="button" onClick={() => setSelDetState(r.detentor)} title={r.detentor}
-                      className="w-8 h-8 rounded-lg flex items-center justify-center transition-all"
+                      className="w-10 h-10 rounded-lg flex items-center justify-center transition-all"
                       style={selDet === r.detentor
                         ? { background: (DETENTOR_COLORS[r.detentor] || "#666"), boxShadow: `0 0 12px ${(DETENTOR_COLORS[r.detentor] || "#666")}66` }
                         : { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}>
                       {LOGOS[r.detentor]
-                        ? <img src={LOGOS[r.detentor]} alt={r.detentor} style={{ height: 15, width: "auto", objectFit: "contain", filter: "brightness(0) invert(1)", opacity: selDet === r.detentor ? 1 : 0.5 }} />
+                        ? <img src={LOGOS[r.detentor]} alt={r.detentor} style={{ height: 22, width: "auto", objectFit: "contain", filter: "brightness(0) invert(1)", opacity: selDet === r.detentor ? 1 : 0.5, maxWidth: 34 }} />
                         : <span className="text-[9px] text-white/70">{r.detentor}</span>}
                     </button>
                   ))}
@@ -332,25 +332,18 @@ export default function JogoPage() {
               <p className="text-sm text-white/30">Sem outros registros deste confronto.</p>
             ) : (
               <div className="flex flex-col gap-1.5">
-                {historyLines.map((g, i) => {
-                  const isTv = PNT_TV.has(g.detentor);
-                  const esp = isTv ? getMetric(g, "espectadores") : null;
-                  return (
-                    <Link key={i} href={matchHref(g, g.detentor)}
-                      className="flex items-center gap-3 p-2.5 rounded-xl border border-white/[0.06] hover:bg-white/[0.03] transition-colors">
-                      <span className="text-sm font-bold tabular-nums w-10 shrink-0" style={{ color: SEASON_COLORS[g.ano] }}>{g.ano}</span>
-                      <span className="text-xs text-white/35 w-12 shrink-0">Rod {g.rodada}</span>
-                      <TeamLogo team={g.mandante} size={18} />
-                      <span className="text-white/20 text-[10px]">×</span>
-                      <TeamLogo team={g.visitante} size={18} />
-                      <DetLogo det={g.detentor} size={16} />
-                      <div className="ml-auto text-right">
-                        <span className="text-sm font-bold text-white tabular-nums whitespace-nowrap">{formatMetric(g.detentor, getMetric(g, "pontos"), "pontos")}</span>
-                        {esp != null && <div className="text-[11px] text-white/40 tabular-nums">{formatAudiencia(esp)}</div>}
-                      </div>
-                    </Link>
-                  );
-                })}
+                {historyLines.map((g, i) => (
+                  <Link key={i} href={matchHref(g, g.detentor)}
+                    className="flex items-center gap-3 p-2.5 rounded-xl border border-white/[0.06] hover:bg-white/[0.03] transition-colors">
+                    <span className="text-sm font-bold tabular-nums w-10 shrink-0" style={{ color: SEASON_COLORS[g.ano] }}>{g.ano}</span>
+                    <span className="text-xs text-white/35 w-12 shrink-0">Rod {g.rodada}</span>
+                    <TeamLogo team={g.mandante} size={18} />
+                    <span className="text-white/20 text-[10px]">×</span>
+                    <TeamLogo team={g.visitante} size={18} />
+                    <span className="ml-auto text-sm font-bold text-white tabular-nums whitespace-nowrap">{formatMetric(g.detentor, getMetric(g, "pontos"), "pontos")}</span>
+                    <DetLogo det={g.detentor} size={18} />
+                  </Link>
+                ))}
               </div>
             )}
           </div>
