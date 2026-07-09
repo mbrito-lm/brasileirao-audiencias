@@ -11,6 +11,7 @@ import {
   GLOBO_EXTRA_METRICS, GLOBO_PRACAS, globoKey,
 } from "@/data/games";
 import { LOGOS } from "@/data/logos";
+import { teamColor } from "@/data/teamColors";
 import { getMetric, formatMetric, formatAudiencia, normalizeHorario } from "@/lib/stats";
 import { parseMatchSlug, matchHref } from "@/lib/gameLink";
 import TeamLogo from "@/components/TeamLogo";
@@ -19,6 +20,7 @@ const PNT_TV = new Set(["Globo", "Record", "SporTV", "Premiere"]);
 const fmtInt = (n: number) => n.toLocaleString("pt-BR");
 const t2m = (h: string) => { const [hh, mm] = h.split(":").map(Number); return hh * 60 + (mm || 0); };
 const SEASONS = Array.from(new Set(games.map((g) => g.ano))).sort((a, b) => a - b);
+const DIA_ORDER = ["seg.", "ter.", "qua.", "qui.", "sex.", "sáb.", "dom."];
 type G = (typeof games)[number];
 const isSame = (g: { ano: number; rodada: number; mandante: string; visitante: string }, k: { ano: number; rodada: number; mandante: string; visitante: string }) =>
   g.ano === k.ano && g.rodada === k.rodada && g.mandante === k.mandante && g.visitante === k.visitante;
@@ -61,6 +63,36 @@ function ExtraScroll({ children }: { children: ReactNode }) {
     return () => { el.removeEventListener("wheel", onWheel); if (raf !== null) cancelAnimationFrame(raf); };
   }, []);
   return <div ref={ref} className="no-scrollbar overflow-x-auto flex-1 min-w-0">{children}</div>;
+}
+
+function HistCat({ label, opts, isActive, onToggle, colorize }: {
+  label: string;
+  opts: (string | number)[];
+  isActive: (v: string | number) => boolean;
+  onToggle: (v: string | number) => void;
+  colorize?: (v: string | number) => string;
+}) {
+  if (!opts.length) return null;
+  return (
+    <div>
+      <p className="text-[10px] uppercase tracking-wider text-white/30 mb-1.5">{label}</p>
+      <div className="flex flex-wrap gap-1.5">
+        {opts.map((v) => {
+          const on = isActive(v);
+          const c = colorize?.(v);
+          return (
+            <button key={String(v)} type="button" onClick={() => onToggle(v)}
+              className="px-2 py-1 rounded-md text-[11px] font-semibold border transition-all capitalize"
+              style={on
+                ? { color: c ?? "#93c5fd", borderColor: (c ?? "#3b82f6") + "66", background: (c ?? "#3b82f6") + "22" }
+                : { color: "rgba(255,255,255,0.4)", borderColor: "rgba(255,255,255,0.1)" }}>
+              {String(v)}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 function Matchup({ m, v, size = 20 }: { m: string; v: string; size?: number }) {
@@ -154,12 +186,18 @@ export default function JogoPage() {
     return n;
   });
 
-  const [histFilter, setHistFilter] = useState<Set<string>>(new Set()); // vazio = todos
-  const toggleHistDet = (d: string) => setHistFilter((prev) => {
-    const n = new Set(prev);
-    if (n.has(d)) n.delete(d); else n.add(d);
-    return n;
-  });
+  const [histOpen, setHistOpen] = useState(false);
+  const [hf, setHf] = useState<{ anos: Set<number>; dias: Set<string>; horarios: Set<string>; detentores: Set<string> }>(
+    { anos: new Set(), dias: new Set(), horarios: new Set(), detentores: new Set() }
+  );
+  const toggleHf = (cat: "anos" | "dias" | "horarios" | "detentores", val: string | number) =>
+    setHf((prev) => {
+      const s = new Set<string | number>(prev[cat] as Set<string | number>);
+      if (s.has(val)) s.delete(val); else s.add(val);
+      return { ...prev, [cat]: s };
+    });
+  const histActiveCount = hf.anos.size + hf.dias.size + hf.horarios.size + hf.detentores.size;
+  const clearHf = () => setHf({ anos: new Set(), dias: new Set(), horarios: new Set(), detentores: new Set() });
 
   const concurrent = useMemo(() => {
     if (!rows.length) return [];
@@ -179,8 +217,18 @@ export default function JogoPage() {
       .sort((a, b) => a.ano - b.ano || a.rodada - b.rodada);
   }, [key]);
 
-  const historyDetentores = useMemo(() => Array.from(new Set(historyLines.map((g) => g.detentor))), [historyLines]);
-  const shownHistory = useMemo(() => (histFilter.size === 0 ? historyLines : historyLines.filter((g) => histFilter.has(g.detentor))), [historyLines, histFilter]);
+  const histOpts = useMemo(() => ({
+    anos: Array.from(new Set(historyLines.map((g) => g.ano))).sort((a, b) => a - b),
+    dias: DIA_ORDER.filter((d) => historyLines.some((g) => g.dia === d)),
+    horarios: Array.from(new Set(historyLines.map((g) => normalizeHorario(g.horario.substring(0, 5))))).sort(),
+    detentores: Array.from(new Set(historyLines.map((g) => g.detentor))),
+  }), [historyLines]);
+  const shownHistory = useMemo(() => historyLines.filter((g) =>
+    (hf.anos.size === 0 || hf.anos.has(g.ano)) &&
+    (hf.dias.size === 0 || hf.dias.has(g.dia)) &&
+    (hf.horarios.size === 0 || hf.horarios.has(normalizeHorario(g.horario.substring(0, 5)))) &&
+    (hf.detentores.size === 0 || hf.detentores.has(g.detentor))
+  ), [historyLines, hf]);
 
   // Ranking por clube — sempre 5 jogos; encaixa o jogo atual mesmo em outra temporada.
   const rankings = useMemo(() => {
@@ -327,7 +375,9 @@ export default function JogoPage() {
             </div>
 
             <div className="flex flex-col gap-5">
-              {rankings.map(({ club, total, currentPos, win }) => (
+              {rankings.map(({ club, total, currentPos, win }) => {
+                const col = teamColor(club);
+                return (
                 <div key={club}>
                   <div className="flex items-center gap-2 mb-2">
                     <TeamLogo team={club} size={20} />
@@ -340,8 +390,8 @@ export default function JogoPage() {
                     <div className="flex flex-col gap-1.5">
                       {win.map(({ g, pos, current }) => (
                         <div key={`${g.ano}-${g.rodada}-${g.mandante}`} className="flex items-center gap-2 px-3 py-2 rounded-lg"
-                          style={current ? { background: "rgba(59,130,246,0.14)", border: "1px solid rgba(59,130,246,0.4)" } : { border: "1px solid rgba(255,255,255,0.05)" }}>
-                          <span className="w-7 shrink-0 tabular-nums font-bold text-sm" style={{ color: current ? "#93c5fd" : "rgba(255,255,255,0.4)" }}>{pos}º</span>
+                          style={current ? { background: `${col}22`, border: `1px solid ${col}66` } : { border: "1px solid rgba(255,255,255,0.05)" }}>
+                          <span className="w-7 shrink-0 tabular-nums font-bold text-sm" style={{ color: current ? col : "rgba(255,255,255,0.4)" }}>{pos}º</span>
                           <span className="text-xs font-bold tabular-nums shrink-0 w-9" style={{ color: SEASON_COLORS[g.ano] }}>{g.ano}</span>
                           <Matchup m={g.mandante} v={g.visitante} />
                           <span className="text-white/40 tabular-nums text-xs ml-1 whitespace-nowrap capitalize">{g.dia} {normalizeHorario(g.horario.substring(0, 5))}</span>
@@ -351,27 +401,36 @@ export default function JogoPage() {
                     </div>
                   )}
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
           {/* Histórico do confronto — uma linha por detentor */}
           <div className="glass rounded-2xl p-5">
-            <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+            <div className="flex items-center justify-between gap-2 mb-3">
               <h2 className="text-sm font-semibold text-white/50 uppercase tracking-widest">Histórico do confronto</h2>
-              {historyDetentores.length > 1 && (
-                <div className="flex items-center gap-1.5">
-                  {historyDetentores.map((d) => {
-                    const active = histFilter.size === 0 || histFilter.has(d);
-                    return (
-                      <button key={d} type="button" onClick={() => toggleHistDet(d)} title={`Filtrar: ${d}`}
-                        className="transition-opacity" style={{ opacity: active ? 1 : 0.3 }}>
-                        <DetLogo det={d} size={15} />
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
+              <div className="relative">
+                <button type="button" onClick={() => setHistOpen((o) => !o)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${histActiveCount > 0 ? "bg-blue-600/20 text-blue-300 border-blue-500/40" : "border-white/10 text-white/50 hover:text-white/70"}`}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 4h18l-7 8v6l-4 2v-8z"/></svg>
+                  Filtros{histActiveCount > 0 ? ` (${histActiveCount})` : ""}
+                </button>
+                {histOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setHistOpen(false)} />
+                    <div className="absolute right-0 top-full mt-2 z-50 w-64 max-h-[70vh] overflow-y-auto no-scrollbar glass-strong rounded-xl p-4 flex flex-col gap-3 shadow-2xl">
+                      <HistCat label="Temporada" opts={histOpts.anos} isActive={(v) => hf.anos.has(v as number)} onToggle={(v) => toggleHf("anos", v)} colorize={(v) => SEASON_COLORS[v as number]} />
+                      <HistCat label="Dia" opts={histOpts.dias} isActive={(v) => hf.dias.has(v as string)} onToggle={(v) => toggleHf("dias", v)} />
+                      <HistCat label="Horário" opts={histOpts.horarios} isActive={(v) => hf.horarios.has(v as string)} onToggle={(v) => toggleHf("horarios", v)} />
+                      <HistCat label="Detentor" opts={histOpts.detentores} isActive={(v) => hf.detentores.has(v as string)} onToggle={(v) => toggleHf("detentores", v)} />
+                      {histActiveCount > 0 && (
+                        <button type="button" onClick={clearHf} className="text-xs text-blue-400 hover:text-blue-300 self-start mt-1">Limpar filtros</button>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
             {shownHistory.length === 0 ? (
               <p className="text-sm text-white/30">Sem registros para o filtro selecionado.</p>
