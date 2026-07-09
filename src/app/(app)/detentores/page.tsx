@@ -397,17 +397,17 @@ function GameCard({ dot, detentor, locked, onUnlock, mode }: {
       <Sep />
       <div className="w-9 flex items-center justify-center shrink-0 font-bold" style={{ color }}>{dot.season}</div>
       <Sep />
-      <div className="w-[82px] flex items-center shrink-0 px-2">
+      <div className="w-[86px] flex items-center justify-center shrink-0 min-w-0 text-white/40">
         {dayStr && timeStr ? (
-          <><span className="w-[26px] text-right text-white/40">{dayStr}</span><span className="text-white/20 px-[5px]">·</span><span className="text-left text-white/40 tabular-nums">{timeStr}</span></>
+          <><span>{dayStr}</span><span className="text-white/20 px-[5px]">·</span><span className="tabular-nums">{timeStr}</span></>
         ) : timeStr ? (
-          <span className="text-white/40 tabular-nums">{timeStr}</span>
+          <span className="tabular-nums">{timeStr}</span>
         ) : (
-          <span className="mx-auto text-white/15">—</span>
+          <span className="text-white/15">—</span>
         )}
       </div>
       <Sep />
-      <div className="flex items-center gap-1 px-2 py-1 shrink-0">
+      <div className="w-[60px] flex items-center justify-center gap-1 py-1 shrink-0 min-w-0">
         {team
           ? <><TeamLogo team={team.mandante} size={14} /><span className="text-white/20 text-[10px]">vs</span><TeamLogo team={team.visitante} size={14} /></>
           : <span className="text-white/20">—</span>
