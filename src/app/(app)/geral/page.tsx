@@ -4,6 +4,7 @@ import { games, DETENTORES, DETENTOR_COLORS, SEASON_COLORS, Game } from "@/data/
 import { LOGOS } from "@/data/logos";
 import { getMetric as getMetricBase, formatMetric as formatMetricBase, avg, normalizeHorario, parseDate } from "@/lib/stats";
 import TeamLogo from "@/components/TeamLogo";
+import { matchHref } from "@/lib/gameLink";
 
 // Na página Geral, a Globo é exibida em pontos PNT por padrão (como as demais
 // emissoras de TV). Amazon/YouTube seguem em espectadores.
@@ -199,32 +200,28 @@ function buildTimeline(season: 2025 | 2026): DayCol[] {
   });
 }
 
-function MatchCard({ match, isPinned, onPin }: { match: MatchInDay; isPinned: boolean; onPin: () => void }) {
+function MatchCard({ match }: { match: MatchInDay }) {
   const [hovered, setHovered] = useState(false);
-  const isElevated = hovered || isPinned;
 
   return (
-    <div
+    <a
+      href={matchHref(match)}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      onClick={onPin}
       style={{
-        transform: isElevated ? "scale(1.35)" : "scale(1)",
+        display: "block", textDecoration: "none",
+        transform: hovered ? "scale(1.35)" : "scale(1)",
         transformOrigin: "top center",
         transition: "transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease",
-        boxShadow: isPinned
-          ? "0 0 0 1.5px rgba(96,165,250,0.85), 0 0 24px rgba(60,100,255,0.4)"
-          : isElevated
-          ? "0 10px 32px rgba(0,0,0,0.75)"
-          : undefined,
-        background: isElevated ? "rgba(10, 13, 28, 0.98)" : "rgba(18, 22, 42, 0.50)",
-        backdropFilter: isElevated ? "none" : "blur(12px)",
+        boxShadow: hovered ? "0 10px 32px rgba(0,0,0,0.75)" : undefined,
+        background: hovered ? "rgba(10, 13, 28, 0.98)" : "rgba(18, 22, 42, 0.50)",
+        backdropFilter: hovered ? "none" : "blur(12px)",
         cursor: "pointer",
-        zIndex: isElevated ? 20 : 1,
+        zIndex: hovered ? 20 : 1,
         position: "relative",
         borderRadius: 8,
         padding: "8px 10px",
-        border: isPinned ? "1px solid rgba(96,165,250,0.7)" : isElevated ? "1px solid rgba(255,255,255,0.22)" : "1px solid rgba(255,255,255,0.07)",
+        border: hovered ? "1px solid rgba(255,255,255,0.22)" : "1px solid rgba(255,255,255,0.07)",
       }}
     >
       <div className="flex items-center justify-between mb-1.5">
@@ -250,13 +247,12 @@ function MatchCard({ match, isPinned, onPin }: { match: MatchInDay; isPinned: bo
           </span>
         </div>
       ))}
-    </div>
+    </a>
   );
 }
 
 function Timeline({ season, onSeasonChange }: { season: 2025 | 2026; onSeasonChange: (s: 2025 | 2026) => void }) {
   const dayCols = useMemo(() => buildTimeline(season), [season]);
-  const [pinnedMatches, setPinnedMatches] = useState<Set<string>>(new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Group consecutive days with the same single rodada
@@ -306,25 +302,8 @@ function Timeline({ season, onSeasonChange }: { season: 2025 | 2026; onSeasonCha
     };
   }, []);
 
-  const handlePin = (key: string) => {
-    setPinnedMatches((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) { next.delete(key); } else if (next.size < 5) { next.add(key); }
-      return next;
-    });
-  };
-
   return (
     <div className="mb-4">
-      {pinnedMatches.size > 0 && (
-        <div className="flex justify-end mb-2">
-          <button onClick={() => setPinnedMatches(new Set())}
-            className="text-[11px] text-white/30 hover:text-white/55 transition-colors border border-white/[0.07] rounded-lg px-2.5 py-1">
-            Limpar {pinnedMatches.size} fixado{pinnedMatches.size > 1 ? "s" : ""}
-          </button>
-        </div>
-      )}
-
       <div ref={scrollRef}
         style={{ overflowX: "auto", overflowY: "visible", scrollbarWidth: "none" } as React.CSSProperties}
         className="pb-6">
@@ -370,15 +349,15 @@ function Timeline({ season, onSeasonChange }: { season: 2025 | 2026; onSeasonCha
                                     Rod. {rod}
                                   </div>
                                   {matches.map((match) => (
-                                    <div key={match.key} style={{ marginBottom: 4, overflow: "visible", position: "relative", zIndex: pinnedMatches.has(match.key) ? 20 : 1 }}>
-                                      <MatchCard match={match} isPinned={pinnedMatches.has(match.key)} onPin={() => handlePin(match.key)} />
+                                    <div key={match.key} style={{ marginBottom: 4, overflow: "visible", position: "relative", zIndex: 1 }}>
+                                      <MatchCard match={match} />
                                     </div>
                                   ))}
                                 </div>
                               ))
                             : day.matches.map((match) => (
-                                <div key={match.key} style={{ marginBottom: 4, overflow: "visible", position: "relative", zIndex: pinnedMatches.has(match.key) ? 20 : 1 }}>
-                                  <MatchCard match={match} isPinned={pinnedMatches.has(match.key)} onPin={() => handlePin(match.key)} />
+                                <div key={match.key} style={{ marginBottom: 4, overflow: "visible", position: "relative", zIndex: 1 }}>
+                                  <MatchCard match={match} />
                                 </div>
                               ))
                           }
@@ -506,7 +485,7 @@ function RankingCard({ title, type }: { title: string; type: "top10" | "clubs" |
       ) : type === "top10" ? (
         <ScrollableRows>
           {data.top10.map((g, idx) => (
-            <div key={idx} className="flex items-center border-t border-white/[0.04] hover:bg-white/[0.02] transition-colors px-4 gap-3"
+            <a key={idx} href={matchHref(g)} className="flex items-center border-t border-white/[0.04] hover:bg-white/[0.04] transition-colors px-4 gap-3 cursor-pointer"
               style={{ minHeight: ROW_H }}>
               <span className="text-sm text-white/25 tabular-nums w-5 shrink-0">{idx + 1}</span>
               <div className="flex-1 min-w-0">
@@ -523,7 +502,7 @@ function RankingCard({ title, type }: { title: string; type: "top10" | "clubs" |
               <span className="text-base font-bold text-white tabular-nums whitespace-nowrap shrink-0">
                 {formatMetric(g.detentor, getMetric(g))}
               </span>
-            </div>
+            </a>
           ))}
         </ScrollableRows>
       ) : type === "clubs" ? (
